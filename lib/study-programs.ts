@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma"
+import fs from "node:fs"
+import path from "node:path"
 
 export type ProgramCard = {
 	id: number
+	detailPath: string
 	title: string
 	degreeLevel: string
 	academicDegree: string
@@ -16,6 +19,7 @@ export type ProgramCard = {
 	state: string
 	img: string
 	heroImageUrl: string
+	fallbackImageUrl: string
 	authorImg: string
 	campusLocation: string
 	startTerms: string
@@ -124,11 +128,54 @@ export async function getProgramDetail(id?: string) {
 	return toProgramDetail(program, relatedPrograms.map(toProgramCard))
 }
 
+export async function getProgramDetailBySlugs(universitySlug: string, degreeSlug: string, programSlug: string) {
+	const idFromSlug = Number(programSlug.match(/-(\d+)$/)?.[1])
+	const where = Number.isFinite(idFromSlug) && idFromSlug > 0
+		? { id: idFromSlug }
+		: { slug: programSlug }
+
+	const program = await prisma.degreeProgram.findFirst({
+		where,
+		include: {
+			university: true,
+			translations: {
+				where: { locale: "en" },
+				take: 1,
+			},
+		},
+	})
+
+	if (!program) {
+		return null
+	}
+
+	const detail = await getProgramDetail(String(program.id))
+	if (!detail) {
+		return null
+	}
+
+	return {
+		program: detail,
+		canonicalPath: programDetailPath(detail),
+		isCanonical: programDetailPath(detail) === `/courses/${universitySlug}/${degreeSlug}/${programSlug}`,
+	}
+}
+
+export function programDetailPath(program: Pick<ProgramCard, "id" | "title" | "degreeLevel" | "universityName">) {
+	return `/courses/${slugify(program.universityName, "university")}/${slugify(program.degreeLevel, "degree")}/${slugify(program.title, "program")}-${program.id}`
+}
+
 function toProgramCard(program: any): ProgramCard {
 	const universityCountry = inferCountry(program.university.state, program.university.location, program.campusLocation)
 
 	return {
 		id: program.id,
+		detailPath: programDetailPath({
+			id: program.id,
+			title: program.programName,
+			degreeLevel: program.degreeLevel || "Degree program",
+			universityName: program.university.name,
+		}),
 		title: program.programName,
 		degreeLevel: program.degreeLevel || "Degree program",
 		academicDegree: program.academicDegree || "",
@@ -143,6 +190,7 @@ function toProgramCard(program: any): ProgramCard {
 		state: program.university.state || "",
 		img: program.image || "img-1.png",
 		heroImageUrl: program.heroImageUrl || "",
+		fallbackImageUrl: fallbackImageForProgram(program.id),
 		authorImg: program.authorImage || "author-1.png",
 		campusLocation: program.campusLocation || program.university.location || "",
 		startTerms: program.startTerms || "",
@@ -159,6 +207,39 @@ function toProgramCard(program: any): ProgramCard {
 		tuitionType: program.tuitionType || "",
 		workExperienceRequired: program.workExperienceRequired || "",
 		metadataConfidence: program.metadataConfidence || "",
+	}
+}
+
+function slugify(value: string, fallback: string) {
+	const slug = String(value || "")
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/&/g, " and ")
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.replace(/-{2,}/g, "-")
+	return slug || fallback
+}
+
+const fallbackImageUrls = loadFallbackImageUrls()
+
+function fallbackImageForProgram(id: number) {
+	if (!fallbackImageUrls.length) {
+		return "/assets/imgs/pages/learning/page-signle-courses/img-1.png"
+	}
+	return fallbackImageUrls[Math.abs(id) % fallbackImageUrls.length]
+}
+
+function loadFallbackImageUrls() {
+	const fallbackDir = path.join(process.cwd(), "public", "assets", "imgs", "study-dach-pics")
+	try {
+		return fs.readdirSync(fallbackDir)
+			.filter((file) => /\.(avif|gif|jpe?g|png|webp)$/i.test(file))
+			.sort((a, b) => a.localeCompare(b))
+			.map((file) => `/assets/imgs/study-dach-pics/${file}`)
+	} catch {
+		return []
 	}
 }
 

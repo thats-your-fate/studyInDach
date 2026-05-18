@@ -27,7 +27,7 @@ export default function Section2({ program }: Section2Props) {
 	}
 
 	const applyUrl = program.applicationUrl || program.programUrl
-	const heroImage = program.heroImageUrl || "/assets/imgs/pages/learning/page-signle-courses/img-1.png"
+	const heroImage = extractImageUrl(program.heroImageUrl) || program.fallbackImageUrl
 	const quickFacts: Fact[] = [
 		{ icon: "ri-graduation-cap-line", label: "Degree", value: program.academicDegree || program.degreeLevel },
 		{ icon: "ri-time-line", label: "Duration", value: program.duration },
@@ -180,6 +180,12 @@ export default function Section2({ program }: Section2Props) {
 							</div>
 						</section>
 
+						<section className="program-detail-section">
+							<div className="university-panel">
+								<p className="mb-0">Program data is collected from public university sources and may be incomplete or outdated. Always verify deadlines, fees, and admission requirements on the official university website.</p>
+							</div>
+						</section>
+
 						{program.relatedPrograms.length > 0 && (
 							<section className="program-detail-section">
 								<div className="section-heading">
@@ -232,7 +238,7 @@ function InfoCard({ label, value, icon }: { label: string; value: string; icon: 
 
 function RelatedProgramCard({ program }: { program: ProgramCard }) {
 	return (
-		<Link href={`/single-courses?id=${program.id}`} className="related-program-card">
+		<Link href={program.detailPath} className="related-program-card">
 			<span>{program.degreeLevel}</span>
 			<h3>{program.title}</h3>
 			<p>{program.universityName}</p>
@@ -305,6 +311,10 @@ function splitList(value: string) {
 		.split(/[;|]/)
 		.map((item) => item.trim())
 		.filter(Boolean)
+}
+
+function extractImageUrl(value: string) {
+	return value.match(/https?:\/\/[^\s,;|]+/)?.[0] || ""
 }
 
 function initials(value: string) {

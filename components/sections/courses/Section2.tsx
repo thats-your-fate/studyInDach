@@ -339,7 +339,7 @@ function CourseCard({ course }: { course: ProgramCard }) {
 
 	return (
 		<div className="course-card-modern h-100">
-			<Link href={`/single-courses?id=${course.id}`} className="course-card-image">
+			<Link href={course.detailPath} className="course-card-image">
 				<img src={imageSrc} alt={course.title} />
 				<span>{course.internationalStudentFit || "Fit unknown"} fit</span>
 			</Link>
@@ -349,7 +349,7 @@ function CourseCard({ course }: { course: ProgramCard }) {
 					<span>{course.country}</span>
 				</div>
 				<h5>
-					<Link href={`/single-courses?id=${course.id}`}>{course.title}</Link>
+					<Link href={course.detailPath}>{course.title}</Link>
 				</h5>
 				<p className="course-university">{course.universityName}</p>
 				<div className="course-facts">
@@ -361,7 +361,7 @@ function CourseCard({ course }: { course: ProgramCard }) {
 				<div className="course-card-tags">
 					{tags.map((tag) => <span key={tag}>{tag}</span>)}
 				</div>
-				<Link href={`/single-courses?id=${course.id}`} className="course-card-action">View Program</Link>
+				<Link href={course.detailPath} className="course-card-action">View Program</Link>
 			</div>
 		</div>
 	)
@@ -570,7 +570,7 @@ function normalize(value: string) {
 
 function cardImageSrc(course: ProgramCard) {
 	const heroImageMatch = course.heroImageUrl.match(/https?:\/\/[^\s,;|]+/)
-	return heroImageMatch?.[0] || `/assets/imgs/pages/learning/page-home/home-section-3/${course.img}`
+	return heroImageMatch?.[0] || course.fallbackImageUrl
 }
 
 function compactLocation(course: ProgramCard) {

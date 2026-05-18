@@ -10,12 +10,12 @@ export default function Section3() {
 						<div className="col-lg-4">
 							<span className="btn-text fw-bold text-primary">
 								<i className="ri-book-marked-fill opacity-25" />
-								&nbsp; industry experts market
+								&nbsp; study discovery
 							</span>
 							<h2 className="pb-8 border-bottom text-anime-style-3">
-								Online courses from the world's leading
+								Search programs with normalized
 								<span className="position-relative">
-									experts.
+									metadata.
 									<span className="position-absolute top-0 start-0 pt-5 z-0 d-none d-md-block">
 										<svg className="stroke-green-3" xmlns="http://www.w3.org/2000/svg" width={186} height={22} viewBox="0 0 186 22" fill="none">
 											<path d="M2 20C49.3597 12.6711 152.063 -1.06621 184 2.61526" stroke="#D5D52B" strokeWidth={3} strokeLinecap="round" />
@@ -24,10 +24,10 @@ export default function Section3() {
 								</span>
 							</h2>
 							<div className="d-flex align-items-center py-3">
-								<img className="icon-shape icon-50 rounded-circle border border-2 border-white" src="/assets/imgs/pages/learning/page-home/home-section-2/avatar-1.png" alt="AstraX" />
-								<img className="icon-shape icon-50 rounded-circle border border-2 border-white ms--10" src="/assets/imgs/pages/learning/page-home/home-section-2/avatar-2.png" alt="AstraX" />
-								<img className="icon-shape icon-50 rounded-circle border border-2 border-white ms--10" src="/assets/imgs/pages/learning/page-home/home-section-2/avatar-3.png" alt="AstraX" />
-								<img className="icon-shape icon-50 rounded-circle border border-2 border-white ms--10" src="/assets/imgs/pages/learning/page-home/home-section-2/avatar-4.png" alt="AstraX" />
+								<img className="icon-shape icon-50 rounded-circle border border-2 border-white" src="/assets/imgs/pages/learning/page-home/home-section-2/avatar-1.png" alt="Student profile" />
+								<img className="icon-shape icon-50 rounded-circle border border-2 border-white ms--10" src="/assets/imgs/pages/learning/page-home/home-section-2/avatar-2.png" alt="Student profile" />
+								<img className="icon-shape icon-50 rounded-circle border border-2 border-white ms--10" src="/assets/imgs/pages/learning/page-home/home-section-2/avatar-3.png" alt="Student profile" />
+								<img className="icon-shape icon-50 rounded-circle border border-2 border-white ms--10" src="/assets/imgs/pages/learning/page-home/home-section-2/avatar-4.png" alt="Student profile" />
 								<div className=" ms-4">
 									<div className="d-flex gap-2">
 										<i className="bi bi-star-fill text-yellow fs-7" />
@@ -36,7 +36,7 @@ export default function Section3() {
 										<i className="bi bi-star-fill text-yellow fs-7" />
 										<i className="bi bi-star-fill text-yellow fs-7" />
 									</div>
-									<h6 className="fs-7 text-uppercase">Victoria L. Davis</h6>
+									<h6 className="fs-7 text-uppercase">International students</h6>
 								</div>
 							</div>
 						</div>
@@ -68,10 +68,9 @@ export default function Section3() {
 									</svg>
 								</Link>
 								<div className="content">
-									<h6>Flexible schedule</h6>
+									<h6>Filter by what matters</h6>
 									<p className="mb-0">
-										We offer a wide range of digital marketing services that cater to <br />
-										business of all sizes.
+										Narrow by country, degree level, study field, language, tuition, and study mode.
 									</p>
 								</div>
 							</div>
@@ -87,10 +86,9 @@ export default function Section3() {
 									</svg>
 								</Link>
 								<div className="content">
-									<h6>Expert instructor</h6>
+									<h6>Multilingual program pages</h6>
 									<p className="mb-0">
-										We offer a wide range of digital marketing services that cater to <br />
-										business of all sizes.
+										Explore localized summaries and search metadata for English, Spanish, and Portuguese users.
 									</p>
 								</div>
 							</div>
@@ -104,10 +102,9 @@ export default function Section3() {
 									</svg>
 								</Link>
 								<div className="content">
-									<h6>Pocket friendly</h6>
+									<h6>Public-source data</h6>
 									<p className="mb-0">
-										We offer a wide range of digital marketing services that cater to <br />
-										business of all sizes.
+										Program details are collected from university pages and linked back to official sources.
 									</p>
 								</div>
 							</div>
@@ -122,10 +119,9 @@ export default function Section3() {
 									</svg>
 								</Link>
 								<div className="content">
-									<h6>24/7 online support</h6>
+									<h6>Fast comparison</h6>
 									<p className="mb-0">
-										We offer a wide range of digital marketing services that cater to <br />
-										business of all sizes.
+										Compare duration, language, admission restriction, tuition type, and location quickly.
 									</p>
 								</div>
 							</div>

@@ -890,6 +890,7 @@ body .bg-secondary-2 {
 
 .course-card-tags {
   margin-top: 16px;
+  margin-bottom: 12px;
 }
 
 .course-card-tags span {
@@ -979,7 +980,7 @@ body .bg-secondary-2 {
 }
 
 .program-detail-page {
-  background: #f5f6ea;
+  background: linear-gradient(180deg, var(--tc-theme-primary) 0 230px, #f5f6ea 230px 100%);
   padding: 170px 0 110px;
 }
 

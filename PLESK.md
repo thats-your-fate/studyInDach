@@ -10,6 +10,8 @@ Recommended Plesk settings:
 - Application mode: `production`
 - Node command: your server's supported Node.js version, preferably Node 20+
 
+Do not add a `public/.htaccess` Passenger override for this project. Plesk should own the Passenger configuration from the Node.js panel; extra Passenger directives in `.htaccess` can cause a 500 on some installations.
+
 Build command:
 
 ```bash
