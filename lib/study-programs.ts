@@ -6,6 +6,7 @@ export type ProgramCard = {
 	id: number
 	detailPath: string
 	title: string
+	originalTitle: string
 	degreeLevel: string
 	academicDegree: string
 	subjectArea: string
@@ -224,8 +225,8 @@ export async function getProgramDetailBySlugs(universitySlug: string, degreeSlug
 	}
 }
 
-export function programDetailPath(program: Pick<ProgramCard, "id" | "title" | "degreeLevel" | "universityName">) {
-	return `/courses/${slugify(program.universityName, "university")}/${slugify(program.degreeLevel, "degree")}/${slugify(program.title, "program")}-${program.id}`
+export function programDetailPath(program: Pick<ProgramCard, "id" | "title" | "degreeLevel" | "universityName"> & { originalTitle?: string }) {
+	return `/courses/${slugify(program.universityName, "university")}/${slugify(program.degreeLevel, "degree")}/${slugify(program.originalTitle || program.title, "program")}-${program.id}`
 }
 
 function toProgramCard(program: any): ProgramCard {
@@ -240,6 +241,7 @@ function toProgramCard(program: any): ProgramCard {
 			universityName: program.university.name,
 		}),
 		title: program.programName,
+		originalTitle: program.programName,
 		degreeLevel: program.degreeLevel || "Degree program",
 		academicDegree: program.academicDegree || "",
 		subjectArea: program.subjectArea || "Study program",
@@ -308,9 +310,13 @@ function loadFallbackImageUrls() {
 
 function toProgramDetail(program: any, relatedPrograms: ProgramCard[] = []): ProgramDetail {
 	const translation = program.translations?.[0]
+	const originalTitle = program.programName || ""
+	const localizedTitle = translation?.localizedProgramName || originalTitle
 
 	return {
 		...toProgramCard(program),
+		title: localizedTitle,
+		originalTitle,
 		programUrl: program.programUrl,
 		campusLocation: program.campusLocation || program.university.location || "",
 		startTerms: program.startTerms || "",

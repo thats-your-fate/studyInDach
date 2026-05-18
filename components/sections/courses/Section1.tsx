@@ -1,5 +1,9 @@
 
-export default function Section1() {
+type Section1Props = {
+	title?: string
+}
+
+export default function Section1({ title = "Find your program" }: Section1Props) {
 	return (
 		<>
 
@@ -22,17 +26,7 @@ export default function Section1() {
 								<i className="ri-git-repository-line text-green-3" />
 								&nbsp; Study programs in DACH
 							</span>
-							<h1 className="text-white ds-1 lh-sm mb-0 text-anime-style-2">
-								Find your
-								<span className="position-relative">
-									program
-									<span className="position-absolute top-0 start-0 pt-5 z-0 d-none d-md-block">
-										<svg xmlns="http://www.w3.org/2000/svg" width={370} height={22} viewBox="0 0 370 22" fill="none">
-											<path d="M1.5 20.0001C97 12.8334 304.1 -0.599919 368.5 3.00008" stroke="#D5D52B" strokeWidth={3} strokeLinecap="round" />
-										</svg>
-									</span>
-								</span>
-							</h1>
+							<h1 className="text-white ds-1 lh-sm mb-0 text-anime-style-2">{title}</h1>
 						</div>
 					</div>
 				</div>

@@ -16,6 +16,7 @@ import "/public/assets/css/style.css"
 
 
 import type { Metadata } from "next"
+import { organizationJsonLd, SITE_URL } from "@/lib/seo"
 import { Space_Grotesk,Rubik } from "next/font/google"
 
 const groteskHeading = Space_Grotesk({
@@ -40,6 +41,7 @@ const rubik = Rubik({
 
 
 export const metadata: Metadata = {
+    metadataBase: new URL(SITE_URL),
     title: "Study in DACH - Degree Programs in Germany, Austria, and Switzerland",
     description: "Discover degree programs across Germany, Austria, and Switzerland.",
 }
@@ -53,7 +55,13 @@ export default function RootLayout({
         <html lang="en">
             <body 
 			className={`${groteskHeading.variable} ${groteskBody.variable} ${rubik.variable}`}
-			>{children}</body>
+			>
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+                />
+                {children}
+            </body>
         </html>
     )
 }

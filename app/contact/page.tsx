@@ -2,9 +2,23 @@ import Layout from "@/components/layout/Layout"
 import Section1 from "@/components/sections/contact/Section1"
 import Section2, { type ContactProgram } from "@/components/sections/contact/Section2"
 import { prisma } from "@/lib/prisma"
+import { absoluteUrl } from "@/lib/seo"
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+	title: "Free Study Orientation | Study in DACH",
+	description: "Contact Study in DACH for free orientation about degree programs in Germany, Austria, and Switzerland.",
+	robots: {
+		index: false,
+		follow: true,
+	},
+	alternates: {
+		canonical: absoluteUrl("/contact"),
+	},
+}
 
 type ContactSearchParams = {
 	programId?: string

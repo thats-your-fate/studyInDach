@@ -55,6 +55,7 @@ export default function Section2({ program }: Section2Props) {
 		["Careers", "careers"],
 		["University", "university"],
 	]
+	const showOriginalTitle = program.originalTitle && program.originalTitle !== program.title
 
 	return (
 		<section className="program-detail-page">
@@ -69,14 +70,13 @@ export default function Section2({ program }: Section2Props) {
 							</div>
 						</div>
 						<h1>{program.title}</h1>
+						{showOriginalTitle && <p className="program-original-title">Original title: {program.originalTitle}</p>}
 						<div className="program-hero-chips">
 							{heroChips.map((chip) => <span key={chip}>{chip}</span>)}
 						</div>
 						{program.summary && <p className="program-hero-summary">{program.summary}</p>}
 						<div className="program-hero-actions">
 							<Link href={applyUrl} target="_blank" className="btn btn-primary">Apply now</Link>
-							<button type="button" className="program-secondary-action"><i className="ri-bookmark-line" /> Save</button>
-							<button type="button" className="program-secondary-action"><i className="ri-scales-3-line" /> Compare</button>
 						</div>
 					</div>
 
@@ -132,7 +132,7 @@ export default function Section2({ program }: Section2Props) {
 
 						<section className="program-detail-section">
 							<div className="section-heading">
-								<p>AI summary</p>
+								<p>Program summary</p>
 								<h2>Good fit, outcomes, and skills</h2>
 							</div>
 							<div className="program-summary-grid">
@@ -176,7 +176,7 @@ export default function Section2({ program }: Section2Props) {
 							</div>
 							<div className="career-list">
 								{splitList(program.careerOutcomes || fallbackCareers(program)).map((career) => (
-									<span key={career}>{career}</span>
+									<div key={career} className="career-card"><i className="ri-briefcase-line" /><span>{career}</span></div>
 								))}
 							</div>
 						</section>
@@ -189,6 +189,7 @@ export default function Section2({ program }: Section2Props) {
 							<div className="university-panel">
 								<p>{program.universityName} is located in {[program.location, program.state, program.country].filter(Boolean).join(", ")}. Open the official program page for the latest application details, deadlines, and documents.</p>
 								<div className="university-panel-actions">
+									<Link href={`/universities/${program.universityId}`}>University profile</Link>
 									<Link href={program.websiteUrl || program.programUrl} target="_blank">University website</Link>
 									{program.contactEmail && <a href={`mailto:${program.contactEmail}`}>Contact program</a>}
 								</div>
@@ -223,7 +224,6 @@ export default function Section2({ program }: Section2Props) {
 				</div>
 			</div>
 			<div className="program-mobile-cta">
-				<button type="button"><i className="ri-bookmark-line" /> Save</button>
 				<Link href={applyUrl} target="_blank">Apply</Link>
 			</div>
 		</section>

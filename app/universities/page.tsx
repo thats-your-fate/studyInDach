@@ -32,7 +32,7 @@ export default async function Universities() {
 										<span>{[university.location, university.state].filter(Boolean).join(", ") || "DACH"}</span>
 										<strong>{university.name}</strong>
 										<p className="mb-0 mt-2">{university._count.programs} programs in the database</p>
-										<Link href="/courses" className="d-inline-block mt-3">View programs</Link>
+										<Link href={`/universities/${university.id}`} className="d-inline-block mt-3">View university profile</Link>
 									</div>
 								</div>
 							</div>

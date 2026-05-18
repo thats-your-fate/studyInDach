@@ -1123,7 +1123,7 @@ body .bg-secondary-2 {
 }
 
 .program-hero-chips span,
-.career-list span {
+.career-card {
   border-radius: 999px;
   background: #eef3e7;
   color: var(--tc-theme-primary);
@@ -1132,12 +1132,24 @@ body .bg-secondary-2 {
   font-weight: 800;
 }
 
+.career-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .program-hero-summary {
   max-width: 820px;
   margin: 24px 0 0;
   color: #3f4f4a;
   font-size: 18px;
   line-height: 1.65;
+}
+
+.program-original-title {
+  margin: -8px 0 18px;
+  color: #61716c;
+  font-weight: 700;
 }
 
 .program-hero-actions {
@@ -1433,7 +1445,7 @@ body .bg-secondary-2 {
   margin-top: 5px;
 }
 
-.career-list span {
+.career-card {
   background: var(--tc-system-white);
   border: 1px solid rgba(1, 71, 60, 0.12);
 }

@@ -451,11 +451,11 @@ function ChipGroup({
 
 function CourseCard({ course }: { course: ProgramCard }) {
 	const imageSrc = cardImageSrc(course)
-	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus].filter(Boolean).slice(0, 3)
-	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree), course.country].filter(Boolean))
+	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus].filter(isUsefulValue).slice(0, 3)
+	const metaItems = uniqueInOrder([course.degreeLevel, course.location, course.country].filter(isUsefulValue))
 	const degreeLabel = metaItems.join(" · ")
-	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(Boolean).join(" / ") || course.studyMode || "Study mode varies"
-	const tuition = course.tuitionType || course.tuitionOrFees || "Tuition unknown"
+	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).join(" / ") || usefulValue(course.studyMode)
+	const tuition = usefulValue(course.tuitionType) || usefulValue(course.tuitionOrFees)
 	const summary = course.summary?.trim()
 
 	return (
@@ -467,17 +467,16 @@ function CourseCard({ course }: { course: ProgramCard }) {
 			<div className="course-card-body">
 				<div className="course-card-meta">
 					<span>{degreeLabel || "Degree program"}</span>
-					<span>{course.country}</span>
 				</div>
 				<h5>
 					<Link href={course.detailPath}>{course.title}</Link>
 				</h5>
 				<p className="course-university">{course.universityName}</p>
 				<div className="course-facts">
-					<span><i className="ri-map-pin-line" /> {compactLocation(course)}</span>
-					<span><i className="ri-translate-2" /> {compactLanguages(course.languageOfInstruction)}</span>
-					<span><i className="ri-bank-line" /> {tuition}</span>
-					<span><i className="ri-computer-line" /> {studyMode}</span>
+					{usefulValue(compactLocation(course)) && <span><i className="ri-map-pin-line" /> {compactLocation(course)}</span>}
+					{usefulValue(compactLanguages(course.languageOfInstruction)) && <span><i className="ri-translate-2" /> {compactLanguages(course.languageOfInstruction)}</span>}
+					{tuition && <span><i className="ri-bank-line" /> {tuition}</span>}
+					{studyMode && <span><i className="ri-computer-line" /> {studyMode}</span>}
 				</div>
 				{summary && <p className="course-card-summary">{summary}</p>}
 				<div className="course-card-tags">
@@ -701,7 +700,7 @@ function normalizeAdmission(value: string) {
 }
 
 function uniqueSorted(values: string[]) {
-	return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value) && value !== "Unknown")))
+	return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => isUsefulValue(value))))
 		.sort((a, b) => a.localeCompare(b))
 }
 
@@ -709,7 +708,7 @@ function uniqueInOrder(values: string[]) {
 	const seen = new Set<string>()
 	return values.filter((value) => {
 		const key = normalize(value)
-		if (!key || seen.has(key) || value === "Unknown") {
+		if (!key || seen.has(key) || !isUsefulValue(value)) {
 			return false
 		}
 		seen.add(key)
@@ -737,7 +736,16 @@ function compactLocation(course: ProgramCard) {
 
 function compactLanguages(value: string) {
 	const languages = uniqueSorted(splitValues(value).map(normalizeLanguage))
-	return languages.slice(0, 2).join(" + ") || "Language varies"
+	return languages.slice(0, 2).join(" + ")
+}
+
+function isUsefulValue(value: string | null | undefined): value is string {
+	const normalized = normalize(String(value || ""))
+	return Boolean(normalized) && !["unknown", "n a", "na", "null", "undefined"].includes(normalized)
+}
+
+function usefulValue(value: string | null | undefined) {
+	return isUsefulValue(value) ? value.trim() : ""
 }
 
 function compactAcademicDegree(value: string) {

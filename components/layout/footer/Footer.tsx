@@ -20,6 +20,8 @@ export default function Footer() {
 											<Link href="/universities"><p className="hover-effect-1 opacity-75 text-white">Universities</p></Link>
 											<Link href="/study-guide"><p className="hover-effect-1 opacity-75 text-white">Study Guide</p></Link>
 											<Link href="/about"><p className="hover-effect-1 opacity-75 text-white">About</p></Link>
+											<Link href="/impressum"><p className="hover-effect-1 opacity-75 text-white">Impressum</p></Link>
+											<Link href="/privacy"><p className="hover-effect-1 opacity-75 text-white">Privacy</p></Link>
 										</div>
 									</div>
 								</div>
