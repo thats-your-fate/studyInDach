@@ -50,6 +50,7 @@ export type CourseFilterKey =
 	| "country"
 	| "degreeLevel"
 	| "studyField"
+	| "university"
 	| "language"
 	| "fullTimeOrPartTime"
 	| "state"
@@ -74,6 +75,7 @@ export const emptyCourseFilters: CourseFilterState = {
 	country: [],
 	degreeLevel: [],
 	studyField: [],
+	university: [],
 	language: [],
 	fullTimeOrPartTime: [],
 	state: [],
@@ -399,6 +401,8 @@ function courseFilterValues(program: ProgramCard, key: CourseFilterKey) {
 			return [program.degreeLevel]
 		case "studyField":
 			return [program.studyField, program.secondaryStudyField, program.subjectArea]
+		case "university":
+			return [program.universityName]
 		case "language":
 			return splitValues(program.languageOfInstruction).map(normalizeLanguage)
 		case "fullTimeOrPartTime":

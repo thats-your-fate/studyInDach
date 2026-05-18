@@ -26,6 +26,7 @@ const emptyFilters: FilterState = {
 	country: [],
 	degreeLevel: [],
 	studyField: [],
+	university: [],
 	language: [],
 	fullTimeOrPartTime: [],
 	state: [],
@@ -45,6 +46,7 @@ const filterLabels: Record<FilterKey, string> = {
 	country: "Country",
 	degreeLevel: "Degree",
 	studyField: "Study field",
+	university: "University",
 	language: "Language",
 	fullTimeOrPartTime: "Pace",
 	state: "State / Canton",
@@ -84,6 +86,7 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 	const [fieldSearch, setFieldSearch] = useState("")
 	const [showMoreFilters, setShowMoreFilters] = useState(false)
 	const [showAdvanced, setShowAdvanced] = useState(false)
+	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
 
 	useEffect(() => {
 		setFilters(initialFilters)
@@ -95,7 +98,7 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 
 	const activeChips = useMemo(() => {
 		return (Object.keys(filters) as FilterKey[]).flatMap((key) =>
-			filters[key].map((value) => ({ key, value, label: `${filterLabels[key]}: ${value}` })),
+			filters[key].map((value) => ({ key, value, label: value })),
 		)
 	}, [filters])
 
@@ -137,6 +140,10 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 	}
 
 	const filteredStudyFields = options.studyField.filter((field) => normalize(field).includes(normalize(fieldSearch)))
+	const visibleStudyFields = expandedGroups.studyField ? filteredStudyFields : filteredStudyFields.slice(0, 12)
+	const toggleExpandedGroup = (group: string) => {
+		setExpandedGroups((current) => ({ ...current, [group]: !current[group] }))
+	}
 
 	return (
 		<section className="study-course-finder position-relative pt-80 pb-120 bg-secondary-2 z-20">
@@ -146,12 +153,15 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 						<div>
 							<p className="fs-7 text-uppercase fw-bold text-primary mb-2">Program finder</p>
 							<h2 className="ds-5 mb-0 text-primary">Find your course in DACH</h2>
-							</div>
-							<div className="course-result-count text-xl-end">
-								<strong>{totalMatching}</strong>
-								<span> of {totalPrograms} programs</span>
-							</div>
+							<p className="course-results-intro mb-0 mt-2">
+								Browse degree programs in Germany, Austria, and Switzerland. Filter by degree level, subject, language, tuition type, and study mode.
+							</p>
 						</div>
+						<div className="course-result-count text-xl-end">
+							<strong>{totalMatching}</strong>
+							<span> of {totalPrograms} programs</span>
+						</div>
+					</div>
 
 					<form className="course-search-box mt-4" onSubmit={(event) => {
 						event.preventDefault()
@@ -177,17 +187,6 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 						</button>
 					</div>
 
-					{activeChips.length > 0 && (
-						<div className="active-filter-row mt-3">
-							{activeChips.map((chip) => (
-								<button key={`${chip.key}-${chip.value}`} type="button" onClick={() => removeFilter(chip.key, chip.value)}>
-									{chip.label}
-									<i className="ri-close-line" />
-								</button>
-							))}
-							<button type="button" className="clear-filters" onClick={clearFilters}>Clear all</button>
-						</div>
-					)}
 				</div>
 
 				<div className={`course-filter-layout mt-5 ${showMoreFilters ? "show-filters" : ""}`}>
@@ -203,41 +202,47 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 						</div>
 
 						<FilterSection title="Academic basics">
-							<CheckboxGroup label="Degree level" filterKey="degreeLevel" options={options.degreeLevel} filters={filters} onToggle={toggleFilter} />
+							<CheckboxGroup label="Degree level" filterKey="degreeLevel" options={options.degreeLevel} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.degreeLevel} onToggleExpanded={() => toggleExpandedGroup("degreeLevel")} />
 							<div className="filter-group">
 								<label>Study field</label>
 								<input className="filter-search-input" value={fieldSearch} onChange={(event) => setFieldSearch(event.target.value)} placeholder="Search study field..." />
 								<div className="checkbox-stack compact">
-									{filteredStudyFields.slice(0, 12).map((option) => (
+									{visibleStudyFields.map((option) => (
 										<label key={option} className="check-row">
 											<input type="checkbox" checked={filters.studyField.includes(option)} onChange={() => toggleFilter("studyField", option)} />
 											<span>{option}</span>
 										</label>
 									))}
 								</div>
+								{filteredStudyFields.length > 12 && (
+									<button type="button" className="filter-show-more" onClick={() => toggleExpandedGroup("studyField")}>
+										{expandedGroups.studyField ? "Show less" : `Show more (${filteredStudyFields.length - 12})`}
+									</button>
+								)}
 							</div>
 						</FilterSection>
 
 						<FilterSection title="Location">
-							<ChipGroup filterKey="country" options={options.country} filters={filters} onToggle={toggleFilter} />
-							<CheckboxGroup label="State / Canton" filterKey="state" options={options.state} filters={filters} onToggle={toggleFilter} />
-							<CheckboxGroup label="City" filterKey="location" options={options.location} filters={filters} onToggle={toggleFilter} />
+							<ChipGroup filterKey="country" options={options.country} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.country} onToggleExpanded={() => toggleExpandedGroup("country")} />
+							<CheckboxGroup label="University" filterKey="university" options={options.university} filters={filters} onToggle={toggleFilter} limit={8} expanded={expandedGroups.university} onToggleExpanded={() => toggleExpandedGroup("university")} />
+							<CheckboxGroup label="State / Canton" filterKey="state" options={options.state} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.state} onToggleExpanded={() => toggleExpandedGroup("state")} />
+							<CheckboxGroup label="City" filterKey="location" options={options.location} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.location} onToggleExpanded={() => toggleExpandedGroup("location")} />
 						</FilterSection>
 
 						<FilterSection title="Language & accessibility">
-							<ChipGroup filterKey="language" options={options.language} filters={filters} onToggle={toggleFilter} />
-							<ChipGroup filterKey="internationalStudentFit" options={options.internationalStudentFit} filters={filters} onToggle={toggleFilter} />
+							<ChipGroup filterKey="language" options={options.language} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.language} onToggleExpanded={() => toggleExpandedGroup("language")} />
+							<ChipGroup filterKey="internationalStudentFit" options={options.internationalStudentFit} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.internationalStudentFit} onToggleExpanded={() => toggleExpandedGroup("internationalStudentFit")} />
 						</FilterSection>
 
 						<FilterSection title="Cost & admission">
-							<ChipGroup filterKey="tuitionType" options={options.tuitionType} filters={filters} onToggle={toggleFilter} />
-							<ChipGroup filterKey="applicationDifficulty" options={options.applicationDifficulty} filters={filters} onToggle={toggleFilter} />
+							<ChipGroup filterKey="tuitionType" options={options.tuitionType} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.tuitionType} onToggleExpanded={() => toggleExpandedGroup("tuitionType")} />
+							<ChipGroup filterKey="applicationDifficulty" options={options.applicationDifficulty} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.applicationDifficulty} onToggleExpanded={() => toggleExpandedGroup("applicationDifficulty")} />
 						</FilterSection>
 
 						<FilterSection title="Flexibility">
-							<ChipGroup filterKey="onlineOrOnCampus" options={options.onlineOrOnCampus} filters={filters} onToggle={toggleFilter} />
-							<ChipGroup filterKey="fullTimeOrPartTime" options={options.fullTimeOrPartTime} filters={filters} onToggle={toggleFilter} />
-							<CheckboxGroup label="Start term" filterKey="startTerms" options={options.startTerms} filters={filters} onToggle={toggleFilter} />
+							<ChipGroup filterKey="onlineOrOnCampus" options={options.onlineOrOnCampus} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.onlineOrOnCampus} onToggleExpanded={() => toggleExpandedGroup("onlineOrOnCampus")} />
+							<ChipGroup filterKey="fullTimeOrPartTime" options={options.fullTimeOrPartTime} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.fullTimeOrPartTime} onToggleExpanded={() => toggleExpandedGroup("fullTimeOrPartTime")} />
+							<CheckboxGroup label="Start term" filterKey="startTerms" options={options.startTerms} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.startTerms} onToggleExpanded={() => toggleExpandedGroup("startTerms")} />
 						</FilterSection>
 
 						<div className="advanced-toggle">
@@ -249,20 +254,31 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 
 						{showAdvanced && (
 							<FilterSection title="Advanced">
-								<CheckboxGroup label="ECTS" filterKey="ects" options={options.ects} filters={filters} onToggle={toggleFilter} />
-								<CheckboxGroup label="Duration" filterKey="duration" options={options.duration} filters={filters} onToggle={toggleFilter} />
-								<ChipGroup filterKey="workExperienceRequired" options={options.workExperienceRequired} filters={filters} onToggle={toggleFilter} />
-								<ChipGroup filterKey="metadataConfidence" options={options.metadataConfidence} filters={filters} onToggle={toggleFilter} />
+								<CheckboxGroup label="ECTS" filterKey="ects" options={options.ects} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.ects} onToggleExpanded={() => toggleExpandedGroup("ects")} />
+								<CheckboxGroup label="Duration" filterKey="duration" options={options.duration} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.duration} onToggleExpanded={() => toggleExpandedGroup("duration")} />
+								<ChipGroup filterKey="workExperienceRequired" options={options.workExperienceRequired} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.workExperienceRequired} onToggleExpanded={() => toggleExpandedGroup("workExperienceRequired")} />
+								<ChipGroup filterKey="metadataConfidence" options={options.metadataConfidence} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.metadataConfidence} onToggleExpanded={() => toggleExpandedGroup("metadataConfidence")} />
 							</FilterSection>
 						)}
 					</aside>
 
 					<div className="course-results position-relative">
 						{isPending && <div className="course-results-loading">Updating results...</div>}
+						{activeChips.length > 0 && (
+							<div className="active-filter-row course-results-active-filters">
+								{activeChips.map((chip) => (
+									<button key={`${chip.key}-${chip.value}`} type="button" onClick={() => removeFilter(chip.key, chip.value)}>
+										{chip.label}
+										<i className="ri-close-line" />
+									</button>
+								))}
+								<button type="button" className="clear-filters" onClick={clearFilters}>Clear all filters</button>
+							</div>
+						)}
 						{visibleCourses.length === 0 ? (
 							<div className="empty-results">
 								<h5>No programs match these filters</h5>
-								<p>Try removing a chip or broadening the search terms.</p>
+								<p>No programs match these filters. Try removing one filter or broadening your search.</p>
 								<button type="button" className="btn btn-primary" onClick={clearFilters}>Reset filters</button>
 							</div>
 						) : (
@@ -352,41 +368,89 @@ function FilterSection({ title, children }: { title: string; children: ReactNode
 	)
 }
 
-function CheckboxGroup({ label, filterKey, options, filters, onToggle }: { label: string; filterKey: FilterKey; options: string[]; filters: FilterState; onToggle: (key: FilterKey, value: string) => void }) {
+function CheckboxGroup({
+	label,
+	filterKey,
+	options,
+	filters,
+	onToggle,
+	limit = 10,
+	expanded = false,
+	onToggleExpanded,
+}: {
+	label: string
+	filterKey: FilterKey
+	options: string[]
+	filters: FilterState
+	onToggle: (key: FilterKey, value: string) => void
+	limit?: number
+	expanded?: boolean
+	onToggleExpanded?: () => void
+}) {
 	if (!options.length) {
 		return null
 	}
+
+	const visibleOptions = expanded ? options : options.slice(0, limit)
 
 	return (
 		<div className="filter-group">
 			<label>{label}</label>
 			<div className="checkbox-stack">
-				{options.slice(0, 10).map((option) => (
+				{visibleOptions.map((option) => (
 					<label key={option} className="check-row">
 						<input type="checkbox" checked={filters[filterKey].includes(option)} onChange={() => onToggle(filterKey, option)} />
 						<span>{option}</span>
 					</label>
 				))}
 			</div>
+			{options.length > limit && onToggleExpanded && (
+				<button type="button" className="filter-show-more" onClick={onToggleExpanded}>
+					{expanded ? "Show less" : `Show more (${options.length - limit})`}
+				</button>
+			)}
 		</div>
 	)
 }
 
-function ChipGroup({ filterKey, options, filters, onToggle }: { filterKey: FilterKey; options: string[]; filters: FilterState; onToggle: (key: FilterKey, value: string) => void }) {
+function ChipGroup({
+	filterKey,
+	options,
+	filters,
+	onToggle,
+	limit = 10,
+	expanded = false,
+	onToggleExpanded,
+}: {
+	filterKey: FilterKey
+	options: string[]
+	filters: FilterState
+	onToggle: (key: FilterKey, value: string) => void
+	limit?: number
+	expanded?: boolean
+	onToggleExpanded?: () => void
+}) {
 	if (!options.length) {
 		return null
 	}
+
+	const visibleOptions = expanded ? options : options.slice(0, limit)
 
 	return (
 		<div className="filter-group">
 			<label>{filterLabels[filterKey]}</label>
 			<div className="filter-chip-group">
-				{options.slice(0, 10).map((option) => (
+				{visibleOptions.map((option) => (
 					<button key={option} type="button" className={filters[filterKey].includes(option) ? "active" : ""} onClick={() => onToggle(filterKey, option)}>
 						{option}
 					</button>
 				))}
 			</div>
+			{options.length > limit && onToggleExpanded && (
+				<button type="button" className="filter-show-more" onClick={onToggleExpanded}>
+					{expanded ? "Show less" : `Show more (${options.length - limit})`}
+				</button>
+			)}
 		</div>
 	)
 }
@@ -394,6 +458,10 @@ function ChipGroup({ filterKey, options, filters, onToggle }: { filterKey: Filte
 function CourseCard({ course }: { course: ProgramCard }) {
 	const imageSrc = cardImageSrc(course)
 	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus].filter(Boolean).slice(0, 3)
+	const degreeLabel = [course.degreeLevel, course.academicDegree].filter(Boolean).join(" - ")
+	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(Boolean).join(" / ") || course.studyMode || "Study mode varies"
+	const tuition = course.tuitionType || course.tuitionOrFees || "Tuition unknown"
+	const summary = course.summary?.trim()
 
 	return (
 		<div className="course-card-modern h-100">
@@ -403,7 +471,7 @@ function CourseCard({ course }: { course: ProgramCard }) {
 			</Link>
 			<div className="course-card-body">
 				<div className="course-card-meta">
-					<span>{course.degreeLevel}</span>
+					<span>{degreeLabel || "Degree program"}</span>
 					<span>{course.country}</span>
 				</div>
 				<h5>
@@ -413,9 +481,10 @@ function CourseCard({ course }: { course: ProgramCard }) {
 				<div className="course-facts">
 					<span><i className="ri-map-pin-line" /> {compactLocation(course)}</span>
 					<span><i className="ri-translate-2" /> {compactLanguages(course.languageOfInstruction)}</span>
-					<span><i className="ri-time-line" /> {course.duration || "Duration varies"}</span>
-					<span><i className="ri-bank-line" /> {course.tuitionType || "Tuition unknown"}</span>
+					<span><i className="ri-bank-line" /> {tuition}</span>
+					<span><i className="ri-computer-line" /> {studyMode}</span>
 				</div>
+				{summary && <p className="course-card-summary">{summary}</p>}
 				<div className="course-card-tags">
 					{tags.map((tag) => <span key={tag}>{tag}</span>)}
 				</div>
@@ -446,6 +515,8 @@ function courseFilterValues(course: ProgramCard, key: FilterKey) {
 			return [course.degreeLevel]
 		case "studyField":
 			return [course.studyField, course.secondaryStudyField, course.subjectArea]
+		case "university":
+			return [course.universityName]
 		case "language":
 			return splitValues(course.languageOfInstruction).map(normalizeLanguage)
 		case "fullTimeOrPartTime":
@@ -632,7 +703,7 @@ function cardImageSrc(course: ProgramCard) {
 }
 
 function compactLocation(course: ProgramCard) {
-	return [course.location, course.country].filter(Boolean).join(", ")
+	return [course.location, course.state, course.country].filter(Boolean).join(", ")
 }
 
 function compactLanguages(value: string) {

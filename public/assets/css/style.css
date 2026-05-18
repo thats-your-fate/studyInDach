@@ -578,6 +578,13 @@ body .bg-secondary-2 {
   color: #5f6f6a;
 }
 
+.course-results-intro {
+  max-width: 680px;
+  color: #5f6f6a;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
 .course-result-count strong {
   color: var(--tc-theme-primary);
   font-size: 32px;
@@ -680,6 +687,10 @@ body .bg-secondary-2 {
   color: #6b7773;
 }
 
+.course-results-active-filters {
+  margin-bottom: 18px;
+}
+
 .course-filter-layout {
   display: grid;
   grid-template-columns: minmax(260px, 320px) 1fr;
@@ -776,6 +787,17 @@ body .bg-secondary-2 {
 .filter-chip-group button.active {
   background: var(--tc-theme-primary);
   color: var(--tc-system-white);
+}
+
+.filter-show-more {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--tc-theme-primary);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 0 0;
 }
 
 .advanced-toggle button,
@@ -888,6 +910,17 @@ body .bg-secondary-2 {
   max-width: 100%;
 }
 
+.course-card-summary {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 14px 0 0;
+  color: #61716c;
+  font-size: 13px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .course-card-tags {
   margin-top: 16px;
   margin-bottom: 12px;
@@ -915,7 +948,8 @@ body .bg-secondary-2 {
 }
 
 .course-card-action:hover {
-  color: var(--tc-system-white);
+  background: var(--tc-theme-primary);
+  color: var(--tc-system-white) !important;
 }
 
 .empty-results {
