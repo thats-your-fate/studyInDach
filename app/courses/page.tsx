@@ -62,10 +62,11 @@ function coursePageTitle(searchParams?: CoursePageSearchParams) {
 	const language = firstParam(searchParams?.language)
 	const field = firstParam(searchParams?.studyField)
 
+	const languagePrefix = language === "English" && !degreeLevel ? "English-taught " : ""
 	const prefix = [
-		degreeLevel ? `${degreeLevel} Degree Programs` : "Degree Programs",
+		degreeLevel ? `${degreeLevel} Degree Programs` : `${languagePrefix}Degree Programs`,
 		field ? `in ${field}` : "",
-		language ? `Taught in ${language}` : "",
+		language && language !== "English" ? `Taught in ${language}` : "",
 	].filter(Boolean).join(" ")
 
 	const region = country || "Germany, Austria and Switzerland"

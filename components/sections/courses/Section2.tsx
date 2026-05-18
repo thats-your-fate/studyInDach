@@ -452,7 +452,7 @@ function ChipGroup({
 function CourseCard({ course }: { course: ProgramCard }) {
 	const imageSrc = cardImageSrc(course)
 	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus].filter(isUsefulValue).slice(0, 3)
-	const metaItems = uniqueInOrder([course.degreeLevel, course.location, course.country].filter(isUsefulValue))
+	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree), course.location, course.country].filter(isUsefulValue))
 	const degreeLabel = metaItems.join(" · ")
 	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).join(" / ") || usefulValue(course.studyMode)
 	const tuition = usefulValue(course.tuitionType) || usefulValue(course.tuitionOrFees)
