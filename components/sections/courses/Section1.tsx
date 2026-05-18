@@ -1,9 +1,10 @@
 
 type Section1Props = {
 	title?: string
+	eyebrow?: string
 }
 
-export default function Section1({ title = "Find your program" }: Section1Props) {
+export default function Section1({ title = "Find your program", eyebrow = "Study programs in DACH" }: Section1Props) {
 	return (
 		<>
 
@@ -24,7 +25,7 @@ export default function Section1({ title = "Find your program" }: Section1Props)
 						<div className="col-12 text-center">
 							<span className="content-top btn-text fw-bold text-white">
 								<i className="ri-git-repository-line text-green-3" />
-								&nbsp; Study programs in DACH
+								&nbsp; {eyebrow}
 							</span>
 							<h1 className="text-white ds-1 lh-sm mb-0 text-anime-style-2">{title}</h1>
 						</div>

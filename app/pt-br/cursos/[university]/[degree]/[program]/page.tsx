@@ -1,8 +1,9 @@
 import Layout from "@/components/layout/Layout"
 import Section1 from "@/components/sections/single-courses/Section1"
 import Section2 from "@/components/sections/single-courses/Section2"
-import { getProgramDetailBySlugs, programDetailPath, type ProgramDetail } from "@/lib/study-programs"
+import { optionLabel } from "@/lib/i18n"
 import { absoluteUrl } from "@/lib/seo"
+import { getProgramDetailBySlugs, programDetailPath, type ProgramDetail } from "@/lib/study-programs"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
@@ -13,21 +14,22 @@ type ProgramSeoParams = {
 }
 
 export async function generateMetadata({ params }: ProgramSeoParams): Promise<Metadata> {
-	const result = await getProgramDetailBySlugs(params.university, params.degree, params.program)
+	const result = await getProgramDetailBySlugs(params.university, params.degree, params.program, "pt-br")
 
 	if (!result) {
 		return {}
 	}
 
 	const { program, canonicalPath } = result
-	const title = program.seoTitle || `${program.title} at ${program.universityName}`
-	const description = program.seoDescription || program.summary || `Discover ${program.title} at ${program.universityName}.`
+	const title = program.seoTitle || `${program.title} na ${program.universityName}`
+	const description = program.seoDescription || program.summary || `Conheça ${program.title} na ${program.universityName}.`
 	const languages: Record<string, string> = {
-		en: absoluteUrl(canonicalPath),
-		"x-default": absoluteUrl(canonicalPath),
+		en: absoluteUrl(programDetailPath(program, "en")),
+		"x-default": absoluteUrl(programDetailPath(program, "en")),
 	}
+
 	if (program.availableTranslationLocales.includes("pt")) {
-		languages["pt-BR"] = absoluteUrl(programDetailPath(program, "pt-br"))
+		languages["pt-BR"] = absoluteUrl(canonicalPath)
 	}
 
 	return {
@@ -50,7 +52,7 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 export default async function ProgramSeoPage({
 	params,
 }: ProgramSeoParams) {
-	const result = await getProgramDetailBySlugs(params.university, params.degree, params.program)
+	const result = await getProgramDetailBySlugs(params.university, params.degree, params.program, "pt-br")
 
 	if (!result) {
 		notFound()
@@ -67,7 +69,7 @@ export default async function ProgramSeoPage({
 				dangerouslySetInnerHTML={{ __html: JSON.stringify(programJsonLd(result.program, result.canonicalPath)) }}
 			/>
 			<Section1 program={result.program} />
-			<Section2 program={result.program} locale="en" />
+			<Section2 program={result.program} locale="pt-br" />
 		</Layout>
 	)
 }
@@ -84,7 +86,7 @@ function programJsonLd(program: ProgramDetail, canonicalPath: string) {
 			"@type": "CollegeOrUniversity",
 			name: program.universityName,
 			url: program.websiteUrl || undefined,
-			address: [program.location, program.state, program.country].filter(Boolean).join(", "),
+			address: [program.location, program.state, optionLabel(program.country, "pt-br")].filter(Boolean).join(", "),
 		},
 		educationalCredentialAwarded: program.academicDegree || program.degreeLevel,
 		timeToComplete: program.duration || undefined,

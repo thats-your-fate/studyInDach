@@ -1,8 +1,10 @@
+import { optionLabel, programUi, t, type PublicLocale } from "@/lib/i18n"
 import type { ProgramCard, ProgramDetail } from "@/lib/study-programs"
 import Link from "next/link"
 
 type Section2Props = {
 	program: ProgramDetail | null
+	locale?: PublicLocale
 }
 
 type Fact = {
@@ -11,15 +13,16 @@ type Fact = {
 	value: string
 }
 
-export default function Section2({ program }: Section2Props) {
+export default function Section2({ program, locale = "en" }: Section2Props) {
+	const ui = programUi[locale]
 	if (!program) {
 		return (
 			<section className="program-detail-page">
 				<div className="container">
 					<div className="program-empty-state">
-						<h4>No study program found</h4>
-						<p>Seed the SQLite database from the CSV, then open this page again.</p>
-						<Link href="/courses" className="btn btn-primary">Back to programs</Link>
+						<h4>{ui.notFoundTitle}</h4>
+						<p>{ui.notFoundText}</p>
+						<Link href={locale === "pt-br" ? "/pt-br/cursos" : "/courses"} className="btn btn-primary">{ui.backToPrograms}</Link>
 					</div>
 				</div>
 			</section>
@@ -30,30 +33,30 @@ export default function Section2({ program }: Section2Props) {
 	const orientationUrl = `/contact?programId=${program.id}`
 	const heroImage = extractImageUrl(program.heroImageUrl) || program.fallbackImageUrl
 	const quickFacts: Fact[] = [
-		{ icon: "ri-graduation-cap-line", label: "Degree", value: program.academicDegree || program.degreeLevel },
-		{ icon: "ri-time-line", label: "Duration", value: program.duration },
-		{ icon: "ri-translate-2", label: "Language", value: compactLanguages(program.languageOfInstruction) },
-		{ icon: "ri-map-pin-line", label: "Location", value: [program.location, program.country].filter(Boolean).join(", ") },
-		{ icon: "ri-bank-line", label: "Tuition", value: program.tuitionType || program.tuitionOrFees },
-		{ icon: "ri-calendar-line", label: "Start", value: compactStart(program.startTerms) },
-		{ icon: "ri-shield-check-line", label: "Admission", value: program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission) },
-		{ icon: "ri-layout-line", label: "Mode", value: [program.onlineOrOnCampus, program.fullTimeOrPartTime].filter(Boolean).join(" / ") },
+		{ icon: "ri-graduation-cap-line", label: ui.facts.degree, value: localizedValue(program.academicDegree || program.degreeLevel, locale) },
+		{ icon: "ri-time-line", label: ui.facts.duration, value: localizedValue(program.duration, locale) },
+		{ icon: "ri-translate-2", label: ui.facts.language, value: localizedValue(compactLanguages(program.languageOfInstruction), locale) },
+		{ icon: "ri-map-pin-line", label: ui.facts.location, value: localizedLocation([program.location, program.country], locale) },
+		{ icon: "ri-bank-line", label: ui.facts.tuition, value: localizedValue(program.tuitionType || program.tuitionOrFees, locale) },
+		{ icon: "ri-calendar-line", label: ui.facts.start, value: localizedValue(compactStart(program.startTerms), locale) },
+		{ icon: "ri-shield-check-line", label: ui.facts.admission, value: localizedValue(program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission), locale) },
+		{ icon: "ri-layout-line", label: ui.facts.mode, value: localizedList([program.onlineOrOnCampus, program.fullTimeOrPartTime], locale, " / ") },
 	].filter((fact) => fact.value)
 	const heroChips = [
-		compactLanguages(program.languageOfInstruction),
-		program.duration,
-		program.tuitionType,
-		program.state || program.country,
+		localizedValue(compactLanguages(program.languageOfInstruction), locale),
+		localizedValue(program.duration, locale),
+		localizedValue(program.tuitionType, locale),
+		localizedValue(program.state || program.country, locale),
 	].filter(Boolean)
-	const highlights = buildHighlights(program)
-	const admissionItems = buildAdmissionItems(program)
-	const costItems = buildCostItems(program)
+	const highlights = buildHighlights(program, locale)
+	const admissionItems = buildAdmissionItems(program, locale)
+	const costItems = buildCostItems(program, locale)
 	const sectionNav = [
-		["Overview", "overview"],
-		["Admissions", "admissions"],
-		["Tuition", "tuition"],
-		["Careers", "careers"],
-		["University", "university"],
+		[ui.overview, "overview"],
+		[ui.admissions, "admissions"],
+		[ui.tuition, "tuition"],
+		[ui.careers, "careers"],
+		[ui.university, "university"],
 	]
 	const showOriginalTitle = program.originalTitle && program.originalTitle !== program.title
 
@@ -62,28 +65,28 @@ export default function Section2({ program }: Section2Props) {
 			<div className="container">
 				<div className="program-hero">
 					<div className="program-hero-main">
-						<div className="program-university-mark">
-							<div className="program-logo">{initials(program.universityName)}</div>
-							<div>
-								<p>{program.universityName}</p>
-								<span>{[program.location, program.state, program.country].filter(Boolean).join(", ")}</span>
+							<div className="program-university-mark">
+								<div className="program-logo">{initials(program.universityName)}</div>
+								<div>
+									<p>{program.universityName}</p>
+								<span>{localizedLocation([program.location, program.state, program.country], locale)}</span>
+								</div>
 							</div>
-						</div>
 						<h1>{program.title}</h1>
-						{showOriginalTitle && <p className="program-original-title">Original title: {program.originalTitle}</p>}
+						{showOriginalTitle && <p className="program-original-title">{ui.originalTitle} {program.originalTitle}</p>}
 						<div className="program-hero-chips">
 							{heroChips.map((chip) => <span key={chip}>{chip}</span>)}
 						</div>
 						{program.summary && <p className="program-hero-summary">{program.summary}</p>}
 						<div className="program-hero-actions">
-							<Link href={applyUrl} target="_blank" className="btn btn-primary">Apply now</Link>
+							<Link href={applyUrl} target="_blank" className="btn btn-primary">{ui.applyNow}</Link>
 						</div>
 					</div>
 
 					<aside className="program-quick-facts">
 						<div className="quick-facts-header">
-							<span>Quick facts</span>
-							<strong>{program.degreeLevel}</strong>
+							<span>{ui.quickFacts}</span>
+							<strong>{localizedValue(program.degreeLevel, locale)}</strong>
 						</div>
 						{quickFacts.map((fact) => (
 							<div className="quick-fact-row" key={fact.label}>
@@ -94,18 +97,19 @@ export default function Section2({ program }: Section2Props) {
 								</div>
 							</div>
 						))}
-						<Link href={applyUrl} target="_blank" className="quick-facts-cta">View university page</Link>
+						<Link href={applyUrl} target="_blank" className="quick-facts-cta">{ui.viewUniversityPage}</Link>
 						<ProgramOrientationCta
 							href={orientationUrl}
-							heading="Need help with this program?"
-							text="Not sure if this degree fits your background? Get a free first orientation and we’ll help you compare similar programs."
-							button="Get free orientation"
+							label={ui.freeOrientation}
+							heading={ui.ctaHeading}
+							text={ui.ctaText}
+							button={ui.ctaButton}
 							compact
 						/>
 					</aside>
 				</div>
 
-				<nav className="program-section-nav" aria-label="Program sections">
+				<nav className="program-section-nav" aria-label={locale === "pt-br" ? "Seções do programa" : "Program sections"}>
 					{sectionNav.map(([label, id]) => <a key={id} href={`#${id}`}>{label}</a>)}
 				</nav>
 
@@ -113,8 +117,8 @@ export default function Section2({ program }: Section2Props) {
 					<main className="program-content-main">
 						<section id="overview" className="program-detail-section">
 							<div className="section-heading">
-								<p>Overview</p>
-								<h2>Why this program?</h2>
+								<p>{ui.overview}</p>
+								<h2>{ui.whyThisProgram}</h2>
 							</div>
 							<div className="program-highlight-grid">
 								{highlights.map((highlight) => (
@@ -132,20 +136,20 @@ export default function Section2({ program }: Section2Props) {
 
 						<section className="program-detail-section">
 							<div className="section-heading">
-								<p>Program summary</p>
-								<h2>Good fit, outcomes, and skills</h2>
+								<p>{ui.programSummary}</p>
+								<h2>{ui.goodFit}</h2>
 							</div>
 							<div className="program-summary-grid">
-								<SummaryCard title="Best for" body={program.bestFor || program.targetAudience || fallbackBestFor(program)} />
-								<SummaryCard title="Career outcomes" body={program.careerOutcomes || fallbackCareers(program)} list />
-								<SummaryCard title="Skills you will learn" body={program.skillsYouWillLearn || fallbackSkills(program)} list />
+								<SummaryCard title={ui.bestFor} body={program.bestFor || program.targetAudience || fallbackBestFor(program, locale)} />
+								<SummaryCard title={ui.careerOutcomes} body={program.careerOutcomes || fallbackCareers(program, locale)} list />
+								<SummaryCard title={ui.skills} body={program.skillsYouWillLearn || fallbackSkills(program, locale)} list />
 							</div>
 						</section>
 
 						<section id="admissions" className="program-detail-section">
 							<div className="section-heading">
-								<p>Admissions</p>
-								<h2>Requirements at a glance</h2>
+								<p>{ui.admissions}</p>
+								<h2>{ui.requirementsAtGlance}</h2>
 							</div>
 							<div className="program-info-grid">
 								{admissionItems.map((item) => <InfoCard key={item.label} {...item} />)}
@@ -154,15 +158,16 @@ export default function Section2({ program }: Section2Props) {
 
 						<ProgramOrientationCta
 							href={orientationUrl}
-							heading="Confused by admission requirements?"
-							text="DACH universities often have different rules for international applicants. Send us the program you’re interested in and we’ll help you understand the next steps."
-							button="Ask about this program"
+							label={ui.freeOrientation}
+							heading={ui.requirementsHeading}
+							text={ui.requirementsText}
+							button={ui.requirementsButton}
 						/>
 
 						<section id="tuition" className="program-detail-section">
 							<div className="section-heading">
-								<p>Tuition & costs</p>
-								<h2>What to budget for</h2>
+								<p>{ui.tuitionCosts}</p>
+								<h2>{ui.budgetFor}</h2>
 							</div>
 							<div className="program-info-grid">
 								{costItems.map((item) => <InfoCard key={item.label} {...item} />)}
@@ -171,11 +176,11 @@ export default function Section2({ program }: Section2Props) {
 
 						<section id="careers" className="program-detail-section">
 							<div className="section-heading">
-								<p>Careers</p>
-								<h2>Where this can lead</h2>
+								<p>{ui.careers}</p>
+								<h2>{ui.whereLead}</h2>
 							</div>
 							<div className="career-list">
-								{splitList(program.careerOutcomes || fallbackCareers(program)).map((career) => (
+								{splitList(program.careerOutcomes || fallbackCareers(program, locale)).map((career) => (
 									<div key={career} className="career-card"><i className="ri-briefcase-line" /><span>{career}</span></div>
 								))}
 							</div>
@@ -183,48 +188,52 @@ export default function Section2({ program }: Section2Props) {
 
 						<section id="university" className="program-detail-section">
 							<div className="section-heading">
-								<p>University</p>
+								<p>{ui.university}</p>
 								<h2>{program.universityName}</h2>
 							</div>
 							<div className="university-panel">
-								<p>{program.universityName} is located in {[program.location, program.state, program.country].filter(Boolean).join(", ")}. Open the official program page for the latest application details, deadlines, and documents.</p>
+								<p>{t(ui.universityDescription, {
+									university: program.universityName,
+									location: localizedLocation([program.location, program.state, program.country], locale),
+								})}</p>
 								<div className="university-panel-actions">
-									<Link href={`/universities/${program.universityId}`}>University profile</Link>
-									<Link href={program.websiteUrl || program.programUrl} target="_blank">University website</Link>
-									{program.contactEmail && <a href={`mailto:${program.contactEmail}`}>Contact program</a>}
+									<Link href={`/universities/${program.universityId}`}>{ui.universityProfile}</Link>
+									<Link href={program.websiteUrl || program.programUrl} target="_blank">{ui.universityWebsite}</Link>
+									{program.contactEmail && <a href={`mailto:${program.contactEmail}`}>{ui.contactProgram}</a>}
 								</div>
 							</div>
 						</section>
 
 						<section className="program-detail-section">
 							<div className="university-panel">
-								<p className="mb-0">Program data is collected from public university sources and may be incomplete or outdated. Always verify deadlines, fees, and admission requirements on the official university website.</p>
+								<p className="mb-0">{ui.disclaimer}</p>
 							</div>
 						</section>
 
 						{program.relatedPrograms.length > 0 && (
 							<section className="program-detail-section">
 								<div className="section-heading">
-									<p>Related programs</p>
-									<h2>Similar programs</h2>
+									<p>{ui.relatedPrograms}</p>
+									<h2>{ui.similarPrograms}</h2>
 								</div>
 								<div className="related-program-grid">
-									{program.relatedPrograms.map((related) => <RelatedProgramCard key={related.id} program={related} />)}
+									{program.relatedPrograms.map((related) => <RelatedProgramCard key={related.id} program={related} locale={locale} />)}
 								</div>
 							</section>
 						)}
 
 						<ProgramOrientationCta
 							href={orientationUrl}
-							heading="Still comparing options?"
-							text="Tell us what you want to study, your preferred language, budget, and country. We’ll suggest suitable programs in Germany, Austria, and Switzerland."
-							button="Get free orientation"
+							label={ui.freeOrientation}
+							heading={ui.compareHeading}
+							text={ui.compareText}
+							button={ui.ctaButton}
 						/>
 					</main>
 				</div>
 			</div>
 			<div className="program-mobile-cta">
-				<Link href={applyUrl} target="_blank">Apply</Link>
+				<Link href={applyUrl} target="_blank">{ui.mobileApply}</Link>
 			</div>
 		</section>
 	)
@@ -232,12 +241,14 @@ export default function Section2({ program }: Section2Props) {
 
 function ProgramOrientationCta({
 	href,
+	label,
 	heading,
 	text,
 	button,
 	compact = false,
 }: {
 	href: string
+	label: string
 	heading: string
 	text: string
 	button: string
@@ -246,7 +257,7 @@ function ProgramOrientationCta({
 	return (
 		<div className={compact ? "program-orientation-cta compact" : "program-orientation-cta"}>
 			<div>
-				<span>Free orientation</span>
+				<span>{label}</span>
 				<h3>{heading}</h3>
 				<p>{text}</p>
 			</div>
@@ -283,44 +294,47 @@ function InfoCard({ label, value, icon }: { label: string; value: string; icon: 
 	)
 }
 
-function RelatedProgramCard({ program }: { program: ProgramCard }) {
+function RelatedProgramCard({ program, locale }: { program: ProgramCard; locale: PublicLocale }) {
 	return (
 		<Link href={program.detailPath} className="related-program-card">
-			<span>{program.degreeLevel}</span>
+			<span>{optionLabel(program.degreeLevel, locale)}</span>
 			<h3>{program.title}</h3>
 			<p>{program.universityName}</p>
-			<div>{[program.studyField || program.subjectArea, compactLanguages(program.languageOfInstruction)].filter(Boolean).join(" • ")}</div>
+			<div>{[optionLabel(program.studyField || program.subjectArea, locale), optionLabel(compactLanguages(program.languageOfInstruction), locale)].filter(Boolean).join(" • ")}</div>
 		</Link>
 	)
 }
 
-function buildHighlights(program: ProgramDetail) {
+function buildHighlights(program: ProgramDetail, locale: PublicLocale) {
+	const ui = programUi[locale]
 	const highlights = [
-		program.internationalStudentFit === "High" ? "International-student friendly" : "",
-		compactLanguages(program.languageOfInstruction).includes("English") ? "English-friendly instruction" : "",
-		program.tuitionType.includes("No Tuition") ? "No tuition fees or semester-fee only" : "",
-		program.onlineOrOnCampus || "",
-		program.studyField || program.subjectArea,
+		program.internationalStudentFit === "High" ? ui.highlights.internationalFriendly : "",
+		compactLanguages(program.languageOfInstruction).includes("English") || compactLanguages(program.languageOfInstruction).includes("Inglês") ? ui.highlights.englishFriendly : "",
+		program.tuitionType.includes("No Tuition") ? ui.highlights.noTuition : "",
+		localizedValue(program.onlineOrOnCampus, locale),
+		localizedValue(program.studyField || program.subjectArea, locale),
 		...splitList(program.programHighlights),
 	].filter(Boolean)
 
 	return Array.from(new Set(highlights)).slice(0, 5)
 }
 
-function buildAdmissionItems(program: ProgramDetail) {
+function buildAdmissionItems(program: ProgramDetail, locale: PublicLocale) {
+	const ui = programUi[locale]
 	return [
-		{ icon: "ri-shield-check-line", label: "Admission type", value: program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission) || "Check with university" },
-		{ icon: "ri-file-list-3-line", label: "Requirements", value: program.admissionRequirements || "See official university page" },
-		{ icon: "ri-calendar-event-line", label: "Deadline", value: program.applicationDeadlines || "Varies by semester" },
-		{ icon: "ri-translate-2", label: "Language", value: compactLanguages(program.languageOfInstruction) || "Check program page" },
+		{ icon: "ri-shield-check-line", label: ui.admissionType, value: localizedValue(program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission), locale) || ui.checkWithUniversity },
+		{ icon: "ri-file-list-3-line", label: ui.requirements, value: program.admissionRequirements || ui.seeOfficialPage },
+		{ icon: "ri-calendar-event-line", label: ui.deadline, value: program.applicationDeadlines || ui.variesBySemester },
+		{ icon: "ri-translate-2", label: ui.facts.language, value: localizedValue(compactLanguages(program.languageOfInstruction), locale) || ui.checkProgramPage },
 	].filter((item) => item.value)
 }
 
-function buildCostItems(program: ProgramDetail) {
+function buildCostItems(program: ProgramDetail, locale: PublicLocale) {
+	const ui = programUi[locale]
 	return [
-		{ icon: "ri-bank-line", label: "Tuition", value: program.tuitionType || "Check with university" },
-		{ icon: "ri-money-euro-circle-line", label: "Fees", value: program.tuitionOrFees || "Semester fee may apply" },
-		{ icon: "ri-home-4-line", label: "Living costs", value: estimatedLivingCosts(program.country) },
+		{ icon: "ri-bank-line", label: ui.facts.tuition, value: localizedValue(program.tuitionType, locale) || ui.checkWithUniversity },
+		{ icon: "ri-money-euro-circle-line", label: ui.fees, value: program.tuitionOrFees || ui.semesterFeeMayApply },
+		{ icon: "ri-home-4-line", label: ui.livingCosts, value: estimatedLivingCosts(program.country, locale) },
 	]
 }
 
@@ -374,7 +388,16 @@ function initials(value: string) {
 		.toUpperCase()
 }
 
-function estimatedLivingCosts(country: string) {
+function estimatedLivingCosts(country: string, locale: PublicLocale = "en") {
+	if (locale === "pt-br") {
+		if (country === "Switzerland") {
+			return "Aprox. CHF 1.500-2.200/mês"
+		}
+		if (country === "Austria") {
+			return "Aprox. EUR 950-1.300/mês"
+		}
+		return "Aprox. EUR 850-1.200/mês"
+	}
 	if (country === "Switzerland") {
 		return "Approx. CHF 1,500-2,200/month"
 	}
@@ -384,14 +407,42 @@ function estimatedLivingCosts(country: string) {
 	return "Approx. EUR 850-1,200/month"
 }
 
-function fallbackBestFor(program: ProgramDetail) {
+function fallbackBestFor(program: ProgramDetail, locale: PublicLocale = "en") {
+	if (locale === "pt-br") {
+		return `Estudantes procurando um programa de ${program.degreeLevel.toLowerCase()} em ${program.studyField || program.subjectArea} na ${program.universityName}.`
+	}
 	return `Students looking for a ${program.degreeLevel.toLowerCase()} program in ${program.studyField || program.subjectArea} at ${program.universityName}.`
 }
 
-function fallbackCareers(program: ProgramDetail) {
-	return [program.studyField || program.subjectArea, "Research", "Consulting", "Public or private sector roles"].join("; ")
+function fallbackCareers(program: ProgramDetail, locale: PublicLocale = "en") {
+	return [localizedValue(program.studyField || program.subjectArea, locale), ...programUi[locale].fallbacks.careers].filter(Boolean).join("; ")
 }
 
-function fallbackSkills(program: ProgramDetail) {
-	return [program.subjectArea, "Analytical thinking", "Research methods", "Professional communication"].filter(Boolean).join("; ")
+function fallbackSkills(program: ProgramDetail, locale: PublicLocale = "en") {
+	return [localizedValue(program.subjectArea, locale), ...programUi[locale].fallbacks.skills].filter(Boolean).join("; ")
+}
+
+function localizedValue(value: string, locale: PublicLocale) {
+	if (!value) {
+		return ""
+	}
+	const direct = optionLabel(value, locale)
+	if (direct !== value) {
+		return direct
+	}
+	return value
+		.split(" / ")
+		.map((part) => optionLabel(part.trim(), locale))
+		.join(" / ")
+}
+
+function localizedList(values: string[], locale: PublicLocale, separator = ", ") {
+	return values
+		.filter(Boolean)
+		.map((value) => localizedValue(value, locale))
+		.join(separator)
+}
+
+function localizedLocation(values: string[], locale: PublicLocale) {
+	return localizedList(values, locale, ", ")
 }

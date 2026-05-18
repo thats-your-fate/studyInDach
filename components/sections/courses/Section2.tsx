@@ -1,5 +1,6 @@
 'use client'
 
+import { coursesUi, optionLabel, t, type PublicLocale } from "@/lib/i18n"
 import type { CourseFilterKey, CourseFilterState, ProgramCard, UniversityFilter } from "@/lib/study-programs"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -17,6 +18,7 @@ type Section2Props = {
 	initialFilters: CourseFilterState
 	initialSearch: string
 	filterOptions: CourseFilterState
+	locale?: PublicLocale
 }
 
 type FilterKey = CourseFilterKey
@@ -42,26 +44,6 @@ const emptyFilters: FilterState = {
 	metadataConfidence: [],
 }
 
-const filterLabels: Record<FilterKey, string> = {
-	country: "Country",
-	degreeLevel: "Degree",
-	studyField: "Study field",
-	university: "University",
-	language: "Language",
-	fullTimeOrPartTime: "Pace",
-	state: "State / Canton",
-	location: "City",
-	internationalStudentFit: "International fit",
-	tuitionType: "Tuition",
-	applicationDifficulty: "Admission",
-	onlineOrOnCampus: "Format",
-	startTerms: "Start term",
-	ects: "ECTS",
-	duration: "Duration",
-	workExperienceRequired: "Work experience",
-	metadataConfidence: "Data confidence",
-}
-
 const languageAliases: Record<string, string> = {
 	deutsch: "German",
 	allemand: "German",
@@ -79,9 +61,10 @@ const languageAliases: Record<string, string> = {
 	spanisch: "Spanish",
 }
 
-export default function Section2({ courses, totalPrograms, totalMatching, page, totalPages, initialFilters, initialSearch, filterOptions }: Section2Props) {
+export default function Section2({ courses, totalPrograms, totalMatching, page, totalPages, initialFilters, initialSearch, filterOptions, locale = "en" }: Section2Props) {
 	const router = useRouter()
 	const pathname = usePathname()
+	const ui = coursesUi[locale]
 	const [isPending, startTransition] = useTransition()
 	const [filters, setFilters] = useState<FilterState>(initialFilters)
 	const [search, setSearch] = useState(initialSearch)
@@ -99,9 +82,9 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 
 	const activeChips = useMemo(() => {
 		return (Object.keys(filters) as FilterKey[]).flatMap((key) =>
-			filters[key].map((value) => ({ key, value, label: value })),
+			filters[key].map((value) => ({ key, value, label: optionLabel(value, locale) })),
 		)
-	}, [filters])
+	}, [filters, locale])
 
 	const navigate = (nextFilters: FilterState, nextSearch: string, nextPage = 1) => {
 		const params = buildCourseParams(nextFilters, nextSearch, nextPage)
@@ -152,15 +135,15 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 				<div className="course-search-shell">
 					<div className="d-flex flex-column flex-xl-row gap-3 align-items-xl-center justify-content-between">
 						<div>
-							<p className="fs-7 text-uppercase fw-bold text-primary mb-2">Program finder</p>
-							<h2 className="ds-5 mb-0 text-primary">Find your course in DACH</h2>
+							<p className="fs-7 text-uppercase fw-bold text-primary mb-2">{ui.programFinder}</p>
+							<h2 className="ds-5 mb-0 text-primary">{ui.findCourse}</h2>
 							<p className="course-results-intro mb-0 mt-2">
-								Browse degree programs in Germany, Austria, and Switzerland. Filter by degree level, subject, language, tuition type, and study mode.
+								{ui.intro}
 							</p>
 						</div>
 						<div className="course-result-count text-xl-end">
 							<strong>{totalMatching}</strong>
-							<span> of {totalPrograms} programs</span>
+							<span> {t(ui.ofPrograms, { total: totalPrograms })}</span>
 						</div>
 					</div>
 
@@ -172,16 +155,16 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 						<input
 							value={search}
 							onChange={(event) => setSearch(event.target.value)}
-							placeholder="Search AI masters in Germany taught in English"
-							aria-label="Search programs"
+							placeholder={ui.searchPlaceholder}
+							aria-label={ui.searchAria}
 						/>
 					</form>
 
 					<div className="quick-filter-row mt-4" aria-label="High-frequency filters">
-						<QuickSelect label="Country" value={filters.country[0] || ""} options={options.country} onChange={(value) => setSingleFilter("country", value)} />
-						<QuickSelect label="Degree level" value={filters.degreeLevel[0] || ""} options={options.degreeLevel} onChange={(value) => setSingleFilter("degreeLevel", value)} />
-						<QuickSelect label="Study field" value={filters.studyField[0] || ""} options={options.studyField} onChange={(value) => setSingleFilter("studyField", value)} />
-						<QuickSelect label="Language" value={filters.language[0] || ""} options={options.language} onChange={(value) => setSingleFilter("language", value)} />
+						<QuickSelect label={ui.filterLabels.country} value={filters.country[0] || ""} options={options.country} locale={locale} anyLabel={ui.any} onChange={(value) => setSingleFilter("country", value)} />
+						<QuickSelect label={ui.filterLabels.degreeLevel} value={filters.degreeLevel[0] || ""} options={options.degreeLevel} locale={locale} anyLabel={ui.any} onChange={(value) => setSingleFilter("degreeLevel", value)} />
+						<QuickSelect label={ui.filterLabels.studyField} value={filters.studyField[0] || ""} options={options.studyField} locale={locale} anyLabel={ui.any} onChange={(value) => setSingleFilter("studyField", value)} />
+						<QuickSelect label={ui.filterLabels.language} value={filters.language[0] || ""} options={options.language} locale={locale} anyLabel={ui.any} onChange={(value) => setSingleFilter("language", value)} />
 					</div>
 
 				</div>
@@ -190,74 +173,74 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 					<aside className="course-filter-panel">
 						<div className="d-flex align-items-center justify-content-between mb-4">
 							<div>
-								<p className="fs-8 text-uppercase fw-bold text-primary mb-1">Power filters</p>
-								<h6 className="mb-0">Refine results</h6>
+								<p className="fs-8 text-uppercase fw-bold text-primary mb-1">{ui.powerFilters}</p>
+								<h6 className="mb-0">{ui.refineResults}</h6>
 							</div>
 						</div>
 
-						<FilterSection title="Academic basics">
-							<CheckboxGroup label="Degree level" filterKey="degreeLevel" options={options.degreeLevel} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.degreeLevel} onToggleExpanded={() => toggleExpandedGroup("degreeLevel")} />
+						<FilterSection title={ui.academicBasics}>
+							<CheckboxGroup label={ui.filterLabels.degreeLevel} filterKey="degreeLevel" options={options.degreeLevel} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.degreeLevel} onToggleExpanded={() => toggleExpandedGroup("degreeLevel")} locale={locale} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
 							<div className="filter-group">
-								<label>Study field</label>
-								<input className="filter-search-input" value={fieldSearch} onChange={(event) => setFieldSearch(event.target.value)} placeholder="Search study field..." />
+								<label>{ui.filterLabels.studyField}</label>
+								<input className="filter-search-input" value={fieldSearch} onChange={(event) => setFieldSearch(event.target.value)} placeholder={ui.searchStudyField} />
 								<div className="checkbox-stack compact">
 									{visibleStudyFields.map((option) => (
 										<label key={option} className="check-row">
 											<input type="checkbox" checked={filters.studyField.includes(option)} onChange={() => toggleFilter("studyField", option)} />
-											<span>{option}</span>
+											<span>{optionLabel(option, locale)}</span>
 										</label>
 									))}
 								</div>
 								{filteredStudyFields.length > 12 && (
 									<button type="button" className="filter-show-more" onClick={() => toggleExpandedGroup("studyField")}>
-										{expandedGroups.studyField ? "Show less" : `Show more (${filteredStudyFields.length - 12})`}
+										{expandedGroups.studyField ? ui.showLess : t(ui.showMore, { count: filteredStudyFields.length - 12 })}
 									</button>
 								)}
 							</div>
 						</FilterSection>
 
-						<FilterSection title="Location">
-							<ChipGroup filterKey="country" options={options.country} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.country} onToggleExpanded={() => toggleExpandedGroup("country")} />
-							<CheckboxGroup label="University" filterKey="university" options={options.university} filters={filters} onToggle={toggleFilter} limit={8} expanded={expandedGroups.university} onToggleExpanded={() => toggleExpandedGroup("university")} />
-							<CheckboxGroup label="State / Canton" filterKey="state" options={options.state} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.state} onToggleExpanded={() => toggleExpandedGroup("state")} />
-							<CheckboxGroup label="City" filterKey="location" options={options.location} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.location} onToggleExpanded={() => toggleExpandedGroup("location")} />
+						<FilterSection title={ui.location}>
+							<ChipGroup filterKey="country" options={options.country} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.country} onToggleExpanded={() => toggleExpandedGroup("country")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+							<CheckboxGroup label={ui.filterLabels.university} filterKey="university" options={options.university} filters={filters} onToggle={toggleFilter} limit={8} expanded={expandedGroups.university} onToggleExpanded={() => toggleExpandedGroup("university")} locale={locale} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+							<CheckboxGroup label={ui.filterLabels.state} filterKey="state" options={options.state} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.state} onToggleExpanded={() => toggleExpandedGroup("state")} locale={locale} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+							<CheckboxGroup label={ui.filterLabels.location} filterKey="location" options={options.location} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.location} onToggleExpanded={() => toggleExpandedGroup("location")} locale={locale} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
 						</FilterSection>
 
-						<FilterSection title="Language & accessibility">
-							<ChipGroup filterKey="language" options={options.language} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.language} onToggleExpanded={() => toggleExpandedGroup("language")} />
-							<ChipGroup filterKey="internationalStudentFit" options={options.internationalStudentFit} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.internationalStudentFit} onToggleExpanded={() => toggleExpandedGroup("internationalStudentFit")} />
+						<FilterSection title={ui.languageAccessibility}>
+							<ChipGroup filterKey="language" options={options.language} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.language} onToggleExpanded={() => toggleExpandedGroup("language")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+							<ChipGroup filterKey="internationalStudentFit" options={options.internationalStudentFit} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.internationalStudentFit} onToggleExpanded={() => toggleExpandedGroup("internationalStudentFit")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
 						</FilterSection>
 
-						<FilterSection title="Cost & admission">
-							<ChipGroup filterKey="tuitionType" options={options.tuitionType} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.tuitionType} onToggleExpanded={() => toggleExpandedGroup("tuitionType")} />
-							<ChipGroup filterKey="applicationDifficulty" options={options.applicationDifficulty} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.applicationDifficulty} onToggleExpanded={() => toggleExpandedGroup("applicationDifficulty")} />
+						<FilterSection title={ui.costAdmission}>
+							<ChipGroup filterKey="tuitionType" options={options.tuitionType} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.tuitionType} onToggleExpanded={() => toggleExpandedGroup("tuitionType")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+							<ChipGroup filterKey="applicationDifficulty" options={options.applicationDifficulty} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.applicationDifficulty} onToggleExpanded={() => toggleExpandedGroup("applicationDifficulty")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
 						</FilterSection>
 
-						<FilterSection title="Flexibility">
-							<ChipGroup filterKey="onlineOrOnCampus" options={options.onlineOrOnCampus} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.onlineOrOnCampus} onToggleExpanded={() => toggleExpandedGroup("onlineOrOnCampus")} />
-							<ChipGroup filterKey="fullTimeOrPartTime" options={options.fullTimeOrPartTime} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.fullTimeOrPartTime} onToggleExpanded={() => toggleExpandedGroup("fullTimeOrPartTime")} />
-							<CheckboxGroup label="Start term" filterKey="startTerms" options={options.startTerms} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.startTerms} onToggleExpanded={() => toggleExpandedGroup("startTerms")} />
+						<FilterSection title={ui.flexibility}>
+							<ChipGroup filterKey="onlineOrOnCampus" options={options.onlineOrOnCampus} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.onlineOrOnCampus} onToggleExpanded={() => toggleExpandedGroup("onlineOrOnCampus")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+							<ChipGroup filterKey="fullTimeOrPartTime" options={options.fullTimeOrPartTime} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.fullTimeOrPartTime} onToggleExpanded={() => toggleExpandedGroup("fullTimeOrPartTime")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+							<CheckboxGroup label={ui.filterLabels.startTerms} filterKey="startTerms" options={options.startTerms} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.startTerms} onToggleExpanded={() => toggleExpandedGroup("startTerms")} locale={locale} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
 						</FilterSection>
 
 						<div className="advanced-toggle">
 							<button type="button" onClick={() => setShowAdvanced((value) => !value)}>
-								<span>Advanced</span>
+								<span>{ui.advanced}</span>
 								<i className={showAdvanced ? "ri-arrow-up-s-line" : "ri-arrow-down-s-line"} />
 							</button>
 						</div>
 
 						{showAdvanced && (
-							<FilterSection title="Advanced">
-								<CheckboxGroup label="ECTS" filterKey="ects" options={options.ects} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.ects} onToggleExpanded={() => toggleExpandedGroup("ects")} />
-								<CheckboxGroup label="Duration" filterKey="duration" options={options.duration} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.duration} onToggleExpanded={() => toggleExpandedGroup("duration")} />
-								<ChipGroup filterKey="workExperienceRequired" options={options.workExperienceRequired} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.workExperienceRequired} onToggleExpanded={() => toggleExpandedGroup("workExperienceRequired")} />
-								<ChipGroup filterKey="metadataConfidence" options={options.metadataConfidence} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.metadataConfidence} onToggleExpanded={() => toggleExpandedGroup("metadataConfidence")} />
+							<FilterSection title={ui.advanced}>
+								<CheckboxGroup label={ui.filterLabels.ects} filterKey="ects" options={options.ects} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.ects} onToggleExpanded={() => toggleExpandedGroup("ects")} locale={locale} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+								<CheckboxGroup label={ui.filterLabels.duration} filterKey="duration" options={options.duration} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.duration} onToggleExpanded={() => toggleExpandedGroup("duration")} locale={locale} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+								<ChipGroup filterKey="workExperienceRequired" options={options.workExperienceRequired} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.workExperienceRequired} onToggleExpanded={() => toggleExpandedGroup("workExperienceRequired")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
+								<ChipGroup filterKey="metadataConfidence" options={options.metadataConfidence} filters={filters} onToggle={toggleFilter} expanded={expandedGroups.metadataConfidence} onToggleExpanded={() => toggleExpandedGroup("metadataConfidence")} locale={locale} labels={ui.filterLabels} showLessLabel={ui.showLess} showMoreLabel={ui.showMore} />
 							</FilterSection>
 						)}
 					</aside>
 
 					<div className="course-results position-relative">
-						{isPending && <div className="course-results-loading">Updating results...</div>}
+						{isPending && <div className="course-results-loading">{ui.updating}</div>}
 						{activeChips.length > 0 && (
 							<div className="active-filter-row course-results-active-filters">
 								{activeChips.map((chip) => (
@@ -266,27 +249,27 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 										<i className="ri-close-line" />
 									</button>
 								))}
-								<button type="button" className="clear-filters" onClick={clearFilters}>Clear all filters</button>
+								<button type="button" className="clear-filters" onClick={clearFilters}>{ui.clearAll}</button>
 							</div>
 						)}
 						{visibleCourses.length === 0 ? (
 							<div className="empty-results">
-								<h5>No programs match these filters</h5>
-								<p>No programs match these filters. Try removing one filter or broadening your search.</p>
-								<button type="button" className="btn btn-primary" onClick={clearFilters}>Reset filters</button>
+								<h5>{ui.noResultsTitle}</h5>
+								<p>{ui.noResultsText}</p>
+								<button type="button" className="btn btn-primary" onClick={clearFilters}>{ui.resetFilters}</button>
 							</div>
 						) : (
 							<div className="row g-4">
 								{visibleCourses.map((course) => (
 									<div key={course.id} className="col-12 col-md-6 col-xxl-4">
-										<CourseCard course={course} />
+										<CourseCard course={course} locale={locale} />
 									</div>
 								))}
 							</div>
 						)}
 						{totalPages > 1 && (
 							<nav className="course-pagination" aria-label="Course pagination">
-								{page > 1 && <Link href={pageHref(pathname, filters, search, page - 1)}>Previous</Link>}
+								{page > 1 && <Link href={pageHref(pathname, filters, search, page - 1)}>{ui.previous}</Link>}
 								{paginationItems(page, totalPages).map((item) => (
 									item === "..." ? (
 										<span key={`${item}-${page}`}>...</span>
@@ -294,7 +277,7 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 										<Link key={item} href={pageHref(pathname, filters, search, item)} className={item === page ? "active" : ""}>{item}</Link>
 									)
 								))}
-								{page < totalPages && <Link href={pageHref(pathname, filters, search, page + 1)}>Next</Link>}
+								{page < totalPages && <Link href={pageHref(pathname, filters, search, page + 1)}>{ui.next}</Link>}
 							</nav>
 						)}
 					</div>
@@ -339,14 +322,28 @@ function paginationItems(page: number, totalPages: number) {
 	return items
 }
 
-function QuickSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
+function QuickSelect({
+	label,
+	value,
+	options,
+	locale,
+	anyLabel,
+	onChange,
+}: {
+	label: string
+	value: string
+	options: string[]
+	locale: PublicLocale
+	anyLabel: string
+	onChange: (value: string) => void
+}) {
 	return (
 		<label className="quick-filter-select">
 			<span>{label}</span>
 			<select value={value} onChange={(event) => onChange(event.target.value)}>
-				<option value="">Any</option>
+				<option value="">{anyLabel}</option>
 				{options.map((option) => (
-					<option key={option} value={option}>{option}</option>
+					<option key={option} value={option}>{optionLabel(option, locale)}</option>
 				))}
 			</select>
 		</label>
@@ -371,6 +368,9 @@ function CheckboxGroup({
 	limit = 10,
 	expanded = false,
 	onToggleExpanded,
+	locale,
+	showLessLabel,
+	showMoreLabel,
 }: {
 	label: string
 	filterKey: FilterKey
@@ -380,6 +380,9 @@ function CheckboxGroup({
 	limit?: number
 	expanded?: boolean
 	onToggleExpanded?: () => void
+	locale: PublicLocale
+	showLessLabel: string
+	showMoreLabel: string
 }) {
 	if (!options.length) {
 		return null
@@ -394,13 +397,13 @@ function CheckboxGroup({
 				{visibleOptions.map((option) => (
 					<label key={option} className="check-row">
 						<input type="checkbox" checked={filters[filterKey].includes(option)} onChange={() => onToggle(filterKey, option)} />
-						<span>{option}</span>
+						<span>{optionLabel(option, locale)}</span>
 					</label>
 				))}
 			</div>
 			{options.length > limit && onToggleExpanded && (
 				<button type="button" className="filter-show-more" onClick={onToggleExpanded}>
-					{expanded ? "Show less" : `Show more (${options.length - limit})`}
+					{expanded ? showLessLabel : t(showMoreLabel, { count: options.length - limit })}
 				</button>
 			)}
 		</div>
@@ -415,6 +418,10 @@ function ChipGroup({
 	limit = 10,
 	expanded = false,
 	onToggleExpanded,
+	locale,
+	labels,
+	showLessLabel,
+	showMoreLabel,
 }: {
 	filterKey: FilterKey
 	options: string[]
@@ -423,6 +430,10 @@ function ChipGroup({
 	limit?: number
 	expanded?: boolean
 	onToggleExpanded?: () => void
+	locale: PublicLocale
+	labels: Record<FilterKey, string>
+	showLessLabel: string
+	showMoreLabel: string
 }) {
 	if (!options.length) {
 		return null
@@ -432,41 +443,46 @@ function ChipGroup({
 
 	return (
 		<div className="filter-group">
-			<label>{filterLabels[filterKey]}</label>
+			<label>{labels[filterKey]}</label>
 			<div className="filter-chip-group">
 				{visibleOptions.map((option) => (
 					<button key={option} type="button" className={filters[filterKey].includes(option) ? "active" : ""} onClick={() => onToggle(filterKey, option)}>
-						{option}
+						{optionLabel(option, locale)}
 					</button>
 				))}
 			</div>
 			{options.length > limit && onToggleExpanded && (
 				<button type="button" className="filter-show-more" onClick={onToggleExpanded}>
-					{expanded ? "Show less" : `Show more (${options.length - limit})`}
+					{expanded ? showLessLabel : t(showMoreLabel, { count: options.length - limit })}
 				</button>
 			)}
 		</div>
 	)
 }
 
-function CourseCard({ course }: { course: ProgramCard }) {
+function CourseCard({ course, locale }: { course: ProgramCard; locale: PublicLocale }) {
+	const ui = coursesUi[locale]
 	const imageSrc = cardImageSrc(course)
-	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus].filter(isUsefulValue).slice(0, 3)
+	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus]
+		.filter(isUsefulValue)
+		.map((tag) => optionLabel(tag, locale))
+		.slice(0, 3)
 	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree), course.location, course.country].filter(isUsefulValue))
+		.map((item) => optionLabel(item, locale))
 	const degreeLabel = metaItems.join(" · ")
-	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).join(" / ") || usefulValue(course.studyMode)
-	const tuition = usefulValue(course.tuitionType) || usefulValue(course.tuitionOrFees)
+	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).map((item) => optionLabel(item, locale)).join(" / ") || usefulValue(course.studyMode)
+	const tuition = optionLabel(usefulValue(course.tuitionType) || usefulValue(course.tuitionOrFees), locale)
 	const summary = course.summary?.trim()
 
 	return (
 		<div className="course-card-modern h-100">
 			<Link href={course.detailPath} className="course-card-image">
 				<img src={imageSrc} alt={course.title} />
-				<span>{course.internationalStudentFit || "Fit unknown"} fit</span>
+				<span>{optionLabel(course.internationalStudentFit, locale) || ui.fitUnknown}</span>
 			</Link>
 			<div className="course-card-body">
 				<div className="course-card-meta">
-					<span>{degreeLabel || "Degree program"}</span>
+					<span>{degreeLabel || ui.degreeProgram}</span>
 				</div>
 				<h5>
 					<Link href={course.detailPath}>{course.title}</Link>
@@ -474,7 +490,7 @@ function CourseCard({ course }: { course: ProgramCard }) {
 				<p className="course-university">{course.universityName}</p>
 				<div className="course-facts">
 					{usefulValue(compactLocation(course)) && <span><i className="ri-map-pin-line" /> {compactLocation(course)}</span>}
-					{usefulValue(compactLanguages(course.languageOfInstruction)) && <span><i className="ri-translate-2" /> {compactLanguages(course.languageOfInstruction)}</span>}
+					{usefulValue(compactLanguages(course.languageOfInstruction)) && <span><i className="ri-translate-2" /> {optionLabel(compactLanguages(course.languageOfInstruction), locale)}</span>}
 					{tuition && <span><i className="ri-bank-line" /> {tuition}</span>}
 					{studyMode && <span><i className="ri-computer-line" /> {studyMode}</span>}
 				</div>
@@ -482,7 +498,7 @@ function CourseCard({ course }: { course: ProgramCard }) {
 				<div className="course-card-tags">
 					{tags.map((tag) => <span key={tag}>{tag}</span>)}
 				</div>
-				<Link href={course.detailPath} className="course-card-action">View Program</Link>
+				<Link href={course.detailPath} className="course-card-action">{ui.viewProgram}</Link>
 			</div>
 		</div>
 	)

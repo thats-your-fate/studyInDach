@@ -5,11 +5,11 @@ import type { MetadataRoute } from "next"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const [programs, universities] = await Promise.all([
-		prisma.degreeProgram.findMany({ include: { university: true }, orderBy: { id: "asc" } }),
+		prisma.degreeProgram.findMany({ include: { university: true, translations: true }, orderBy: { id: "asc" } }),
 		prisma.university.findMany({ orderBy: { name: "asc" } }),
 	])
 	const now = new Date()
-	const main = ["/", "/courses", "/universities", "/study-guide", "/about", "/impressum", "/privacy"].map((path) => ({
+	const main = ["/", "/courses", "/pt-br/cursos", "/universities", "/study-guide", "/about", "/impressum", "/privacy"].map((path) => ({
 		url: absoluteUrl(path),
 		lastModified: now,
 	}))
@@ -36,5 +36,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		})),
 		lastModified: now,
 	}))
-	return [...main, ...filters, ...universityUrls, ...programUrls]
+	const translatedProgramUrls = programs
+		.filter((program) => program.translations.some((translation) => translation.locale === "pt"))
+		.map((program) => ({
+			url: absoluteUrl(programDetailPath({
+				id: program.id,
+				title: program.programName,
+				degreeLevel: program.degreeLevel || "Degree program",
+				universityName: program.university.name,
+			}, "pt-br")),
+			lastModified: now,
+		}))
+	return [...main, ...filters, ...universityUrls, ...programUrls, ...translatedProgramUrls]
 }

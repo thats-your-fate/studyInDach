@@ -18,6 +18,11 @@ export function generateMetadata({
 		description: "Browse degree programs in Germany, Austria, and Switzerland. Filter by degree level, subject, language, tuition type, and study mode.",
 		alternates: {
 			canonical: absoluteUrl(courseCanonicalPath(searchParams)),
+			languages: {
+				en: absoluteUrl(courseCanonicalPath(searchParams)),
+				"pt-BR": absoluteUrl(courseCanonicalPathPt(searchParams)),
+				"x-default": absoluteUrl(courseCanonicalPath(searchParams)),
+			},
 		},
 	}
 }
@@ -50,6 +55,7 @@ export default async function Courses({
 					initialFilters={filters}
 					initialSearch={search}
 					filterOptions={filterOptions}
+					locale="en"
 				/>
 			</Layout>
 		</>
@@ -86,6 +92,17 @@ function courseCanonicalPath(searchParams?: CoursePageSearchParams) {
 		values.filter(Boolean).forEach((item) => params.append(key, item))
 	})
 	return params.toString() ? `/courses?${params.toString()}` : "/courses"
+}
+
+function courseCanonicalPathPt(searchParams?: CoursePageSearchParams) {
+	const params = new URLSearchParams()
+	const allowed = ["degreeLevel", "language", "country", "studyField", "tuitionType", "page"]
+	allowed.forEach((key) => {
+		const value = searchParams?.[key]
+		const values = Array.isArray(value) ? value : value ? [value] : []
+		values.filter(Boolean).forEach((item) => params.append(key, item))
+	})
+	return params.toString() ? `/pt-br/cursos?${params.toString()}` : "/pt-br/cursos"
 }
 
 function itemListJsonLd(programs: Array<{ title: string; detailPath: string; universityName: string }>, searchParams?: CoursePageSearchParams) {

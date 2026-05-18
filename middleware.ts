@@ -2,8 +2,27 @@ import { NextRequest, NextResponse } from "next/server"
 
 const ADMIN_USERNAME = "yaro"
 const ADMIN_PASSWORD = "JvLa3591J"
+const LOCALE_COOKIE = "studyindach_locale"
 
 export function middleware(request: NextRequest) {
+	const preferredLocale = preferredLocaleFromRequest(request)
+	const redirectTarget = localeRedirectTarget(request, preferredLocale)
+
+	if (redirectTarget) {
+		return NextResponse.redirect(redirectTarget)
+	}
+
+	const requestHeaders = new Headers(request.headers)
+	requestHeaders.set("x-site-locale", request.nextUrl.pathname.startsWith("/pt-br") ? "pt-br" : "en")
+
+	if (!request.nextUrl.pathname.startsWith("/admin")) {
+		return NextResponse.next({
+			request: {
+				headers: requestHeaders,
+			},
+		})
+	}
+
 	const authHeader = request.headers.get("authorization")
 
 	if (authHeader?.startsWith("Basic ")) {
@@ -11,7 +30,11 @@ export function middleware(request: NextRequest) {
 		const [username, password] = atob(encoded).split(":")
 
 		if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-			return NextResponse.next()
+			return NextResponse.next({
+				request: {
+					headers: requestHeaders,
+				},
+			})
 		}
 	}
 
@@ -24,5 +47,31 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-	matcher: ["/admin/:path*"],
+	matcher: ["/((?!_next/static|_next/image|favicon.ico|assets).*)"],
+}
+
+function preferredLocaleFromRequest(request: NextRequest) {
+	const chosenLocale = request.cookies.get(LOCALE_COOKIE)?.value
+	if (chosenLocale === "en" || chosenLocale === "pt-br") {
+		return chosenLocale
+	}
+
+	const acceptLanguage = request.headers.get("accept-language") || ""
+	return acceptLanguage.toLowerCase().startsWith("pt") ? "pt-br" : "en"
+}
+
+function localeRedirectTarget(request: NextRequest, preferredLocale: "en" | "pt-br") {
+	const { pathname, search } = request.nextUrl
+
+	if (preferredLocale !== "pt-br" || request.cookies.has(LOCALE_COOKIE)) {
+		return null
+	}
+	if (!pathname.startsWith("/courses")) {
+		return null
+	}
+
+	const target = request.nextUrl.clone()
+	target.pathname = pathname.replace(/^\/courses/, "/pt-br/cursos")
+	target.search = search
+	return target
 }

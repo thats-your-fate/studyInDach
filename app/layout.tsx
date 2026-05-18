@@ -16,6 +16,7 @@ import "/public/assets/css/style.css"
 
 
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { organizationJsonLd, SITE_URL } from "@/lib/seo"
 import { Space_Grotesk,Rubik } from "next/font/google"
 
@@ -44,6 +45,10 @@ export const metadata: Metadata = {
     metadataBase: new URL(SITE_URL),
     title: "Study in DACH - Degree Programs in Germany, Austria, and Switzerland",
     description: "Discover degree programs across Germany, Austria, and Switzerland.",
+    icons: {
+        icon: "/favicon-dark-green.ico",
+        shortcut: "/favicon-dark-green.ico",
+    },
 }
 
 export default function RootLayout({
@@ -51,8 +56,9 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode
 }>) {
+    const locale = headers().get("x-site-locale") === "pt-br" ? "pt-BR" : "en"
     return (
-        <html lang="en">
+        <html lang={locale}>
             <body 
 			className={`${groteskHeading.variable} ${groteskBody.variable} ${rubik.variable}`}
 			>

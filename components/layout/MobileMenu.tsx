@@ -1,16 +1,15 @@
 'use client'
+import { navItemsByLocale } from '@/lib/i18n'
 import Link from 'next/link'
-
-const navItems = [
-	{ label: 'Home', href: '/' },
-	{ label: 'Courses', href: '/courses' },
-	{ label: 'Universities', href: '/universities' },
-	{ label: 'Study Guide', href: '/study-guide' },
-	{ label: 'About', href: '/about' },
-	{ label: 'Contact', href: '/contact' },
-]
+import { usePathname, useSearchParams } from 'next/navigation'
 
 export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
+	const pathname = usePathname()
+	const searchParams = useSearchParams()
+	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : 'en'
+	const navItems = navItemsByLocale[locale]
+	const languageLinks = buildLanguageLinks(pathname || '/', searchParams.toString())
+
 	return (
 		<>
 			<div className="mobile-menu-overlay" onClick={handleMobileMenu} />
@@ -37,6 +36,21 @@ export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 									</ul>
 								</nav>
 							</div>
+							<div className="mobile-language-switcher">
+								<label htmlFor="mobile-language-select">Language</label>
+								<select
+									id="mobile-language-select"
+									value={locale}
+									onChange={(event) => {
+										const nextLocale = event.target.value as 'en' | 'pt-br'
+										setLocaleCookie(nextLocale)
+										window.location.href = nextLocale === 'en' ? languageLinks.en : languageLinks.pt
+									}}
+								>
+									<option value="en">🇺🇸 English</option>
+									<option value="pt-br">🇧🇷 Português</option>
+								</select>
+							</div>
 						</div>
 					</div>
 					<div className="tgmobile__menu-bottom mt-auto">
@@ -59,4 +73,29 @@ export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 			</div>
 		</>
 	)
+}
+
+function buildLanguageLinks(pathname: string, query: string) {
+	const suffix = query ? `?${query}` : ''
+	const enPath = pathname.startsWith('/pt-br/cursos')
+		? pathname.replace(/^\/pt-br\/cursos/, '/courses')
+		: pathname === '/pt-br'
+			? '/'
+			: pathname.replace(/^\/pt-br/, '') || '/'
+	const ptPath = pathname.startsWith('/courses')
+		? pathname.replace(/^\/courses/, '/pt-br/cursos')
+		: pathname.startsWith('/pt-br')
+			? pathname
+			: pathname === '/'
+				? '/pt-br/cursos'
+				: pathname
+
+	return {
+		en: `${enPath}${suffix}`,
+		pt: `${ptPath}${suffix}`,
+	}
+}
+
+function setLocaleCookie(locale: 'en' | 'pt-br') {
+	document.cookie = `studyindach_locale=${locale}; path=/; max-age=31536000; samesite=lax`
 }
