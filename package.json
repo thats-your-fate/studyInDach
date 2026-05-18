@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "node server.js",
     "start:passenger": "NODE_ENV=production node server.js",
     "plesk:build": "prisma db push && prisma generate && next build",
@@ -43,8 +43,8 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/react-modal-video": "^1.2.3",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.35",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.35",
     "prisma": "^5.22.0",
     "typescript": "^5"
   }
