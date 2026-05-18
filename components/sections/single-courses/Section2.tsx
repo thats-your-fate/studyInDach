@@ -27,6 +27,7 @@ export default function Section2({ program }: Section2Props) {
 	}
 
 	const applyUrl = program.applicationUrl || program.programUrl
+	const orientationUrl = `/contact?programId=${program.id}`
 	const heroImage = extractImageUrl(program.heroImageUrl) || program.fallbackImageUrl
 	const quickFacts: Fact[] = [
 		{ icon: "ri-graduation-cap-line", label: "Degree", value: program.academicDegree || program.degreeLevel },
@@ -94,6 +95,13 @@ export default function Section2({ program }: Section2Props) {
 							</div>
 						))}
 						<Link href={applyUrl} target="_blank" className="quick-facts-cta">View university page</Link>
+						<ProgramOrientationCta
+							href={orientationUrl}
+							heading="Need help with this program?"
+							text="Not sure if this degree fits your background? Get a free first orientation and we’ll help you compare similar programs."
+							button="Get free orientation"
+							compact
+						/>
 					</aside>
 				</div>
 
@@ -143,6 +151,13 @@ export default function Section2({ program }: Section2Props) {
 								{admissionItems.map((item) => <InfoCard key={item.label} {...item} />)}
 							</div>
 						</section>
+
+						<ProgramOrientationCta
+							href={orientationUrl}
+							heading="Confused by admission requirements?"
+							text="DACH universities often have different rules for international applicants. Send us the program you’re interested in and we’ll help you understand the next steps."
+							button="Ask about this program"
+						/>
 
 						<section id="tuition" className="program-detail-section">
 							<div className="section-heading">
@@ -197,6 +212,13 @@ export default function Section2({ program }: Section2Props) {
 								</div>
 							</section>
 						)}
+
+						<ProgramOrientationCta
+							href={orientationUrl}
+							heading="Still comparing options?"
+							text="Tell us what you want to study, your preferred language, budget, and country. We’ll suggest suitable programs in Germany, Austria, and Switzerland."
+							button="Get free orientation"
+						/>
 					</main>
 				</div>
 			</div>
@@ -205,6 +227,31 @@ export default function Section2({ program }: Section2Props) {
 				<Link href={applyUrl} target="_blank">Apply</Link>
 			</div>
 		</section>
+	)
+}
+
+function ProgramOrientationCta({
+	href,
+	heading,
+	text,
+	button,
+	compact = false,
+}: {
+	href: string
+	heading: string
+	text: string
+	button: string
+	compact?: boolean
+}) {
+	return (
+		<div className={compact ? "program-orientation-cta compact" : "program-orientation-cta"}>
+			<div>
+				<span>Free orientation</span>
+				<h3>{heading}</h3>
+				<p>{text}</p>
+			</div>
+			<Link href={href}>{button}</Link>
+		</div>
 	)
 }
 

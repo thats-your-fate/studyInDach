@@ -99,7 +99,10 @@ export default async function AdminPage({
 							</span>
 							<h1 className="ds-3 text-primary mb-0">Study program data</h1>
 						</div>
-						<Link href="/courses" className="btn btn-primary">View programs</Link>
+						<div className="d-flex flex-wrap gap-2">
+							<Link href="/admin/inquiries" className="btn btn-outline-secondary">Inquiries</Link>
+							<Link href="/courses" className="btn btn-primary">View programs</Link>
+						</div>
 					</div>
 
 					{!selectedUniversity ? (

@@ -92,3 +92,30 @@ model DegreeProgramTranslation {
   @@unique([programId, locale])
   @@index([locale])
 }
+
+model Inquiry {
+  id                      Int      @id @default(autoincrement())
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  status                  String   @default("new")
+  name                    String?
+  email                   String
+  countryOfResidence      String?
+  preferredStudyCountry   String?
+  message                 String
+
+  programId               Int?
+  programNameSnapshot     String?
+  universityNameSnapshot  String?
+  programUrlSnapshot      String?
+
+  locale                  String?
+  sourcePath              String?
+  adminNotes              String?
+
+  @@index([status])
+  @@index([email])
+  @@index([programId])
+  @@index([createdAt])
+}

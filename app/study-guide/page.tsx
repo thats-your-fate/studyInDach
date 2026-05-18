@@ -32,7 +32,7 @@ export default function StudyGuide() {
 				<div className="container">
 					<div className="row g-5 align-items-start">
 						<div className="col-lg-5">
-							<span className="btn-text text-primary">First MVP notes</span>
+							<span className="btn-text text-primary">Study planning notes</span>
 							<h2 className="my-3 text-anime-style-3">Use Study in DACH for discovery, then verify officially</h2>
 							<p>Our filters help you shortlist programs across Germany, Austria, and Switzerland. Final application decisions should always be based on the university website.</p>
 							<Link href="/courses" className="btn btn-primary mt-3 hover-up">Browse programs</Link>

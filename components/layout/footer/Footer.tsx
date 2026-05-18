@@ -47,10 +47,10 @@ export default function Footer() {
 										<div data-aos="fade-up" className="line-border position-absolute top-0 end-0" />
 										<h6 className="pb-3 text-white">Popular Filters</h6>
 										<div className="d-flex flex-column">
-											<Link href="/courses"><p className="hover-effect-1 opacity-75 text-white">English-taught programs</p></Link>
-											<Link href="/courses"><p className="hover-effect-1 opacity-75 text-white">Bachelor degrees</p></Link>
-											<Link href="/courses"><p className="hover-effect-1 opacity-75 text-white">Master degrees</p></Link>
-											<Link href="/courses"><p className="hover-effect-1 opacity-75 text-white">Public universities</p></Link>
+											<Link href="/courses?language=English"><p className="hover-effect-1 opacity-75 text-white">English-taught programs</p></Link>
+											<Link href="/courses?degreeLevel=Bachelor"><p className="hover-effect-1 opacity-75 text-white">Bachelor degrees</p></Link>
+											<Link href="/courses?degreeLevel=Master"><p className="hover-effect-1 opacity-75 text-white">Master degrees</p></Link>
+											<Link href="/courses?tuitionType=No+Tuition+%2F+Semester+Fee+Only"><p className="hover-effect-1 opacity-75 text-white">Public universities</p></Link>
 										</div>
 									</div>
 								</div>

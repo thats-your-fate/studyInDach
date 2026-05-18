@@ -64,8 +64,10 @@ const filterLabels: Record<FilterKey, string> = {
 
 const languageAliases: Record<string, string> = {
 	deutsch: "German",
+	allemand: "German",
 	german: "German",
 	englisch: "English",
+	anglais: "English",
 	english: "English",
 	franzosisch: "French",
 	"franzoesisch": "French",
@@ -84,7 +86,6 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 	const [filters, setFilters] = useState<FilterState>(initialFilters)
 	const [search, setSearch] = useState(initialSearch)
 	const [fieldSearch, setFieldSearch] = useState("")
-	const [showMoreFilters, setShowMoreFilters] = useState(false)
 	const [showAdvanced, setShowAdvanced] = useState(false)
 	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
 
@@ -181,24 +182,17 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 						<QuickSelect label="Degree level" value={filters.degreeLevel[0] || ""} options={options.degreeLevel} onChange={(value) => setSingleFilter("degreeLevel", value)} />
 						<QuickSelect label="Study field" value={filters.studyField[0] || ""} options={options.studyField} onChange={(value) => setSingleFilter("studyField", value)} />
 						<QuickSelect label="Language" value={filters.language[0] || ""} options={options.language} onChange={(value) => setSingleFilter("language", value)} />
-						<button type="button" className="quick-filter-button" onClick={() => setShowMoreFilters((value) => !value)}>
-							<i className="ri-equalizer-2-line" />
-							<span>More filters</span>
-						</button>
 					</div>
 
 				</div>
 
-				<div className={`course-filter-layout mt-5 ${showMoreFilters ? "show-filters" : ""}`}>
+				<div className="course-filter-layout mt-5">
 					<aside className="course-filter-panel">
 						<div className="d-flex align-items-center justify-content-between mb-4">
 							<div>
 								<p className="fs-8 text-uppercase fw-bold text-primary mb-1">Power filters</p>
 								<h6 className="mb-0">Refine results</h6>
 							</div>
-							<button type="button" className="filter-close d-xl-none" aria-label="Close filters" onClick={() => setShowMoreFilters(false)}>
-								<i className="ri-close-line" />
-							</button>
 						</div>
 
 						<FilterSection title="Academic basics">
@@ -458,7 +452,8 @@ function ChipGroup({
 function CourseCard({ course }: { course: ProgramCard }) {
 	const imageSrc = cardImageSrc(course)
 	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus].filter(Boolean).slice(0, 3)
-	const degreeLabel = [course.degreeLevel, course.academicDegree].filter(Boolean).join(" - ")
+	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree), course.country].filter(Boolean))
+	const degreeLabel = metaItems.join(" · ")
 	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(Boolean).join(" / ") || course.studyMode || "Study mode varies"
 	const tuition = course.tuitionType || course.tuitionOrFees || "Tuition unknown"
 	const summary = course.summary?.trim()
@@ -632,13 +627,35 @@ function normalizeLanguage(value: string) {
 
 function normalizeStartTerm(value: string) {
 	const normalized = normalize(value)
-	if (normalized.includes("winter") || normalized.includes("fall") || normalized.includes("autumn") || normalized.includes("oktober") || normalized.includes("october")) {
+	if (!normalized || /^\d+$/.test(normalized) || /^\d{1,2}\s+\d{1,2}\s*\d{0,4}$/.test(normalized)) {
+		return ""
+	}
+	if (
+		normalized.includes("winter")
+		|| normalized.includes("fall")
+		|| normalized.includes("autumn")
+		|| normalized.includes("automne")
+		|| normalized.includes("herbst")
+		|| normalized.includes("september")
+		|| normalized.includes("october")
+		|| normalized.includes("oktober")
+		|| normalized.includes("november")
+	) {
 		return "Winter"
 	}
-	if (normalized.includes("summer") || normalized.includes("sommer") || normalized.includes("april")) {
+	if (
+		normalized.includes("summer")
+		|| normalized.includes("sommer")
+		|| normalized.includes("spring")
+		|| normalized.includes("printemps")
+		|| normalized.includes("march")
+		|| normalized.includes("maerz")
+		|| normalized.includes("marz")
+		|| normalized.includes("april")
+	) {
 		return "Summer"
 	}
-	if (normalized.includes("rolling") || normalized.includes("month")) {
+	if (normalized.includes("rolling") || normalized.includes("month") || normalized.includes("anytime") || normalized.includes("various")) {
 		return "Rolling"
 	}
 	return value
@@ -688,6 +705,18 @@ function uniqueSorted(values: string[]) {
 		.sort((a, b) => a.localeCompare(b))
 }
 
+function uniqueInOrder(values: string[]) {
+	const seen = new Set<string>()
+	return values.filter((value) => {
+		const key = normalize(value)
+		if (!key || seen.has(key) || value === "Unknown") {
+			return false
+		}
+		seen.add(key)
+		return true
+	})
+}
+
 function normalize(value: string) {
 	return value
 		.toLowerCase()
@@ -709,4 +738,31 @@ function compactLocation(course: ProgramCard) {
 function compactLanguages(value: string) {
 	const languages = uniqueSorted(splitValues(value).map(normalizeLanguage))
 	return languages.slice(0, 2).join(" + ") || "Language varies"
+}
+
+function compactAcademicDegree(value: string) {
+	const normalized = normalize(value)
+	const parenthetical = value.match(/\(([A-Z][A-Za-z. ]{1,12})\)/)?.[1]?.replace(/\s+/g, "")
+	if (parenthetical) {
+		return parenthetical
+	}
+	if (normalized.includes("master of science")) {
+		return "M.Sc."
+	}
+	if (normalized.includes("bachelor of science")) {
+		return "B.Sc."
+	}
+	if (normalized.includes("master of arts")) {
+		return "M.A."
+	}
+	if (normalized.includes("bachelor of arts")) {
+		return "B.A."
+	}
+	if (normalized.includes("master of engineering")) {
+		return "M.Eng."
+	}
+	if (normalized.includes("bachelor of engineering")) {
+		return "B.Eng."
+	}
+	return value
 }

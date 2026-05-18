@@ -375,7 +375,7 @@ function inferCountry(state?: string, location?: string, campusLocation?: string
 
 export function parseCourseFilters(searchParams: CourseSearchParams): CourseFilterState {
 	return filterKeys.reduce((filters, key) => {
-		filters[key] = parseMultiParam(searchParams[key])
+		filters[key] = parseMultiParam(searchParams[key]).map((value) => normalizeCourseFilterParam(key, value)).filter(Boolean)
 		return filters
 	}, { ...emptyCourseFilters })
 }
@@ -474,6 +474,16 @@ function parseMultiParam(value: string | string[] | undefined) {
 	return uniqueSorted(values.flatMap((item) => item.split(",")).map((item) => item.trim()).filter(Boolean))
 }
 
+function normalizeCourseFilterParam(key: CourseFilterKey, value: string) {
+	if (key === "language") {
+		return normalizeLanguage(value)
+	}
+	if (key === "startTerms") {
+		return normalizeStartTerm(value)
+	}
+	return value
+}
+
 function splitValues(value: string) {
 	return value
 		.split(/[;,/|]+/)
@@ -485,8 +495,10 @@ function normalizeLanguage(value: string) {
 	const normalized = normalize(value).replace("oe", "o")
 	const aliases: Record<string, string> = {
 		deutsch: "German",
+		allemand: "German",
 		german: "German",
 		englisch: "English",
+		anglais: "English",
 		english: "English",
 		franzosisch: "French",
 		franzoesisch: "French",
@@ -502,13 +514,35 @@ function normalizeLanguage(value: string) {
 
 function normalizeStartTerm(value: string) {
 	const normalized = normalize(value)
-	if (normalized.includes("winter") || normalized.includes("fall") || normalized.includes("autumn") || normalized.includes("oktober") || normalized.includes("october")) {
+	if (!normalized || /^\d+$/.test(normalized) || /^\d{1,2}\s+\d{1,2}\s*\d{0,4}$/.test(normalized)) {
+		return ""
+	}
+	if (
+		normalized.includes("winter")
+		|| normalized.includes("fall")
+		|| normalized.includes("autumn")
+		|| normalized.includes("automne")
+		|| normalized.includes("herbst")
+		|| normalized.includes("september")
+		|| normalized.includes("october")
+		|| normalized.includes("oktober")
+		|| normalized.includes("november")
+	) {
 		return "Winter"
 	}
-	if (normalized.includes("summer") || normalized.includes("sommer") || normalized.includes("april")) {
+	if (
+		normalized.includes("summer")
+		|| normalized.includes("sommer")
+		|| normalized.includes("spring")
+		|| normalized.includes("printemps")
+		|| normalized.includes("march")
+		|| normalized.includes("maerz")
+		|| normalized.includes("marz")
+		|| normalized.includes("april")
+	) {
 		return "Summer"
 	}
-	if (normalized.includes("rolling") || normalized.includes("month")) {
+	if (normalized.includes("rolling") || normalized.includes("month") || normalized.includes("anytime") || normalized.includes("various")) {
 		return "Rolling"
 	}
 	return value
