@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:passenger": "NODE_ENV=production node app.js",
+    "plesk:build": "npm ci && npx prisma generate && npm run build",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",

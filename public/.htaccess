@@ -1,0 +1,13 @@
+# Plesk / Phusion Passenger entry point.
+#
+# In Plesk, use:
+# - Application root: project root
+# - Document root: project-root/public
+# - Startup file: app.js
+# - Application mode: production
+#
+# Some Plesk installations read Passenger settings from the panel UI instead
+# of .htaccess. Keep this file in public so the document root has a clear entry
+# point and deployment note.
+PassengerEnabled on
+PassengerAppEnv production
