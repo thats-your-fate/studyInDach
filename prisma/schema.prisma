@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model University {
+  id        String          @id
+  name      String
+  location  String?
+  state     String?
+  websiteUrl String?
+  programs  DegreeProgram[]
+
+  @@index([name])
+}
+
+model DegreeProgram {
+  id                    Int        @id @default(autoincrement())
+  slug                  String     @unique
+  programUrl            String     @unique
+  programName           String
+  degreeLevel           String?
+  academicDegree        String?
+  subjectArea           String?
+  languageOfInstruction String?
+  campusLocation        String?
+  duration              String?
+  ects                  String?
+  startTerms            String?
+  applicationDeadlines  String?
+  admissionRequirements String?
+  tuitionOrFees         String?
+  studyMode             String?
+  restrictedAdmission   String?
+  applicationUrl        String?
+  contactEmail          String?
+  summary               String?
+  heroImageUrl          String?
+  studyField            String?
+  secondaryStudyField   String?
+  internationalStudentFit String?
+  onlineOrOnCampus      String?
+  fullTimeOrPartTime    String?
+  applicationDifficulty String?
+  tuitionType           String?
+  workExperienceRequired String?
+  metadataConfidence    String?
+  image                 String?
+  authorImage           String?
+  universityId          String
+  university            University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  translations          DegreeProgramTranslation[]
+
+  @@index([degreeLevel])
+  @@index([studyField])
+  @@index([subjectArea])
+  @@index([universityId])
+}
+
+model DegreeProgramTranslation {
+  id                    Int           @id @default(autoincrement())
+  locale                String
+  localizedProgramName  String
+  subjectArea           String?
+  languageOfInstruction String?
+  campusLocation        String?
+  duration              String?
+  startTerms            String?
+  applicationDeadlines  String?
+  admissionRequirements String?
+  tuitionOrFees         String?
+  studyMode             String?
+  restrictedAdmission   String?
+  summary               String?
+  seoTitle              String?
+  seoDescription        String?
+  seoKeywords           String?
+  searchIntentTags      String?
+  careerOutcomes        String?
+  skillsYouWillLearn    String?
+  programHighlights     String?
+  targetAudience        String?
+  bestFor               String?
+  metadataNotes         String?
+  programId             Int
+  program               DegreeProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, locale])
+  @@index([locale])
+}

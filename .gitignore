@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+.pnp.*
+
+# Next.js / build output
+.next/
+out/
+dist/
+build/
+
+# Logs and diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+report.*.json
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+
+# Version the current dev SQLite DB for fast local test resets.
+!prisma/dev.db
+
+# Ignore volatile SQLite sidecar files
+prisma/*.db-journal
+prisma/*.db-wal
+prisma/*.db-shm
+*.sqlite
+*.sqlite3
+
+# Python local tooling
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated scraper / enrichment data
+degree_program_*.csv
+degree_program_*.jsonl
+raw_candidates*.csv
+rejected_candidates*.csv
+scripts/.university_url_enrichment_checkpoint.json
+
+# Local/manual source data exports
+templateManual.csv
+templateManual.tsv
+unis*.csv
+unis*.enriched.csv
+
+# Caches
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+.cache/
+.parcel-cache/
+.npm/
+
+# OS / editor noise
+.DS_Store
+._*
+.vscode-test/
