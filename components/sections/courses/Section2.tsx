@@ -1,34 +1,26 @@
 'use client'
 
-import type { ProgramCard, UniversityFilter } from "@/lib/study-programs"
+import type { CourseFilterKey, CourseFilterState, ProgramCard, UniversityFilter } from "@/lib/study-programs"
 import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import type { ReactNode } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 
 type Section2Props = {
 	courses: ProgramCard[]
 	universities: UniversityFilter[]
+	totalPrograms: number
+	totalMatching: number
+	page: number
+	totalPages: number
+	pageSize: number
+	initialFilters: CourseFilterState
+	initialSearch: string
+	filterOptions: CourseFilterState
 }
 
-type FilterKey =
-	| "country"
-	| "degreeLevel"
-	| "studyField"
-	| "language"
-	| "fullTimeOrPartTime"
-	| "state"
-	| "location"
-	| "internationalStudentFit"
-	| "tuitionType"
-	| "applicationDifficulty"
-	| "onlineOrOnCampus"
-	| "startTerms"
-	| "ects"
-	| "duration"
-	| "workExperienceRequired"
-	| "metadataConfidence"
-
-type FilterState = Record<FilterKey, string[]>
+type FilterKey = CourseFilterKey
+type FilterState = CourseFilterState
 
 const emptyFilters: FilterState = {
 	country: [],
@@ -83,22 +75,23 @@ const languageAliases: Record<string, string> = {
 	spanisch: "Spanish",
 }
 
-export default function Section2({ courses }: Section2Props) {
-	const [filters, setFilters] = useState<FilterState>(emptyFilters)
-	const [search, setSearch] = useState("")
+export default function Section2({ courses, totalPrograms, totalMatching, page, totalPages, initialFilters, initialSearch, filterOptions }: Section2Props) {
+	const router = useRouter()
+	const pathname = usePathname()
+	const [isPending, startTransition] = useTransition()
+	const [filters, setFilters] = useState<FilterState>(initialFilters)
+	const [search, setSearch] = useState(initialSearch)
 	const [fieldSearch, setFieldSearch] = useState("")
 	const [showMoreFilters, setShowMoreFilters] = useState(false)
 	const [showAdvanced, setShowAdvanced] = useState(false)
 
-	const allOptions = useMemo(() => buildOptions(courses, emptyFilters, ""), [courses])
-	const inferredFilters = useMemo(() => inferFiltersFromSearch(search, allOptions), [search, allOptions])
-	const activeFilters = useMemo(() => mergeFilters(filters, inferredFilters), [filters, inferredFilters])
-	const options = useMemo(() => buildOptions(courses, activeFilters, search), [courses, activeFilters, search])
+	useEffect(() => {
+		setFilters(initialFilters)
+		setSearch(initialSearch)
+	}, [initialFilters, initialSearch])
 
-	const filteredCourses = useMemo(
-		() => courses.filter((course) => matchesCourse(course, activeFilters, search)),
-		[courses, activeFilters, search],
-	)
+	const options = useMemo(() => mergeFilters(filterOptions, filters), [filterOptions, filters])
+	const visibleCourses = courses
 
 	const activeChips = useMemo(() => {
 		return (Object.keys(filters) as FilterKey[]).flatMap((key) =>
@@ -106,28 +99,41 @@ export default function Section2({ courses }: Section2Props) {
 		)
 	}, [filters])
 
-	const setSingleFilter = (key: FilterKey, value: string) => {
-		setFilters((current) => ({ ...current, [key]: value ? [value] : [] }))
-	}
-
-	const toggleFilter = (key: FilterKey, value: string) => {
-		setFilters((current) => {
-			const values = current[key]
-			return {
-				...current,
-				[key]: values.includes(value) ? values.filter((item) => item !== value) : [...values, value],
-			}
+	const navigate = (nextFilters: FilterState, nextSearch: string, nextPage = 1) => {
+		const params = buildCourseParams(nextFilters, nextSearch, nextPage)
+		const href = params.toString() ? `${pathname}?${params.toString()}` : pathname
+		startTransition(() => {
+			router.push(href, { scroll: false })
 		})
 	}
 
+	const setSingleFilter = (key: FilterKey, value: string) => {
+		const nextFilters = { ...filters, [key]: value ? [value] : [] }
+		setFilters(nextFilters)
+		navigate(nextFilters, search)
+	}
+
+	const toggleFilter = (key: FilterKey, value: string) => {
+		const values = filters[key]
+		const nextFilters = {
+			...filters,
+			[key]: values.includes(value) ? values.filter((item) => item !== value) : [...values, value],
+		}
+		setFilters(nextFilters)
+		navigate(nextFilters, search)
+	}
+
 	const removeFilter = (key: FilterKey, value: string) => {
-		setFilters((current) => ({ ...current, [key]: current[key].filter((item) => item !== value) }))
+		const nextFilters = { ...filters, [key]: filters[key].filter((item) => item !== value) }
+		setFilters(nextFilters)
+		navigate(nextFilters, search)
 	}
 
 	const clearFilters = () => {
 		setFilters(emptyFilters)
 		setSearch("")
 		setFieldSearch("")
+		navigate(emptyFilters, "")
 	}
 
 	const filteredStudyFields = options.studyField.filter((field) => normalize(field).includes(normalize(fieldSearch)))
@@ -140,14 +146,17 @@ export default function Section2({ courses }: Section2Props) {
 						<div>
 							<p className="fs-7 text-uppercase fw-bold text-primary mb-2">Program finder</p>
 							<h2 className="ds-5 mb-0 text-primary">Find your course in DACH</h2>
+							</div>
+							<div className="course-result-count text-xl-end">
+								<strong>{totalMatching}</strong>
+								<span> of {totalPrograms} programs</span>
+							</div>
 						</div>
-						<div className="course-result-count text-xl-end">
-							<strong>{filteredCourses.length}</strong>
-							<span> of {courses.length} programs</span>
-						</div>
-					</div>
 
-					<div className="course-search-box mt-4">
+					<form className="course-search-box mt-4" onSubmit={(event) => {
+						event.preventDefault()
+						navigate(filters, search)
+					}}>
 						<i className="ri-search-line" />
 						<input
 							value={search}
@@ -155,7 +164,7 @@ export default function Section2({ courses }: Section2Props) {
 							placeholder="Search AI masters in Germany taught in English"
 							aria-label="Search programs"
 						/>
-					</div>
+					</form>
 
 					<div className="quick-filter-row mt-4" aria-label="High-frequency filters">
 						<QuickSelect label="Country" value={filters.country[0] || ""} options={options.country} onChange={(value) => setSingleFilter("country", value)} />
@@ -248,8 +257,9 @@ export default function Section2({ courses }: Section2Props) {
 						)}
 					</aside>
 
-					<div className="course-results">
-						{filteredCourses.length === 0 ? (
+					<div className="course-results position-relative">
+						{isPending && <div className="course-results-loading">Updating results...</div>}
+						{visibleCourses.length === 0 ? (
 							<div className="empty-results">
 								<h5>No programs match these filters</h5>
 								<p>Try removing a chip or broadening the search terms.</p>
@@ -257,18 +267,66 @@ export default function Section2({ courses }: Section2Props) {
 							</div>
 						) : (
 							<div className="row g-4">
-								{filteredCourses.map((course) => (
+								{visibleCourses.map((course) => (
 									<div key={course.id} className="col-12 col-md-6 col-xxl-4">
 										<CourseCard course={course} />
 									</div>
 								))}
 							</div>
 						)}
+						{totalPages > 1 && (
+							<nav className="course-pagination" aria-label="Course pagination">
+								{page > 1 && <Link href={pageHref(pathname, filters, search, page - 1)}>Previous</Link>}
+								{paginationItems(page, totalPages).map((item) => (
+									item === "..." ? (
+										<span key={`${item}-${page}`}>...</span>
+									) : (
+										<Link key={item} href={pageHref(pathname, filters, search, item)} className={item === page ? "active" : ""}>{item}</Link>
+									)
+								))}
+								{page < totalPages && <Link href={pageHref(pathname, filters, search, page + 1)}>Next</Link>}
+							</nav>
+						)}
 					</div>
 				</div>
 			</div>
 		</section>
 	)
+}
+
+function buildCourseParams(filters: FilterState, search: string, page: number) {
+	const params = new URLSearchParams()
+	if (search.trim()) {
+		params.set("q", search.trim())
+	}
+	filterKeys().forEach((key) => {
+		filters[key].forEach((value) => {
+			params.append(key, value)
+		})
+	})
+	if (page > 1) {
+		params.set("page", String(page))
+	}
+	return params
+}
+
+function pageHref(pathname: string, filters: FilterState, search: string, page: number) {
+	const params = buildCourseParams(filters, search, page)
+	return params.toString() ? `${pathname}?${params.toString()}` : pathname
+}
+
+function paginationItems(page: number, totalPages: number) {
+	const items: Array<number | "..."> = []
+	for (let candidate = 1; candidate <= totalPages; candidate += 1) {
+		if (candidate === 1 || candidate === totalPages || Math.abs(candidate - page) <= 1) {
+			items.push(candidate)
+			continue
+		}
+		if (items[items.length - 1] !== "...") {
+			items.push("...")
+		}
+	}
+	return items
 }
 
 function QuickSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {

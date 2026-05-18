@@ -1,23 +1,33 @@
-// SSR False
-import nextDynamic from 'next/dynamic'
 import { getCoursesPageData } from '@/lib/study-programs'
-const Section2 = nextDynamic(() => import('@/components/sections/courses/Section2'), {
-	ssr: false,
-})
+import Section2 from '@/components/sections/courses/Section2'
 import Layout from "@/components/layout/Layout"
 import Section1 from '@/components/sections/courses/Section1'
-// import Section2 from '@/components/sections/courses/Section2'
 export const dynamic = "force-dynamic"
 
-export default async function Courses() {
-	const { programs, universities } = await getCoursesPageData()
+export default async function Courses({
+	searchParams,
+}: {
+	searchParams?: Record<string, string | string[] | undefined>
+}) {
+	const { programs, universities, totalPrograms, totalMatching, page, totalPages, pageSize, filters, search, filterOptions } = await getCoursesPageData(searchParams)
 
 	return (
 		<>
 
 			<Layout>
 				<Section1 />
-				<Section2 courses={programs} universities={universities} />
+				<Section2
+					courses={programs}
+					universities={universities}
+					totalPrograms={totalPrograms}
+					totalMatching={totalMatching}
+					page={page}
+					totalPages={totalPages}
+					pageSize={pageSize}
+					initialFilters={filters}
+					initialSearch={search}
+					filterOptions={filterOptions}
+				/>
 			</Layout>
 		</>
 	)

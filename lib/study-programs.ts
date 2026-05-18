@@ -46,6 +46,49 @@ export type UniversityFilter = {
 	programCount: number
 }
 
+export type CourseFilterKey =
+	| "country"
+	| "degreeLevel"
+	| "studyField"
+	| "language"
+	| "fullTimeOrPartTime"
+	| "state"
+	| "location"
+	| "internationalStudentFit"
+	| "tuitionType"
+	| "applicationDifficulty"
+	| "onlineOrOnCampus"
+	| "startTerms"
+	| "ects"
+	| "duration"
+	| "workExperienceRequired"
+	| "metadataConfidence"
+
+export type CourseFilterState = Record<CourseFilterKey, string[]>
+
+export type CourseSearchParams = Record<string, string | string[] | undefined>
+
+export const COURSE_PAGE_SIZE = 30
+
+export const emptyCourseFilters: CourseFilterState = {
+	country: [],
+	degreeLevel: [],
+	studyField: [],
+	language: [],
+	fullTimeOrPartTime: [],
+	state: [],
+	location: [],
+	internationalStudentFit: [],
+	tuitionType: [],
+	applicationDifficulty: [],
+	onlineOrOnCampus: [],
+	startTerms: [],
+	ects: [],
+	duration: [],
+	workExperienceRequired: [],
+	metadataConfidence: [],
+}
+
 export type ProgramDetail = ProgramCard & {
 	programUrl: string
 	campusLocation: string
@@ -70,7 +113,9 @@ export type ProgramDetail = ProgramCard & {
 	relatedPrograms: ProgramCard[]
 }
 
-export async function getCoursesPageData() {
+const filterKeys = Object.keys(emptyCourseFilters) as CourseFilterKey[]
+
+export async function getCoursesPageData(searchParams: CourseSearchParams = {}) {
 	const [programs, universities] = await Promise.all([
 		prisma.degreeProgram.findMany({
 			include: { university: true },
@@ -81,9 +126,17 @@ export async function getCoursesPageData() {
 			orderBy: { name: "asc" },
 		}),
 	])
+	const allPrograms = programs.map(toProgramCard)
+	const filters = parseCourseFilters(searchParams)
+	const search = parseSingleParam(searchParams.q)
+	const page = Math.max(1, Number.parseInt(parseSingleParam(searchParams.page) || "1", 10) || 1)
+	const matchingPrograms = allPrograms.filter((program) => matchesCourseFilters(program, filters, search))
+	const totalPages = Math.max(1, Math.ceil(matchingPrograms.length / COURSE_PAGE_SIZE))
+	const safePage = Math.min(page, totalPages)
+	const start = (safePage - 1) * COURSE_PAGE_SIZE
 
 	return {
-		programs: programs.map(toProgramCard),
+		programs: matchingPrograms.slice(start, start + COURSE_PAGE_SIZE),
 		universities: universities
 			.filter((university) => university._count.programs > 0)
 			.map((university) => ({
@@ -93,6 +146,14 @@ export async function getCoursesPageData() {
 				state: university.state || "",
 				programCount: university._count.programs,
 			})),
+		totalPrograms: allPrograms.length,
+		totalMatching: matchingPrograms.length,
+		page: safePage,
+		totalPages,
+		pageSize: COURSE_PAGE_SIZE,
+		filters,
+		search,
+		filterOptions: buildCourseFilterOptions(allPrograms, filters, search),
 	}
 }
 
@@ -308,4 +369,196 @@ function inferCountry(state?: string, location?: string, campusLocation?: string
 		return "Switzerland"
 	}
 	return "Germany"
+}
+
+export function parseCourseFilters(searchParams: CourseSearchParams): CourseFilterState {
+	return filterKeys.reduce((filters, key) => {
+		filters[key] = parseMultiParam(searchParams[key])
+		return filters
+	}, { ...emptyCourseFilters })
+}
+
+function buildCourseFilterOptions(programs: ProgramCard[], filters: CourseFilterState, search: string): CourseFilterState {
+	return filterKeys.reduce((result, key) => {
+		const peerFilters = { ...filters, [key]: [] }
+		const matchingPrograms = programs.filter((program) => matchesCourseFilters(program, peerFilters, search))
+		result[key] = uniqueSorted(matchingPrograms.flatMap((program) => courseFilterValues(program, key)))
+		return result
+	}, { ...emptyCourseFilters })
+}
+
+function matchesCourseFilters(program: ProgramCard, filters: CourseFilterState, search: string) {
+	return filterKeys.every((key) => matchesAny(courseFilterValues(program, key), filters[key])) && matchesSearch(program, search)
+}
+
+function courseFilterValues(program: ProgramCard, key: CourseFilterKey) {
+	switch (key) {
+		case "country":
+			return [program.country]
+		case "degreeLevel":
+			return [program.degreeLevel]
+		case "studyField":
+			return [program.studyField, program.secondaryStudyField, program.subjectArea]
+		case "language":
+			return splitValues(program.languageOfInstruction).map(normalizeLanguage)
+		case "fullTimeOrPartTime":
+			return [program.fullTimeOrPartTime || normalizePace(program.studyMode)]
+		case "state":
+			return [program.state]
+		case "location":
+			return [program.location]
+		case "internationalStudentFit":
+			return [program.internationalStudentFit]
+		case "tuitionType":
+			return [program.tuitionType]
+		case "applicationDifficulty":
+			return [program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission)]
+		case "onlineOrOnCampus":
+			return [program.onlineOrOnCampus || normalizeFormat(program.studyMode)]
+		case "startTerms":
+			return splitValues(program.startTerms).map(normalizeStartTerm)
+		case "ects":
+			return [program.ects]
+		case "duration":
+			return [program.duration]
+		case "workExperienceRequired":
+			return [program.workExperienceRequired]
+		case "metadataConfidence":
+			return [program.metadataConfidence]
+	}
+}
+
+function matchesSearch(program: ProgramCard, search: string) {
+	const tokens = normalize(search)
+		.split(" ")
+		.filter((token) => token.length > 2 && !["the", "and", "for", "with", "in", "taught"].includes(token))
+
+	if (!tokens.length) {
+		return true
+	}
+
+	const haystack = normalize([
+		program.title,
+		program.universityName,
+		program.country,
+		program.location,
+		program.state,
+		program.degreeLevel,
+		program.academicDegree,
+		program.subjectArea,
+		program.studyField,
+		program.secondaryStudyField,
+		program.languageOfInstruction,
+		program.summary,
+		program.tuitionType,
+		program.applicationDifficulty,
+	].join(" "))
+
+	return tokens.every((token) => haystack.includes(token) || (token.endsWith("s") && haystack.includes(token.slice(0, -1))))
+}
+
+function matchesAny(values: string[], selected: string[]) {
+	return !selected.length || values.some((value) => selected.includes(value))
+}
+
+function parseSingleParam(value: string | string[] | undefined) {
+	return Array.isArray(value) ? value[0] || "" : value || ""
+}
+
+function parseMultiParam(value: string | string[] | undefined) {
+	const values = Array.isArray(value) ? value : value ? [value] : []
+	return uniqueSorted(values.flatMap((item) => item.split(",")).map((item) => item.trim()).filter(Boolean))
+}
+
+function splitValues(value: string) {
+	return value
+		.split(/[;,/|]+/)
+		.map((item) => item.trim())
+		.filter(Boolean)
+}
+
+function normalizeLanguage(value: string) {
+	const normalized = normalize(value).replace("oe", "o")
+	const aliases: Record<string, string> = {
+		deutsch: "German",
+		german: "German",
+		englisch: "English",
+		english: "English",
+		franzosisch: "French",
+		franzoesisch: "French",
+		french: "French",
+		francais: "French",
+		italian: "Italian",
+		italiano: "Italian",
+		spanish: "Spanish",
+		spanisch: "Spanish",
+	}
+	return aliases[normalized] || value.replace(/\s*\(.*?\)\s*/g, "").trim()
+}
+
+function normalizeStartTerm(value: string) {
+	const normalized = normalize(value)
+	if (normalized.includes("winter") || normalized.includes("fall") || normalized.includes("autumn") || normalized.includes("oktober") || normalized.includes("october")) {
+		return "Winter"
+	}
+	if (normalized.includes("summer") || normalized.includes("sommer") || normalized.includes("april")) {
+		return "Summer"
+	}
+	if (normalized.includes("rolling") || normalized.includes("month")) {
+		return "Rolling"
+	}
+	return value
+}
+
+function normalizePace(value: string) {
+	const normalized = normalize(value)
+	if (normalized.includes("part") && normalized.includes("full")) {
+		return "Both"
+	}
+	if (normalized.includes("part")) {
+		return "Part Time"
+	}
+	if (normalized.includes("full") || normalized.includes("vollzeit")) {
+		return "Full Time"
+	}
+	return ""
+}
+
+function normalizeFormat(value: string) {
+	const normalized = normalize(value)
+	if (normalized.includes("hybrid")) {
+		return "Hybrid"
+	}
+	if (normalized.includes("online")) {
+		return "Online"
+	}
+	if (normalized.includes("campus") || normalized.includes("prasenz")) {
+		return "On Campus"
+	}
+	return ""
+}
+
+function normalizeAdmission(value: string) {
+	const normalized = normalize(value)
+	if (normalized.includes("no")) {
+		return "Open Admission"
+	}
+	if (normalized.includes("yes")) {
+		return "Restricted Admission"
+	}
+	return ""
+}
+
+function uniqueSorted(values: string[]) {
+	return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value) && value !== "Unknown")))
+		.sort((a, b) => a.localeCompare(b))
+}
+
+function normalize(value: string) {
+	return value
+		.toLowerCase()
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim()
 }

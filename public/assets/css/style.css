@@ -926,6 +926,47 @@ body .bg-secondary-2 {
   text-align: center;
 }
 
+.course-results-loading {
+  position: absolute;
+  inset: -10px;
+  z-index: 5;
+  display: grid;
+  place-items: start center;
+  border-radius: 8px;
+  background: rgba(245, 246, 234, 0.72);
+  color: var(--tc-theme-primary);
+  font-weight: 800;
+  padding-top: 24px;
+}
+
+.course-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 34px;
+}
+
+.course-pagination a,
+.course-pagination span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 42px;
+  border: 1px solid rgba(1, 71, 60, 0.14);
+  border-radius: 8px;
+  background: var(--tc-system-white);
+  color: var(--tc-theme-primary);
+  font-weight: 800;
+  padding: 0 12px;
+}
+
+.course-pagination a.active {
+  background: var(--tc-theme-primary);
+  color: var(--tc-system-white);
+}
+
 @media (max-width: 1199.98px) {
   .study-course-finder {
     padding-top: 60px;
