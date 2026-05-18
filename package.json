@@ -3,19 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": ">=22 <25",
-    "npm": ">=10"
+    "node": "22.x",
+    "npm": "10.x"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "start:passenger": "NODE_ENV=production node app.js",
-    "plesk:build": "npm ci && npx prisma generate && npm run build",
+    "start": "node server.js",
+    "start:passenger": "NODE_ENV=production node server.js",
+    "plesk:build": "prisma db push && prisma generate && next build",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:seed:dach": "node prisma/seed.cjs --dataset dach"
+    "db:seed:dach": "node prisma/seed.cjs --dataset dach",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "node prisma/seed.cjs"

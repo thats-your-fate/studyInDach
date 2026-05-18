@@ -3,7 +3,7 @@
 # In Plesk, use:
 # - Application root: project root
 # - Document root: project-root/public
-# - Startup file: app.js
+# - Startup file: server.js
 # - Application mode: production
 #
 # Some Plesk installations read Passenger settings from the panel UI instead

@@ -6,7 +6,7 @@ Recommended Plesk settings:
 
 - Application root: repository/project root
 - Document root: `public`
-- Application startup file: `app.js`
+- Application startup file: `server.js`
 - Application mode: `production`
 - Node command: your server's supported Node.js version, preferably Node 20+
 
