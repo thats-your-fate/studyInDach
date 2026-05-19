@@ -3,6 +3,7 @@
 import { navItemsByLocale } from '@/lib/i18n'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import MobileMenu from '../MobileMenu'
 
 function SiteLogo() {
@@ -110,10 +111,22 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 
 function LanguageSwitcher({ currentLocale, enHref, ptHref }: { currentLocale: string; enHref: string; ptHref: string }) {
 	const currentLanguage = languages.find((language) => language.locale === currentLocale) || languages[0]
+	const [isOpen, setIsOpen] = useState(false)
 
 	return (
-		<div className="language-switcher language-dropdown d-none d-lg-flex" aria-label="Language switcher">
-			<button type="button" className="language-dropdown-toggle" aria-haspopup="true">
+		<div
+			className={`language-switcher language-dropdown d-none d-lg-flex ${isOpen ? 'open' : ''}`}
+			aria-label="Language switcher"
+			onMouseEnter={() => setIsOpen(true)}
+			onMouseLeave={() => setIsOpen(false)}
+		>
+			<button
+				type="button"
+				className="language-dropdown-toggle"
+				aria-haspopup="true"
+				aria-expanded={isOpen}
+				onClick={() => setIsOpen((value) => !value)}
+			>
 				<span aria-hidden="true">{currentLanguage.flag}</span>
 				<span>{currentLanguage.short}</span>
 				<i className="ri-arrow-down-s-line" />
@@ -125,7 +138,10 @@ function LanguageSwitcher({ currentLocale, enHref, ptHref }: { currentLocale: st
 						href={language.locale === 'en' ? enHref : ptHref}
 						className={currentLocale === language.locale ? 'active' : ''}
 						hrefLang={language.hrefLang}
-						onClick={() => setLocaleCookie(language.locale)}
+						onClick={() => {
+							setLocaleCookie(language.locale)
+							setIsOpen(false)
+						}}
 					>
 						<span aria-hidden="true">{language.flag}</span>
 						<span>{language.label}</span>

@@ -1835,7 +1835,7 @@ body .bg-secondary-2 {
 
 .language-dropdown-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: 100%;
   right: 0;
   z-index: 50;
   display: none;
@@ -1848,7 +1848,8 @@ body .bg-secondary-2 {
 }
 
 .language-dropdown:hover .language-dropdown-menu,
-.language-dropdown:focus-within .language-dropdown-menu {
+.language-dropdown:focus-within .language-dropdown-menu,
+.language-dropdown.open .language-dropdown-menu {
   display: block;
 }
 
