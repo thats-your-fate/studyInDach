@@ -9,7 +9,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		prisma.university.findMany({ orderBy: { name: "asc" } }),
 	])
 	const now = new Date()
-	const main = ["/", "/courses", "/pt-br/cursos", "/universities", "/study-guide", "/about", "/impressum", "/privacy"].map((path) => ({
+	const main = [
+		"/",
+		"/courses",
+		"/universities",
+		"/study-guide",
+		"/about",
+		"/impressum",
+		"/privacy",
+		"/pt-br/cursos",
+		"/pt-br/universidades",
+		"/pt-br/guia-de-estudos",
+		"/pt-br/sobre",
+	].map((path) => ({
 		url: absoluteUrl(path),
 		lastModified: now,
 	}))

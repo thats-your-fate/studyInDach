@@ -467,11 +467,14 @@ function CourseCard({ course, locale }: { course: ProgramCard; locale: PublicLoc
 		.filter(isUsefulValue)
 		.map((tag) => optionLabel(tag, locale))
 		.slice(0, 3)
-	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree), course.location, course.country].filter(isUsefulValue))
+	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree)].filter(isUsefulValue))
 		.map((item) => optionLabel(item, locale))
 	const degreeLabel = metaItems.join(" · ")
 	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).map((item) => optionLabel(item, locale)).join(" / ") || usefulValue(course.studyMode)
 	const tuition = optionLabel(usefulValue(course.tuitionType) || usefulValue(course.tuitionOrFees), locale)
+	const displayLocation = compactLocation(course, locale)
+	const displayLanguage = optionLabel(compactLanguages(course.languageOfInstruction), locale)
+	const factMeta = [displayLanguage, course.duration, tuition, displayLocation].filter(isUsefulValue).join(" · ")
 	const summary = course.summary?.trim()
 
 	return (
@@ -483,14 +486,15 @@ function CourseCard({ course, locale }: { course: ProgramCard; locale: PublicLoc
 			<div className="course-card-body">
 				<div className="course-card-meta">
 					<span>{degreeLabel || ui.degreeProgram}</span>
+					{factMeta && <span>{factMeta}</span>}
 				</div>
 				<h5>
 					<Link href={course.detailPath}>{course.title}</Link>
 				</h5>
 				<p className="course-university">{course.universityName}</p>
 				<div className="course-facts">
-					{usefulValue(compactLocation(course)) && <span><i className="ri-map-pin-line" /> {compactLocation(course)}</span>}
-					{usefulValue(compactLanguages(course.languageOfInstruction)) && <span><i className="ri-translate-2" /> {optionLabel(compactLanguages(course.languageOfInstruction), locale)}</span>}
+					{usefulValue(displayLocation) && <span><i className="ri-map-pin-line" /> {displayLocation}</span>}
+					{usefulValue(displayLanguage) && <span><i className="ri-translate-2" /> {displayLanguage}</span>}
 					{tuition && <span><i className="ri-bank-line" /> {tuition}</span>}
 					{studyMode && <span><i className="ri-computer-line" /> {studyMode}</span>}
 				</div>
@@ -746,8 +750,8 @@ function cardImageSrc(course: ProgramCard) {
 	return heroImageMatch?.[0] || course.fallbackImageUrl
 }
 
-function compactLocation(course: ProgramCard) {
-	return [course.location, course.state, course.country].filter(Boolean).join(", ")
+function compactLocation(course: ProgramCard, locale: PublicLocale = "en") {
+	return [course.location, optionLabel(course.state, locale), optionLabel(course.country, locale)].filter(Boolean).join(", ")
 }
 
 function compactLanguages(value: string) {

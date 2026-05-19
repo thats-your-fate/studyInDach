@@ -30,7 +30,7 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 	}
 
 	const applyUrl = program.applicationUrl || program.programUrl
-	const orientationUrl = `/contact?programId=${program.id}`
+	const orientationUrl = locale === "pt-br" ? `/pt-br/contato?programId=${program.id}` : `/contact?programId=${program.id}`
 	const heroImage = extractImageUrl(program.heroImageUrl) || program.fallbackImageUrl
 	const quickFacts: Fact[] = [
 		{ icon: "ri-graduation-cap-line", label: ui.facts.degree, value: localizedValue(program.academicDegree || program.degreeLevel, locale) },
@@ -48,6 +48,7 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 		localizedValue(program.tuitionType, locale),
 		localizedValue(program.state || program.country, locale),
 	].filter(Boolean)
+	const heroMeta = heroChips.join(" · ")
 	const highlights = buildHighlights(program, locale)
 	const admissionItems = buildAdmissionItems(program, locale)
 	const costItems = buildCostItems(program, locale)
@@ -74,9 +75,7 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 							</div>
 						<h1>{program.title}</h1>
 						{showOriginalTitle && <p className="program-original-title">{ui.originalTitle} {program.originalTitle}</p>}
-						<div className="program-hero-chips">
-							{heroChips.map((chip) => <span key={chip}>{chip}</span>)}
-						</div>
+						{heroMeta && <div className="program-hero-chips"><span>{heroMeta}</span></div>}
 						{program.summary && <p className="program-hero-summary">{program.summary}</p>}
 						<div className="program-hero-actions">
 							<Link href={applyUrl} target="_blank" className="btn btn-primary">{ui.applyNow}</Link>

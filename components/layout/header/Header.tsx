@@ -18,7 +18,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 	const navItems = navItemsByLocale[locale]
 	const coursesPath = locale === 'pt-br' ? '/pt-br/cursos' : '/courses'
 	const languageLinks = buildLanguageLinks(pathname || '/', searchParams.toString())
-	const contactHeader = pathname === '/contact'
+	const contactHeader = pathname === '/contact' || pathname === '/pt-br/contato'
 
 	return (
 		<>
@@ -143,18 +143,21 @@ const languages: Array<{ locale: 'en' | 'pt-br'; hrefLang: string; flag: string;
 
 function buildLanguageLinks(pathname: string, query: string) {
 	const suffix = query ? `?${query}` : ''
-	const enPath = pathname.startsWith('/pt-br/cursos')
+	const localePairs: Record<string, string> = {
+		'/': '/pt-br',
+		'/courses': '/pt-br/cursos',
+		'/universities': '/pt-br/universidades',
+		'/study-guide': '/pt-br/guia-de-estudos',
+		'/about': '/pt-br/sobre',
+		'/contact': '/pt-br/contato',
+	}
+	const reversePairs = Object.fromEntries(Object.entries(localePairs).map(([en, pt]) => [pt, en]))
+	const enPath = pathname.startsWith('/pt-br/cursos/')
 		? pathname.replace(/^\/pt-br\/cursos/, '/courses')
-		: pathname === '/pt-br'
-			? '/'
-			: pathname.replace(/^\/pt-br/, '') || '/'
-	const ptPath = pathname.startsWith('/courses')
+		: reversePairs[pathname] || pathname.replace(/^\/pt-br/, '') || '/'
+	const ptPath = pathname.startsWith('/courses/')
 		? pathname.replace(/^\/courses/, '/pt-br/cursos')
-		: pathname.startsWith('/pt-br')
-			? pathname
-			: pathname === '/'
-				? '/pt-br/cursos'
-				: pathname
+		: localePairs[pathname] || (pathname.startsWith('/pt-br') ? pathname : pathname)
 
 	return {
 		en: `${enPath}${suffix}`,

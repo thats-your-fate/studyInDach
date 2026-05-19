@@ -1,6 +1,6 @@
 import Layout from "@/components/layout/Layout"
-import Section1 from "@/components/sections/contact/Section1"
 import Section2, { type ContactProgram } from "@/components/sections/contact/Section2"
+import { optionLabel } from "@/lib/i18n"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import type { Metadata } from "next"
@@ -9,14 +9,14 @@ import { redirect } from "next/navigation"
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-	title: "Free Study Orientation | Study in DACH",
-	description: "Contact Study in DACH for free orientation about degree programs in Germany, Austria, and Switzerland.",
+	title: "Orientação gratuita para estudos | Study in DACH",
+	description: "Entre em contato com o Study in DACH para orientação gratuita sobre programas na Alemanha, Áustria e Suíça.",
 	robots: {
 		index: false,
 		follow: true,
 	},
 	alternates: {
-		canonical: absoluteUrl("/contact"),
+		canonical: absoluteUrl("/pt-br/contato"),
 	},
 }
 
@@ -31,16 +31,13 @@ async function submitInquiry(formData: FormData) {
 
 	const programId = toNumber(formData.get("programId"))
 	const sourcePath = limit(field(formData, "sourcePath"), 500)
-	const locale = limit(field(formData, "locale"), 20) || "en"
-	const publicLocale = locale === "pt-br" ? "pt-br" : "en"
-	const returnPath = contactReturnPath(programId, publicLocale)
+	const locale = "pt-br"
 
 	if (field(formData, "website") || field(formData, "companyUrl")) {
-		redirect(contactStatePath(programId, "sent", "1", publicLocale))
+		redirect(contactStatePath(programId, "sent", "1"))
 	}
-
 	if (field(formData, "consent") !== "on") {
-		redirect(contactStatePath(programId, "error", "consent", publicLocale))
+		redirect(contactStatePath(programId, "error", "consent"))
 	}
 
 	const name = optionalLimit(formData, "name", 120)
@@ -50,16 +47,19 @@ async function submitInquiry(formData: FormData) {
 	const message = limit(field(formData, "message"), 3000)
 
 	if (!looksLikeEmail(email)) {
-		redirect(contactStatePath(programId, "error", "email", publicLocale))
+		redirect(contactStatePath(programId, "error", "email"))
 	}
 	if (!message) {
-		redirect(contactStatePath(programId, "error", "message", publicLocale))
+		redirect(contactStatePath(programId, "error", "message"))
 	}
 
 	const program = programId
 		? await prisma.degreeProgram.findUnique({
 			where: { id: programId },
-			include: { university: true },
+			include: {
+				university: true,
+				translations: { where: { locale: "pt" }, take: 1 },
+			},
 		})
 		: null
 
@@ -71,18 +71,18 @@ async function submitInquiry(formData: FormData) {
 			preferredStudyCountry,
 			message,
 			programId: program?.id || programId || null,
-			programNameSnapshot: program?.programName || null,
+			programNameSnapshot: program?.translations[0]?.localizedProgramName || program?.programName || null,
 			universityNameSnapshot: program?.university.name || null,
 			programUrlSnapshot: program?.programUrl || null,
 			locale,
-			sourcePath: sourcePath || returnPath,
+			sourcePath: sourcePath || contactReturnPath(programId),
 		},
 	})
 
-	redirect(contactStatePath(programId, "sent", "1", publicLocale))
+	redirect(contactStatePath(programId, "sent", "1"))
 }
 
-export default async function Contact({
+export default async function ContactPt({
 	searchParams,
 }: {
 	searchParams?: ContactSearchParams
@@ -91,29 +91,31 @@ export default async function Contact({
 	const program = programId
 		? await prisma.degreeProgram.findUnique({
 			where: { id: programId },
-			include: { university: true },
+			include: {
+				university: true,
+				translations: { where: { locale: "pt" }, take: 1 },
+			},
 		})
 		: null
 
 	const selectedProgram: ContactProgram | null = program
 		? {
 			id: program.id,
-			name: program.programName,
+			name: program.translations[0]?.localizedProgramName || program.programName,
 			universityName: program.university.name,
-			location: [program.university.location, program.university.state].filter(Boolean).join(", "),
+			location: [program.university.location, optionLabel(program.university.state || "", "pt-br")].filter(Boolean).join(", "),
 		}
 		: null
 
 	return (
 		<Layout>
-			{!programId && <Section1 />}
 			<Section2
 				action={submitInquiry}
 				selectedProgram={selectedProgram}
 				sent={searchParams?.sent === "1"}
 				error={searchParams?.error || ""}
 				programContactMode={Boolean(programId)}
-				locale="en"
+				locale="pt-br"
 			/>
 		</Layout>
 	)
@@ -140,16 +142,15 @@ function looksLikeEmail(value: string) {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-function contactReturnPath(programId: number | null, locale = "en") {
-	const base = locale === "pt-br" ? "/pt-br/contato" : "/contact"
-	return programId ? `${base}?programId=${programId}` : base
+function contactReturnPath(programId: number | null) {
+	return programId ? `/pt-br/contato?programId=${programId}` : "/pt-br/contato"
 }
 
-function contactStatePath(programId: number | null, key: "sent" | "error", value: string, locale = "en") {
+function contactStatePath(programId: number | null, key: "sent" | "error", value: string) {
 	const params = new URLSearchParams()
 	if (programId) {
 		params.set("programId", String(programId))
 	}
 	params.set(key, value)
-	return `${locale === "pt-br" ? "/pt-br/contato" : "/contact"}?${params.toString()}`
+	return `/pt-br/contato?${params.toString()}`
 }

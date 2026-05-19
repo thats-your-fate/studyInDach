@@ -77,18 +77,21 @@ export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 
 function buildLanguageLinks(pathname: string, query: string) {
 	const suffix = query ? `?${query}` : ''
-	const enPath = pathname.startsWith('/pt-br/cursos')
+	const localePairs: Record<string, string> = {
+		'/': '/pt-br',
+		'/courses': '/pt-br/cursos',
+		'/universities': '/pt-br/universidades',
+		'/study-guide': '/pt-br/guia-de-estudos',
+		'/about': '/pt-br/sobre',
+		'/contact': '/pt-br/contato',
+	}
+	const reversePairs = Object.fromEntries(Object.entries(localePairs).map(([en, pt]) => [pt, en]))
+	const enPath = pathname.startsWith('/pt-br/cursos/')
 		? pathname.replace(/^\/pt-br\/cursos/, '/courses')
-		: pathname === '/pt-br'
-			? '/'
-			: pathname.replace(/^\/pt-br/, '') || '/'
-	const ptPath = pathname.startsWith('/courses')
+		: reversePairs[pathname] || pathname.replace(/^\/pt-br/, '') || '/'
+	const ptPath = pathname.startsWith('/courses/')
 		? pathname.replace(/^\/courses/, '/pt-br/cursos')
-		: pathname.startsWith('/pt-br')
-			? pathname
-			: pathname === '/'
-				? '/pt-br/cursos'
-				: pathname
+		: localePairs[pathname] || (pathname.startsWith('/pt-br') ? pathname : pathname)
 
 	return {
 		en: `${enPath}${suffix}`,
