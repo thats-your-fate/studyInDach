@@ -418,7 +418,10 @@ function inferCountry(state?: string, location?: string, campusLocation?: string
 
 export function parseCourseFilters(searchParams: CourseSearchParams): CourseFilterState {
 	return filterKeys.reduce((filters, key) => {
-		filters[key] = parseMultiParam(searchParams[key]).map((value) => normalizeCourseFilterParam(key, value)).filter(Boolean)
+		const rawValue = key === "language"
+			? [searchParams.language, searchParams.languageOfInstruction].flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
+			: searchParams[key]
+		filters[key] = parseMultiParam(rawValue).map((value) => normalizeCourseFilterParam(key, value)).filter(Boolean)
 		return filters
 	}, { ...emptyCourseFilters })
 }
@@ -560,29 +563,34 @@ function normalizeStartTerm(value: string) {
 	if (!normalized || /^\d+$/.test(normalized) || /^\d{1,2}\s+\d{1,2}\s*\d{0,4}$/.test(normalized)) {
 		return ""
 	}
-	if (
+	const hasWinter =
 		normalized.includes("winter")
 		|| normalized.includes("fall")
 		|| normalized.includes("autumn")
 		|| normalized.includes("automne")
 		|| normalized.includes("herbst")
+		|| normalized.includes("inverno")
 		|| normalized.includes("september")
 		|| normalized.includes("october")
 		|| normalized.includes("oktober")
 		|| normalized.includes("november")
-	) {
-		return "Winter"
-	}
-	if (
+	const hasSummer =
 		normalized.includes("summer")
 		|| normalized.includes("sommer")
+		|| normalized.includes("verao")
 		|| normalized.includes("spring")
 		|| normalized.includes("printemps")
 		|| normalized.includes("march")
 		|| normalized.includes("maerz")
 		|| normalized.includes("marz")
 		|| normalized.includes("april")
-	) {
+	if (hasWinter && hasSummer) {
+		return "Winter / Summer"
+	}
+	if (hasWinter) {
+		return "Winter"
+	}
+	if (hasSummer) {
 		return "Summer"
 	}
 	if (normalized.includes("rolling") || normalized.includes("month") || normalized.includes("anytime") || normalized.includes("various")) {
@@ -631,7 +639,10 @@ function normalizeAdmission(value: string) {
 }
 
 function uniqueSorted(values: string[]) {
-	return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value) && value !== "Unknown")))
+	return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => {
+		const normalized = normalize(value || "")
+		return Boolean(normalized) && !["unknown", "n a", "na", "null", "undefined"].includes(normalized)
+	})))
 		.sort((a, b) => a.localeCompare(b))
 }
 

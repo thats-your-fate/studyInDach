@@ -1,4 +1,13 @@
 import Layout from "@/components/layout/Layout"
+import { absoluteUrl } from "@/lib/seo"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+	title: "Impressum | Study in DACH",
+	alternates: {
+		canonical: absoluteUrl("/impressum"),
+	},
+}
 
 export default function ImpressumPage() {
 	return (

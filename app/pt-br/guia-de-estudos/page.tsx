@@ -4,8 +4,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-	title: "Guia de estudos | Study in DACH",
-	description: "Notas práticas para usar o Study in DACH e verificar informações oficiais das universidades.",
+	title: "Guia para estudar na Alemanha, Áustria e Suíça | Study in DACH",
+	description: "Guias práticos em português para comparar cursos, custos, idiomas, prazos e universidades na Alemanha, Áustria e Suíça.",
 	alternates: {
 		canonical: absoluteUrl("/pt-br/guia-de-estudos"),
 		languages: {
@@ -18,16 +18,72 @@ export const metadata: Metadata = {
 
 const guideItems = [
 	{
-		title: "Confira prazos oficiais",
-		body: "Datas de candidatura variam por universidade, tipo de curso, perfil do candidato e país. Sempre confirme os prazos na página oficial do programa.",
+		title: "Estudar na Alemanha",
+		body: "Entenda como comparar universidades, tipos de curso, idiomas de ensino e custos antes de escolher uma candidatura na Alemanha.",
+		href: "/pt-br/guia-de-estudos/estudar-na-alemanha",
 	},
 	{
-		title: "Entenda os requisitos de idioma",
-		body: "Programas em inglês ainda podem exigir alemão para estágios, vida diária ou módulos específicos. Leia os requisitos oficiais com atenção.",
+		title: "Estudar na Áustria",
+		body: "Veja pontos importantes para pesquisar programas austríacos, incluindo prazos, taxas, idioma e diferenças entre instituições.",
+		href: "/pt-br/guia-de-estudos/estudar-na-austria",
 	},
 	{
-		title: "Compare custos reais",
-		body: "Mensalidade, taxa semestral, custo de vida, seguro e comprovação financeira para visto são itens separados. Dados ausentes não significam gratuidade.",
+		title: "Estudar na Suíça",
+		body: "Compare opções suíças com atenção a custo de vida, idioma local, estrutura acadêmica e requisitos oficiais de cada universidade.",
+		href: "/pt-br/guia-de-estudos/estudar-na-suica",
+	},
+	{
+		title: "Bacharelado, mestrado e doutorado",
+		body: "Conheça as diferenças entre níveis acadêmicos e use filtros para encontrar programas compatíveis com seu histórico.",
+		href: "/pt-br/guia-de-estudos/bacharelado-mestrado-doutorado",
+	},
+	{
+		title: "Programas em inglês",
+		body: "Encontre cursos com ensino em inglês e confira se há exigências adicionais de alemão, francês, italiano ou outro idioma.",
+		href: "/pt-br/guia-de-estudos/programas-em-ingles",
+	},
+	{
+		title: "Universidades públicas",
+		body: "Use a base de dados para descobrir opções públicas, mas confirme taxas semestrais, serviços e regras de admissão no site oficial.",
+		href: "/pt-br/guia-de-estudos/universidades-publicas",
+	},
+	{
+		title: "Custos, taxas e comprovação financeira",
+		body: "Compare mensalidade, taxa semestral, moradia, seguro e possíveis comprovantes financeiros sem assumir que dado ausente significa gratuito.",
+		href: "/pt-br/guia-de-estudos/custos-taxas-comprovacao-financeira",
+	},
+	{
+		title: "Requisitos de idioma",
+		body: "Veja como interpretar requisitos como B2, C1, inglês acadêmico e possíveis exigências específicas para candidatos internacionais.",
+		href: "/pt-br/guia-de-estudos/requisitos-de-idioma",
+	},
+	{
+		title: "Prazos de candidatura",
+		body: "Prazos variam por país, universidade, curso e perfil do candidato. Use o guia para organizar sua verificação oficial.",
+		href: "/pt-br/guia-de-estudos/prazos-de-candidatura",
+	},
+	{
+		title: "Como comparar programas",
+		body: "Aprenda a comparar campo de estudo, idioma, formato, duração, custos e requisitos antes de montar sua lista curta.",
+		href: "/pt-br/guia-de-estudos/como-comparar-programas",
+	},
+]
+
+const filteredLinks = [
+	{
+		title: "Mestrados no DACH",
+		body: "Explore programas de mestrado e refine por área, país, idioma e formato.",
+		href: "/pt-br/cursos?degreeLevel=Master",
+	},
+	{
+		title: "Programas em inglês",
+		body: "Veja cursos marcados com inglês como idioma de ensino.",
+		href: "/pt-br/cursos?languageOfInstruction=English",
+	},
+	{
+		title: "Sem mensalidade ou apenas taxa semestral",
+		body: "Encontre programas classificados como sem mensalidade ou apenas com taxa semestral.",
+		href: "/pt-br/cursos?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only",
 	},
 ]
 
@@ -45,23 +101,40 @@ export default function StudyGuidePt() {
 			</section>
 			<section className="py-120 bg-white">
 				<div className="container">
-					<div className="row g-5 align-items-start">
+					<div className="row g-5 align-items-start mb-6">
 						<div className="col-lg-5">
 							<span className="btn-text text-primary">Notas de planejamento</span>
-							<h2 className="my-3 text-anime-style-3">Use o Study in DACH para descobrir opções, depois confirme oficialmente</h2>
-							<p>Nossos filtros ajudam você a selecionar programas na Alemanha, Áustria e Suíça. Decisões finais de candidatura devem sempre se basear no site da universidade.</p>
+							<h2 className="my-3 text-anime-style-3">Guias práticos para estudar na Alemanha, Áustria e Suíça</h2>
+							<p>Nossos filtros ajudam você a selecionar programas no DACH. Use estes guias como ponto de partida para comparar opções, planejar perguntas e confirmar detalhes diretamente com a universidade.</p>
 							<Link href="/pt-br/cursos" className="btn btn-primary mt-3 hover-up">Ver programas</Link>
 						</div>
 						<div className="col-lg-7">
 							<div className="program-info-grid">
 								{guideItems.map((item) => (
-									<div className="program-summary-card" key={item.title}>
+									<Link href={item.href} className="program-summary-card hover-up" key={item.title}>
 										<h3>{item.title}</h3>
 										<p>{item.body}</p>
-									</div>
+									</Link>
 								))}
 							</div>
 						</div>
+					</div>
+					<div className="program-detail-section">
+						<div className="section-heading">
+							<p>Atalhos de pesquisa</p>
+							<h2>Comece por filtros úteis</h2>
+						</div>
+						<div className="program-summary-grid">
+							{filteredLinks.map((item) => (
+								<Link href={item.href} className="program-summary-card hover-up" key={item.title}>
+									<h3>{item.title}</h3>
+									<p>{item.body}</p>
+								</Link>
+							))}
+						</div>
+					</div>
+					<div className="university-panel mt-4">
+						<p className="mb-0">O Study in DACH não é a universidade oficial. Os dados dos programas são coletados de fontes públicas e podem estar incompletos ou desatualizados. Sempre confirme prazos, taxas, requisitos de idioma, documentos e regras de admissão no site oficial da universidade.</p>
 					</div>
 				</div>
 			</section>

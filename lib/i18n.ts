@@ -24,7 +24,7 @@ export const navItemsByLocale: Record<PublicLocale, Array<{ label: string; href:
 		{ label: "Contact", href: "/contact" },
 	],
 	"pt-br": [
-		{ label: "Home", href: "/pt-br" },
+		{ label: "Início", href: "/pt-br" },
 		{ label: "Cursos", href: "/pt-br/cursos" },
 		{ label: "Universidades", href: "/pt-br/universidades" },
 		{ label: "Guia de estudos", href: "/pt-br/guia-de-estudos" },
@@ -83,7 +83,7 @@ export const coursesUi = {
 			metadataConfidence: "Data confidence",
 		} satisfies Record<CourseFilterKey, string>,
 	},
-	"pt-br": {
+		"pt-br": {
 		programFinder: "Busca de cursos",
 		findCourse: "Encontre seu curso no DACH",
 		intro: "Explore programas de graduação, mestrado e doutorado na Alemanha, Áustria e Suíça. Filtre por nível, área, idioma, mensalidade e formato de estudo.",
@@ -110,7 +110,7 @@ export const coursesUi = {
 		previous: "Anterior",
 		next: "Próxima",
 		viewProgram: "Ver programa",
-		fitUnknown: "Afinidade desconhecida",
+		fitUnknown: "",
 		degreeProgram: "Programa de estudo",
 		filterLabels: {
 			country: "País",
@@ -181,6 +181,7 @@ export const programUi = {
 		seeOfficialPage: "See official university page",
 		variesBySemester: "Varies by semester",
 		checkProgramPage: "Check program page",
+		notProvided: "Not specified",
 		tuitionCosts: "Tuition & costs",
 		fees: "Fees",
 		livingCosts: "Living costs",
@@ -251,6 +252,7 @@ export const programUi = {
 		seeOfficialPage: "Ver página oficial da universidade",
 		variesBySemester: "Varia conforme o semestre",
 		checkProgramPage: "Ver página do programa",
+		notProvided: "Não informado",
 		tuitionCosts: "Mensalidades e custos",
 		fees: "Taxas",
 		livingCosts: "Custo de vida",
@@ -403,6 +405,8 @@ const optionLabels: Record<PublicLocale, Record<string, string>> = {
 		Mixed: "Misto",
 		Winter: "Semestre de inverno",
 		Summer: "Semestre de verão",
+		"Winter / Summer": "Semestre de inverno e verão",
+		"Summer / Winter": "Semestre de inverno e verão",
 		Rolling: "Inscrições contínuas",
 		"On Campus": "Presencial",
 		Online: "Online",
@@ -414,6 +418,8 @@ const optionLabels: Record<PublicLocale, Record<string, string>> = {
 		"Open admission": "Admissão aberta",
 		"Restricted Admission": "Admissão restrita",
 		"Restricted admission": "Admissão restrita",
+		"Aptitude Assessment": "Avaliação de aptidão",
+		Competitive: "Processo seletivo competitivo",
 		"Tuition Fee": "Com mensalidade",
 		"Module Fee": "Taxa por módulo",
 		"No Tuition / Semester Fee Only": "Sem mensalidade / apenas taxa semestral",
@@ -437,6 +443,7 @@ const optionLabels: Record<PublicLocale, Record<string, string>> = {
 		"Architecture & Built Environment": "Arquitetura e Ambiente Construído",
 		Bavaria: "Baviera",
 		Interdisciplinary: "Interdisciplinar",
+		Unknown: "",
 	},
 }
 

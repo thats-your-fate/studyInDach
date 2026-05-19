@@ -5,6 +5,11 @@ const ADMIN_PASSWORD = "JvLa3591J"
 const LOCALE_COOKIE = "studyindach_locale"
 
 export function middleware(request: NextRequest) {
+	const legacyProgramTarget = legacyProgramRedirectTarget(request)
+	if (legacyProgramTarget) {
+		return NextResponse.redirect(legacyProgramTarget)
+	}
+
 	const preferredLocale = preferredLocaleFromRequest(request)
 	const redirectTarget = localeRedirectTarget(request, preferredLocale)
 
@@ -73,5 +78,22 @@ function localeRedirectTarget(request: NextRequest, preferredLocale: "en" | "pt-
 	const target = request.nextUrl.clone()
 	target.pathname = pathname.replace(/^\/courses/, "/pt-br/cursos")
 	target.search = search
+	return target
+}
+
+function legacyProgramRedirectTarget(request: NextRequest) {
+	const { pathname, searchParams } = request.nextUrl
+	if (pathname !== "/single-courses") {
+		return null
+	}
+
+	const id = Number(searchParams.get("id"))
+	if (!Number.isFinite(id) || id <= 0) {
+		return null
+	}
+
+	const target = request.nextUrl.clone()
+	target.pathname = `/courses/legacy/degree/program-${id}`
+	target.search = ""
 	return target
 }

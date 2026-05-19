@@ -1,5 +1,20 @@
 import Layout from "@/components/layout/Layout"
+import { absoluteUrl } from "@/lib/seo"
+import type { Metadata } from "next"
 import Link from "next/link"
+
+export const metadata: Metadata = {
+	title: "Study Guide | Study in DACH",
+	description: "Practical notes for comparing degree programs, costs, language requirements, and official university information.",
+	alternates: {
+		canonical: absoluteUrl("/study-guide"),
+		languages: {
+			en: absoluteUrl("/study-guide"),
+			"pt-BR": absoluteUrl("/pt-br/guia-de-estudos"),
+			"x-default": absoluteUrl("/study-guide"),
+		},
+	},
+}
 
 const guideItems = [
 	{

@@ -77,13 +77,13 @@ export default function Section2({ courses, totalPrograms, totalMatching, page, 
 		setSearch(initialSearch)
 	}, [initialFilters, initialSearch])
 
-	const options = useMemo(() => mergeFilters(filterOptions, filters), [filterOptions, filters])
+	const options = useMemo(() => prioritizeFilterOptions(mergeFilters(filterOptions, filters)), [filterOptions, filters])
 	const visibleCourses = courses
 
 	const activeChips = useMemo(() => {
 		return (Object.keys(filters) as FilterKey[]).flatMap((key) =>
 			filters[key].map((value) => ({ key, value, label: optionLabel(value, locale) })),
-		)
+		).filter((chip) => isUsefulValue(chip.label))
 	}, [filters, locale])
 
 	const navigate = (nextFilters: FilterState, nextSearch: string, nextPage = 1) => {
@@ -470,18 +470,19 @@ function CourseCard({ course, locale }: { course: ProgramCard; locale: PublicLoc
 	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree)].filter(isUsefulValue))
 		.map((item) => optionLabel(item, locale))
 	const degreeLabel = metaItems.join(" · ")
-	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).map((item) => optionLabel(item, locale)).join(" / ") || usefulValue(course.studyMode)
+	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).map((item) => optionLabel(item, locale)).join(" / ") || localizedUsefulValue(course.studyMode, locale)
 	const tuition = optionLabel(usefulValue(course.tuitionType) || usefulValue(course.tuitionOrFees), locale)
 	const displayLocation = compactLocation(course, locale)
 	const displayLanguage = optionLabel(compactLanguages(course.languageOfInstruction), locale)
-	const factMeta = [displayLanguage, course.duration, tuition, displayLocation].filter(isUsefulValue).join(" · ")
+	const factMeta = [displayLocation, displayLanguage, tuition, studyMode].filter(isUsefulValue).join(" · ")
 	const summary = course.summary?.trim()
+	const fitLabel = isUsefulValue(course.internationalStudentFit) ? optionLabel(course.internationalStudentFit, locale) : ""
 
 	return (
 		<div className="course-card-modern h-100">
 			<Link href={course.detailPath} className="course-card-image">
 				<img src={imageSrc} alt={course.title} />
-				<span>{optionLabel(course.internationalStudentFit, locale) || ui.fitUnknown}</span>
+				{fitLabel && <span>{fitLabel}</span>}
 			</Link>
 			<div className="course-card-body">
 				<div className="course-card-meta">
@@ -624,6 +625,26 @@ function mergeFilters(base: FilterState, inferred: FilterState): FilterState {
 	}, { ...emptyFilters })
 }
 
+function prioritizeFilterOptions(options: FilterState): FilterState {
+	return {
+		...options,
+		startTerms: prioritizeStartTerms(options.startTerms),
+	}
+}
+
+function prioritizeStartTerms(options: string[]) {
+	const priority = ["Winter", "Summer", "Winter / Summer", "Summer / Winter", "Rolling"]
+	const priorityIndex = new Map(priority.map((value, index) => [value, index]))
+	return [...options].sort((a, b) => {
+		const aIndex = priorityIndex.get(a)
+		const bIndex = priorityIndex.get(b)
+		if (aIndex !== undefined || bIndex !== undefined) {
+			return (aIndex ?? 999) - (bIndex ?? 999)
+		}
+		return a.localeCompare(b)
+	})
+}
+
 function matchesAny(values: string[], selected: string[]) {
 	return !selected.length || values.some((value) => selected.includes(value))
 }
@@ -649,29 +670,34 @@ function normalizeStartTerm(value: string) {
 	if (!normalized || /^\d+$/.test(normalized) || /^\d{1,2}\s+\d{1,2}\s*\d{0,4}$/.test(normalized)) {
 		return ""
 	}
-	if (
+	const hasWinter =
 		normalized.includes("winter")
 		|| normalized.includes("fall")
 		|| normalized.includes("autumn")
 		|| normalized.includes("automne")
 		|| normalized.includes("herbst")
+		|| normalized.includes("inverno")
 		|| normalized.includes("september")
 		|| normalized.includes("october")
 		|| normalized.includes("oktober")
 		|| normalized.includes("november")
-	) {
-		return "Winter"
-	}
-	if (
+	const hasSummer =
 		normalized.includes("summer")
 		|| normalized.includes("sommer")
+		|| normalized.includes("verao")
 		|| normalized.includes("spring")
 		|| normalized.includes("printemps")
 		|| normalized.includes("march")
 		|| normalized.includes("maerz")
 		|| normalized.includes("marz")
 		|| normalized.includes("april")
-	) {
+	if (hasWinter && hasSummer) {
+		return "Winter / Summer"
+	}
+	if (hasWinter) {
+		return "Winter"
+	}
+	if (hasSummer) {
 		return "Summer"
 	}
 	if (normalized.includes("rolling") || normalized.includes("month") || normalized.includes("anytime") || normalized.includes("various")) {
@@ -751,7 +777,7 @@ function cardImageSrc(course: ProgramCard) {
 }
 
 function compactLocation(course: ProgramCard, locale: PublicLocale = "en") {
-	return [course.location, optionLabel(course.state, locale), optionLabel(course.country, locale)].filter(Boolean).join(", ")
+	return [course.location, optionLabel(course.state, locale), optionLabel(course.country, locale)].filter(isUsefulValue).join(", ")
 }
 
 function compactLanguages(value: string) {
@@ -766,6 +792,10 @@ function isUsefulValue(value: string | null | undefined): value is string {
 
 function usefulValue(value: string | null | undefined) {
 	return isUsefulValue(value) ? value.trim() : ""
+}
+
+function localizedUsefulValue(value: string | null | undefined, locale: PublicLocale) {
+	return optionLabel(usefulValue(value), locale)
 }
 
 function compactAcademicDegree(value: string) {

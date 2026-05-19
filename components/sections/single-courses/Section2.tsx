@@ -31,22 +31,23 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 
 	const applyUrl = program.applicationUrl || program.programUrl
 	const orientationUrl = locale === "pt-br" ? `/pt-br/contato?programId=${program.id}` : `/contact?programId=${program.id}`
+	const universityProfileUrl = locale === "pt-br" ? `/pt-br/universidades/${program.universityId}` : `/universities/${program.universityId}`
 	const heroImage = extractImageUrl(program.heroImageUrl) || program.fallbackImageUrl
 	const quickFacts: Fact[] = [
-		{ icon: "ri-graduation-cap-line", label: ui.facts.degree, value: localizedValue(program.academicDegree || program.degreeLevel, locale) },
-		{ icon: "ri-time-line", label: ui.facts.duration, value: localizedValue(program.duration, locale) },
-		{ icon: "ri-translate-2", label: ui.facts.language, value: localizedValue(compactLanguages(program.languageOfInstruction), locale) },
+		{ icon: "ri-graduation-cap-line", label: ui.facts.degree, value: requiredLocalizedValue(program.academicDegree || program.degreeLevel, locale) },
+		{ icon: "ri-time-line", label: ui.facts.duration, value: optionalLocalizedValue(program.duration, locale) },
+		{ icon: "ri-translate-2", label: ui.facts.language, value: optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale) },
 		{ icon: "ri-map-pin-line", label: ui.facts.location, value: localizedLocation([program.location, program.country], locale) },
-		{ icon: "ri-bank-line", label: ui.facts.tuition, value: localizedValue(program.tuitionType || program.tuitionOrFees, locale) },
-		{ icon: "ri-calendar-line", label: ui.facts.start, value: localizedValue(compactStart(program.startTerms), locale) },
-		{ icon: "ri-shield-check-line", label: ui.facts.admission, value: localizedValue(program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission), locale) },
+		{ icon: "ri-bank-line", label: ui.facts.tuition, value: optionalLocalizedValue(program.tuitionType || program.tuitionOrFees, locale) },
+		{ icon: "ri-calendar-line", label: ui.facts.start, value: optionalLocalizedValue(compactStart(program.startTerms), locale) },
+		{ icon: "ri-shield-check-line", label: ui.facts.admission, value: optionalLocalizedValue(program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission), locale) },
 		{ icon: "ri-layout-line", label: ui.facts.mode, value: localizedList([program.onlineOrOnCampus, program.fullTimeOrPartTime], locale, " / ") },
 	].filter((fact) => fact.value)
 	const heroChips = [
-		localizedValue(compactLanguages(program.languageOfInstruction), locale),
-		localizedValue(program.duration, locale),
-		localizedValue(program.tuitionType, locale),
-		localizedValue(program.state || program.country, locale),
+		optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale),
+		optionalLocalizedValue(program.duration, locale),
+		optionalLocalizedValue(program.tuitionType || program.tuitionOrFees, locale),
+		optionalLocalizedValue(program.state || program.country, locale),
 	].filter(Boolean)
 	const heroMeta = heroChips.join(" · ")
 	const highlights = buildHighlights(program, locale)
@@ -196,7 +197,7 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 									location: localizedLocation([program.location, program.state, program.country], locale),
 								})}</p>
 								<div className="university-panel-actions">
-									<Link href={`/universities/${program.universityId}`}>{ui.universityProfile}</Link>
+									<Link href={universityProfileUrl}>{ui.universityProfile}</Link>
 									<Link href={program.websiteUrl || program.programUrl} target="_blank">{ui.universityWebsite}</Link>
 									{program.contactEmail && <a href={`mailto:${program.contactEmail}`}>{ui.contactProgram}</a>}
 								</div>
@@ -294,12 +295,16 @@ function InfoCard({ label, value, icon }: { label: string; value: string; icon: 
 }
 
 function RelatedProgramCard({ program, locale }: { program: ProgramCard; locale: PublicLocale }) {
+	const degreeLabel = optionLabel(program.degreeLevel, locale)
+	const fieldLabel = optionalLocalizedValue(program.studyField || program.subjectArea, locale)
+	const languageLabel = optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale)
+	const metaItems = [degreeLabel, fieldLabel, languageLabel].filter(isUsefulValue)
+
 	return (
 		<Link href={program.detailPath} className="related-program-card">
-			<span>{optionLabel(program.degreeLevel, locale)}</span>
 			<h3>{program.title}</h3>
 			<p>{program.universityName}</p>
-			<div>{[optionLabel(program.studyField || program.subjectArea, locale), optionLabel(compactLanguages(program.languageOfInstruction), locale)].filter(Boolean).join(" • ")}</div>
+			{metaItems.length > 0 && <div className="related-program-meta">{metaItems.join(" · ")}</div>}
 		</Link>
 	)
 }
@@ -321,20 +326,20 @@ function buildHighlights(program: ProgramDetail, locale: PublicLocale) {
 function buildAdmissionItems(program: ProgramDetail, locale: PublicLocale) {
 	const ui = programUi[locale]
 	return [
-		{ icon: "ri-shield-check-line", label: ui.admissionType, value: localizedValue(program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission), locale) || ui.checkWithUniversity },
-		{ icon: "ri-file-list-3-line", label: ui.requirements, value: program.admissionRequirements || ui.seeOfficialPage },
-		{ icon: "ri-calendar-event-line", label: ui.deadline, value: program.applicationDeadlines || ui.variesBySemester },
-		{ icon: "ri-translate-2", label: ui.facts.language, value: localizedValue(compactLanguages(program.languageOfInstruction), locale) || ui.checkProgramPage },
+		{ icon: "ri-shield-check-line", label: ui.admissionType, value: optionalLocalizedValue(program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission), locale) },
+		{ icon: "ri-file-list-3-line", label: ui.requirements, value: usefulValue(program.admissionRequirements) },
+		{ icon: "ri-calendar-event-line", label: ui.deadline, value: usefulValue(program.applicationDeadlines) },
+		{ icon: "ri-translate-2", label: ui.facts.language, value: optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale) },
 	].filter((item) => item.value)
 }
 
 function buildCostItems(program: ProgramDetail, locale: PublicLocale) {
 	const ui = programUi[locale]
 	return [
-		{ icon: "ri-bank-line", label: ui.facts.tuition, value: localizedValue(program.tuitionType, locale) || ui.checkWithUniversity },
-		{ icon: "ri-money-euro-circle-line", label: ui.fees, value: program.tuitionOrFees || ui.semesterFeeMayApply },
+		{ icon: "ri-bank-line", label: ui.facts.tuition, value: optionalLocalizedValue(program.tuitionType, locale) },
+		{ icon: "ri-money-euro-circle-line", label: ui.fees, value: usefulValue(program.tuitionOrFees) },
 		{ icon: "ri-home-4-line", label: ui.livingCosts, value: estimatedLivingCosts(program.country, locale) },
-	]
+	].filter((item) => item.value)
 }
 
 function compactLanguages(value: string) {
@@ -343,17 +348,22 @@ function compactLanguages(value: string) {
 }
 
 function compactStart(value: string) {
-	if (!value) {
+	if (!isUsefulValue(value)) {
 		return ""
 	}
-	const normalized = value.toLowerCase()
-	if (normalized.includes("winter") && normalized.includes("summer")) {
+	const normalized = value
+		.toLowerCase()
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+	const hasWinter = normalized.includes("winter") || normalized.includes("inverno")
+	const hasSummer = normalized.includes("summer") || normalized.includes("verao")
+	if (hasWinter && hasSummer) {
 		return "Winter / Summer"
 	}
-	if (normalized.includes("winter")) {
+	if (hasWinter) {
 		return "Winter"
 	}
-	if (normalized.includes("summer")) {
+	if (hasSummer) {
 		return "Summer"
 	}
 	return value
@@ -363,7 +373,7 @@ function normalizeAdmission(value: string) {
 	if (!value) {
 		return ""
 	}
-	return value.toLowerCase().includes("no") ? "Open admission" : value.toLowerCase().includes("yes") ? "Restricted admission" : value
+	return value.toLowerCase().includes("no") ? "Open Admission" : value.toLowerCase().includes("yes") ? "Restricted Admission" : value
 }
 
 function splitList(value: string) {
@@ -408,7 +418,7 @@ function estimatedLivingCosts(country: string, locale: PublicLocale = "en") {
 
 function fallbackBestFor(program: ProgramDetail, locale: PublicLocale = "en") {
 	if (locale === "pt-br") {
-		return `Estudantes procurando um programa de ${program.degreeLevel.toLowerCase()} em ${program.studyField || program.subjectArea} na ${program.universityName}.`
+		return `Estudantes procurando um programa de ${localizedValue(program.degreeLevel, locale).toLowerCase()} em ${localizedValue(program.studyField || program.subjectArea, locale)} na ${program.universityName}.`
 	}
 	return `Students looking for a ${program.degreeLevel.toLowerCase()} program in ${program.studyField || program.subjectArea} at ${program.universityName}.`
 }
@@ -422,7 +432,7 @@ function fallbackSkills(program: ProgramDetail, locale: PublicLocale = "en") {
 }
 
 function localizedValue(value: string, locale: PublicLocale) {
-	if (!value) {
+	if (!isUsefulValue(value)) {
 		return ""
 	}
 	const direct = optionLabel(value, locale)
@@ -437,11 +447,34 @@ function localizedValue(value: string, locale: PublicLocale) {
 
 function localizedList(values: string[], locale: PublicLocale, separator = ", ") {
 	return values
-		.filter(Boolean)
+		.filter(isUsefulValue)
 		.map((value) => localizedValue(value, locale))
+		.filter(Boolean)
 		.join(separator)
 }
 
 function localizedLocation(values: string[], locale: PublicLocale) {
 	return localizedList(values, locale, ", ")
+}
+
+function optionalLocalizedValue(value: string | null | undefined, locale: PublicLocale) {
+	return isUsefulValue(value) ? localizedValue(value.trim(), locale) : ""
+}
+
+function requiredLocalizedValue(value: string | null | undefined, locale: PublicLocale) {
+	return optionalLocalizedValue(value, locale) || programUi[locale].notProvided
+}
+
+function usefulValue(value: string | null | undefined) {
+	return isUsefulValue(value) ? value.trim() : ""
+}
+
+function isUsefulValue(value: string | null | undefined): value is string {
+	const normalized = String(value || "")
+		.toLowerCase()
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim()
+	return Boolean(normalized) && !["unknown", "n a", "na", "null", "undefined"].includes(normalized)
 }

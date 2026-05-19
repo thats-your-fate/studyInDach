@@ -88,7 +88,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 						<div className="offCanvas__side-info mb-30">
 							<div className="contact-list mb-30">
 								<h4>Study in DACH</h4>
-								<p>Find degree programs across Germany, Austria, and Switzerland.</p>
+								<p>{locale === 'pt-br' ? 'Encontre programas de estudo na Alemanha, Áustria e Suíça.' : 'Find degree programs across Germany, Austria, and Switzerland.'}</p>
 							</div>
 							<div className="contact-list mb-30">
 								<h4>Email</h4>
@@ -165,6 +165,7 @@ function buildLanguageLinks(pathname: string, query: string) {
 		'/study-guide': '/pt-br/guia-de-estudos',
 		'/about': '/pt-br/sobre',
 		'/contact': '/pt-br/contato',
+		'/privacy': '/pt-br/privacidade',
 	}
 	const reversePairs = Object.fromEntries(Object.entries(localePairs).map(([en, pt]) => [pt, en]))
 	const enPath = pathname.startsWith('/pt-br/cursos/')

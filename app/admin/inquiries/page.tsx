@@ -101,6 +101,7 @@ function AdminHeader({ title }: { title: string }) {
 			</div>
 			<div className="d-flex flex-wrap gap-2">
 				<Link href="/admin" className="btn btn-outline-secondary">Program admin</Link>
+				<Link href="/admin/data-quality" className="btn btn-outline-secondary">Data quality</Link>
 				<Link href="/courses" className="btn btn-primary">View programs</Link>
 			</div>
 		</div>

@@ -37,7 +37,7 @@ export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 								</nav>
 							</div>
 							<div className="mobile-language-switcher">
-								<label htmlFor="mobile-language-select">Language</label>
+								<label htmlFor="mobile-language-select">{locale === 'pt-br' ? 'Idioma' : 'Language'}</label>
 								<select
 									id="mobile-language-select"
 									value={locale}
@@ -84,6 +84,7 @@ function buildLanguageLinks(pathname: string, query: string) {
 		'/study-guide': '/pt-br/guia-de-estudos',
 		'/about': '/pt-br/sobre',
 		'/contact': '/pt-br/contato',
+		'/privacy': '/pt-br/privacidade',
 	}
 	const reversePairs = Object.fromEntries(Object.entries(localePairs).map(([en, pt]) => [pt, en]))
 	const enPath = pathname.startsWith('/pt-br/cursos/')

@@ -15,7 +15,7 @@ export default function Footer() {
 			universities: '/pt-br/universidades',
 			studyGuide: '/pt-br/guia-de-estudos',
 			about: '/pt-br/sobre',
-			privacy: '/privacy',
+			privacy: '/pt-br/privacidade',
 			english: '/pt-br/cursos?language=English',
 			bachelor: '/pt-br/cursos?degreeLevel=Bachelor',
 			master: '/pt-br/cursos?degreeLevel=Master',

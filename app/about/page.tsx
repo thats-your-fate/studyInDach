@@ -1,5 +1,20 @@
 import Layout from "@/components/layout/Layout"
+import { absoluteUrl } from "@/lib/seo"
+import type { Metadata } from "next"
 import Link from "next/link"
+
+export const metadata: Metadata = {
+	title: "About Study in DACH",
+	description: "Learn about Study in DACH, a discovery platform for degree programs in Germany, Austria, and Switzerland.",
+	alternates: {
+		canonical: absoluteUrl("/about"),
+		languages: {
+			en: absoluteUrl("/about"),
+			"pt-BR": absoluteUrl("/pt-br/sobre"),
+			"x-default": absoluteUrl("/about"),
+		},
+	},
+}
 
 export default function About() {
 	return (

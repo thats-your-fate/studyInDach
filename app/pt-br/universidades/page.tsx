@@ -48,7 +48,7 @@ export default async function UniversitiesPt() {
 										<span>{[university.location, optionLabel(university.state || "", "pt-br")].filter(Boolean).join(", ") || "DACH"}</span>
 										<strong>{university.name}</strong>
 										<p className="mb-0 mt-2">{university._count.programs} programas no banco de dados</p>
-										<Link href={`/universities/${university.id}`} className="d-inline-block mt-3">Ver perfil da universidade</Link>
+										<Link href={`/pt-br/universidades/${university.id}`} className="d-inline-block mt-3">Ver perfil da universidade</Link>
 									</div>
 								</div>
 							</div>

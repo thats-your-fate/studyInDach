@@ -1,8 +1,23 @@
 import Layout from "@/components/layout/Layout"
-import Link from "next/link"
 import { prisma } from "@/lib/prisma"
+import { absoluteUrl } from "@/lib/seo"
+import type { Metadata } from "next"
+import Link from "next/link"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+	title: "Universities in Germany, Austria and Switzerland | Study in DACH",
+	description: "Explore universities with degree programs in the Study in DACH database.",
+	alternates: {
+		canonical: absoluteUrl("/universities"),
+		languages: {
+			en: absoluteUrl("/universities"),
+			"pt-BR": absoluteUrl("/pt-br/universidades"),
+			"x-default": absoluteUrl("/universities"),
+		},
+	},
+}
 
 export default async function Universities() {
 	const universities = await prisma.university.findMany({

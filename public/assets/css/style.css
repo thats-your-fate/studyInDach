@@ -1474,7 +1474,7 @@ body .bg-secondary-2 {
 }
 
 .related-program-card h3 {
-  margin: 10px 0 8px;
+  margin: 0 0 8px;
   color: var(--tc-system-black);
   font-size: 20px;
   line-height: 1.25;
@@ -1483,6 +1483,15 @@ body .bg-secondary-2 {
 .related-program-card p,
 .related-program-card div {
   color: #61716c;
+}
+
+.related-program-card p {
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.related-program-meta {
+  line-height: 1.5;
 }
 
 .program-mobile-cta {
