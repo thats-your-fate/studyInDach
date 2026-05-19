@@ -244,26 +244,46 @@ export async function getProgramDetailBySlugs(universitySlug: string, degreeSlug
 		program: detail,
 		canonicalPath,
 		isCanonical: canonicalPath === `${localePrefix(locale)}/courses/${universitySlug}/${degreeSlug}/${programSlug}`
-			|| canonicalPath === `${localePrefix(locale)}/cursos/${universitySlug}/${degreeSlug}/${programSlug}`,
+			|| canonicalPath === `${localePrefix(locale)}/cursos/${universitySlug}/${degreeSlug}/${programSlug}`
+			|| canonicalPath === `${localePrefix(locale)}/programas/${universitySlug}/${degreeSlug}/${programSlug}`,
 	}
 }
 
 export function programDetailPath(program: Pick<ProgramCard, "id" | "title" | "degreeLevel" | "universityName"> & { originalTitle?: string }, locale: PublicLocale = "en") {
-	const basePath = locale === "pt-br" ? "/pt-br/cursos" : "/courses"
-	return `${basePath}/${slugify(program.universityName, "university")}/${slugify(program.degreeLevel, "degree")}/${slugify(program.originalTitle || program.title, "program")}-${program.id}`
+	const basePath = locale === "pt-br" ? "/pt-br/cursos" : locale === "es" ? "/es/programas" : "/courses"
+	const programSlugTitle = locale === "pt-br" ? cleanPtProgramTitle(program.title) : locale === "es" ? program.title : program.originalTitle || program.title
+	return `${basePath}/${slugify(program.universityName, "university")}/${slugify(program.degreeLevel, "degree")}/${slugify(programSlugTitle, "program")}-${program.id}`
+}
+
+export async function getProgramPathByLocale(programId: number, locale: PublicLocale) {
+	const program = await prisma.degreeProgram.findUnique({
+		where: { id: programId },
+		include: {
+			university: true,
+			translations: { where: { locale: dbTranslationLocale(locale) }, take: 1 },
+		},
+	})
+	if (!program) return ""
+	return programDetailPath({
+		id: program.id,
+		title: program.translations[0]?.localizedProgramName || program.programName,
+		originalTitle: program.programName,
+		degreeLevel: program.degreeLevel || "Degree program",
+		universityName: program.university.name,
+	}, locale)
 }
 
 function toProgramCard(program: any, locale: PublicLocale = "en"): ProgramCard {
 	const universityCountry = inferCountry(program.university.state, program.university.location, program.campusLocation)
 	const translation = translationForLocale(program.translations, locale)
 	const originalTitle = program.programName || ""
-	const localizedTitle = translation?.localizedProgramName || originalTitle
+	const localizedTitle = cleanLocalizedProgramTitle(translation?.localizedProgramName || originalTitle, locale)
 
 	return {
 		id: program.id,
 		detailPath: programDetailPath({
 			id: program.id,
-			title: originalTitle,
+			title: localizedTitle,
 			degreeLevel: program.degreeLevel || "Degree program",
 			universityName: program.university.name,
 			originalTitle,
@@ -339,7 +359,7 @@ function loadFallbackImageUrls() {
 function toProgramDetail(program: any, relatedPrograms: ProgramCard[] = [], locale: PublicLocale = "en"): ProgramDetail {
 	const translation = translationForLocale(program.translations, locale)
 	const originalTitle = program.programName || ""
-	const localizedTitle = translation?.localizedProgramName || originalTitle
+	const localizedTitle = cleanLocalizedProgramTitle(translation?.localizedProgramName || originalTitle, locale)
 	const card = toProgramCard(program, locale)
 
 	return {
@@ -532,7 +552,7 @@ function normalizeCourseFilterParam(key: CourseFilterKey, value: string) {
 
 function splitValues(value: string) {
 	return value
-		.split(/[;,/|]+/)
+		.split(/[;,/|+]+/)
 		.map((item) => item.trim())
 		.filter(Boolean)
 }
@@ -543,19 +563,30 @@ function normalizeLanguage(value: string) {
 		deutsch: "German",
 		allemand: "German",
 		german: "German",
+		aleman: "German",
 		englisch: "English",
 		anglais: "English",
 		english: "English",
+		ingles: "English",
 		franzosisch: "French",
 		franzoesisch: "French",
 		french: "French",
 		francais: "French",
+		alemao: "German",
 		italian: "Italian",
 		italiano: "Italian",
 		spanish: "Spanish",
 		spanisch: "Spanish",
 	}
 	return aliases[normalized] || value.replace(/\s*\(.*?\)\s*/g, "").trim()
+}
+
+function cleanLocalizedProgramTitle(value: string, locale: PublicLocale) {
+	return locale === "pt-br" ? cleanPtProgramTitle(value) : value
+}
+
+function cleanPtProgramTitle(value: string) {
+	return value.replace(/^Mestre em\s+/i, "Mestrado em ")
 }
 
 function normalizeStartTerm(value: string) {

@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: UniversityPageProps): Promise
 			canonical: absoluteUrl(`/pt-br/universidades/${university.id}`),
 			languages: {
 				en: absoluteUrl(`/universities/${university.id}`),
+				es: absoluteUrl(`/es/universidades/${university.id}`),
 				"pt-BR": absoluteUrl(`/pt-br/universidades/${university.id}`),
 				"x-default": absoluteUrl(`/universities/${university.id}`),
 			},
@@ -73,21 +74,22 @@ export default async function UniversityPtPage({ params }: UniversityPageProps) 
 					</div>
 					<div className="related-program-grid">
 						{university.programs.map((program) => {
-							const title = program.translations[0]?.localizedProgramName || program.programName
+							const title = cleanPtProgramTitle(program.translations[0]?.localizedProgramName || program.programName)
 							const degree = optionLabel(program.degreeLevel || "Program", "pt-br")
+							const showDegree = !startsWithDegree(title, degree)
 							return (
 								<Link
 									key={program.id}
 									href={programDetailPath({
 										id: program.id,
-										title: program.programName,
+										title,
 										originalTitle: program.programName,
 										degreeLevel: program.degreeLevel || "Degree program",
 										universityName: university.name,
 									}, "pt-br")}
 									className="related-program-card"
 								>
-									<span>{degree}</span>
+									{showDegree && <span>{degree}</span>}
 									<h3>{title}</h3>
 									<p>{optionLabel(program.studyField || program.subjectArea || "Study program", "pt-br")}</p>
 								</Link>
@@ -98,4 +100,21 @@ export default async function UniversityPtPage({ params }: UniversityPageProps) 
 			</section>
 		</Layout>
 	)
+}
+
+function cleanPtProgramTitle(value: string) {
+	return value.replace(/^Mestre em\s+/i, "Mestrado em ")
+}
+
+function startsWithDegree(title: string, degree: string) {
+	return normalizeText(title).startsWith(`${normalizeText(degree)} `)
+}
+
+function normalizeText(value: string) {
+	return value
+		.toLowerCase()
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim()
 }

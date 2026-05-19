@@ -3,7 +3,7 @@ import Section1 from "@/components/sections/single-courses/Section1"
 import Section2 from "@/components/sections/single-courses/Section2"
 import { optionLabel } from "@/lib/i18n"
 import { absoluteUrl } from "@/lib/seo"
-import { getProgramDetailBySlugs, programDetailPath, type ProgramDetail } from "@/lib/study-programs"
+import { getProgramDetailBySlugs, getProgramPathByLocale, programDetailPath, type ProgramDetail } from "@/lib/study-programs"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
@@ -30,6 +30,9 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 
 	if (program.availableTranslationLocales.includes("pt")) {
 		languages["pt-BR"] = absoluteUrl(canonicalPath)
+	}
+	if (program.availableTranslationLocales.includes("es")) {
+		languages.es = absoluteUrl(await getProgramPathByLocale(program.id, "es") || programDetailPath(program, "es"))
 	}
 
 	return {

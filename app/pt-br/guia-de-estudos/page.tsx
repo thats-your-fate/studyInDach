@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 		canonical: absoluteUrl("/pt-br/guia-de-estudos"),
 		languages: {
 			en: absoluteUrl("/study-guide"),
+			es: absoluteUrl("/es/guia-para-estudiar"),
 			"pt-BR": absoluteUrl("/pt-br/guia-de-estudos"),
 			"x-default": absoluteUrl("/study-guide"),
 		},
@@ -20,7 +21,7 @@ const guideItems = [
 	{
 		title: "Estudar na Alemanha",
 		body: "Entenda como comparar universidades, tipos de curso, idiomas de ensino e custos antes de escolher uma candidatura na Alemanha.",
-		href: "/pt-br/guia-de-estudos/estudar-na-alemanha",
+		href: "/pt-br/estudar-na-alemanha",
 	},
 	{
 		title: "Estudar na Áustria",
@@ -40,12 +41,12 @@ const guideItems = [
 	{
 		title: "Programas em inglês",
 		body: "Encontre cursos com ensino em inglês e confira se há exigências adicionais de alemão, francês, italiano ou outro idioma.",
-		href: "/pt-br/guia-de-estudos/programas-em-ingles",
+		href: "/pt-br/mestrado-na-alemanha-em-ingles",
 	},
 	{
 		title: "Universidades públicas",
 		body: "Use a base de dados para descobrir opções públicas, mas confirme taxas semestrais, serviços e regras de admissão no site oficial.",
-		href: "/pt-br/guia-de-estudos/universidades-publicas",
+		href: "/pt-br/universidades-publicas-na-alemanha",
 	},
 	{
 		title: "Custos, taxas e comprovação financeira",
@@ -71,19 +72,34 @@ const guideItems = [
 
 const filteredLinks = [
 	{
-		title: "Mestrados no DACH",
-		body: "Explore programas de mestrado e refine por área, país, idioma e formato.",
-		href: "/pt-br/cursos?degreeLevel=Master",
+		title: "Mestrados na Alemanha",
+		body: "Explore programas de mestrado na Alemanha e refine por área, idioma e formato.",
+		href: "/pt-br/mestrado-na-alemanha",
 	},
 	{
-		title: "Programas em inglês",
-		body: "Veja cursos marcados com inglês como idioma de ensino.",
-		href: "/pt-br/cursos?languageOfInstruction=English",
+		title: "Mestrados em inglês",
+		body: "Veja mestrados na Alemanha marcados com inglês como idioma de ensino.",
+		href: "/pt-br/mestrado-na-alemanha-em-ingles",
 	},
 	{
 		title: "Sem mensalidade ou apenas taxa semestral",
-		body: "Encontre programas classificados como sem mensalidade ou apenas com taxa semestral.",
-		href: "/pt-br/cursos?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only",
+		body: "Encontre programas na Alemanha classificados como sem mensalidade ou apenas com taxa semestral.",
+		href: "/pt-br/universidades-publicas-na-alemanha",
+	},
+	{
+		title: "Informática na Alemanha",
+		body: "Compare programas de ciência da computação, dados, IA e áreas relacionadas.",
+		href: "/pt-br/estudar-informatica-na-alemanha",
+	},
+	{
+		title: "Engenharia na Alemanha",
+		body: "Explore programas de engenharia e tecnologia em universidades alemãs.",
+		href: "/pt-br/estudar-engenharia-na-alemanha",
+	},
+	{
+		title: "Doutorado na Alemanha",
+		body: "Veja programas de doutorado e confirme o modelo de candidatura na página oficial.",
+		href: "/pt-br/doutorado-na-alemanha",
 	},
 ]
 

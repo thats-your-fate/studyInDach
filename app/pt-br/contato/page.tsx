@@ -1,9 +1,11 @@
 import Layout from "@/components/layout/Layout"
 import Section2, { type ContactProgram } from "@/components/sections/contact/Section2"
+import { inquiryAttributionFromForm } from "@/lib/inquiry-attribution"
 import { optionLabel } from "@/lib/i18n"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
@@ -30,8 +32,8 @@ async function submitInquiry(formData: FormData) {
 	"use server"
 
 	const programId = toNumber(formData.get("programId"))
-	const sourcePath = limit(field(formData, "sourcePath"), 500)
 	const locale = "pt-br"
+	const attribution = inquiryAttributionFromForm(formData, contactReturnPath(programId), headers().get("referer"))
 
 	if (field(formData, "website") || field(formData, "companyUrl")) {
 		redirect(contactStatePath(programId, "sent", "1"))
@@ -71,11 +73,16 @@ async function submitInquiry(formData: FormData) {
 			preferredStudyCountry,
 			message,
 			programId: program?.id || programId || null,
-			programNameSnapshot: program?.translations[0]?.localizedProgramName || program?.programName || null,
+			programNameSnapshot: program ? cleanPtProgramTitle(program.translations[0]?.localizedProgramName || program.programName) : null,
 			universityNameSnapshot: program?.university.name || null,
 			programUrlSnapshot: program?.programUrl || null,
 			locale,
-			sourcePath: sourcePath || contactReturnPath(programId),
+			sourcePath: attribution.sourcePath,
+			referrer: attribution.referrer,
+			utmSource: attribution.utmSource,
+			utmMedium: attribution.utmMedium,
+			utmCampaign: attribution.utmCampaign,
+			landingPath: attribution.landingPath,
 		},
 	})
 
@@ -101,7 +108,7 @@ export default async function ContactPt({
 	const selectedProgram: ContactProgram | null = program
 		? {
 			id: program.id,
-			name: program.translations[0]?.localizedProgramName || program.programName,
+			name: cleanPtProgramTitle(program.translations[0]?.localizedProgramName || program.programName),
 			universityName: program.university.name,
 			location: [program.university.location, optionLabel(program.university.state || "", "pt-br")].filter(Boolean).join(", "),
 		}
@@ -153,4 +160,8 @@ function contactStatePath(programId: number | null, key: "sent" | "error", value
 	}
 	params.set(key, value)
 	return `/pt-br/contato?${params.toString()}`
+}
+
+function cleanPtProgramTitle(value: string) {
+	return value.replace(/^Mestre em\s+/i, "Mestrado em ")
 }

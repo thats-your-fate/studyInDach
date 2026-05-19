@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 	const pathname = usePathname()
 	const searchParams = useSearchParams()
-	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : 'en'
+	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : pathname?.startsWith('/es') ? 'es' : 'en'
 	const navItems = navItemsByLocale[locale]
 	const languageLinks = buildLanguageLinks(pathname || '/', searchParams.toString())
 
@@ -16,7 +16,7 @@ export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 			<div className={`mobile-header-active mobile-header-wrapper-style ${isMobileMenu ? 'sidebar-visible' : ''}`}>
 				<div className="mobile-header-wrapper-inner">
 					<div className="mobile-header-logo">
-						<Link className="d-flex align-items-center gap-2" href="/">
+						<Link className="d-flex align-items-center gap-2" href={locale === 'pt-br' ? '/pt-br' : locale === 'es' ? '/es' : '/'}>
 							<img src="/logo.png" alt="Study in DACH" style={{ width: 150, height: 48, objectFit: 'contain' }} />
 						</Link>
 						<div className={`burger-icon burger-icon-white border rounded-circle ${isMobileMenu ? 'burger-close' : ''}`} onClick={handleMobileMenu}>
@@ -37,18 +37,19 @@ export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 								</nav>
 							</div>
 							<div className="mobile-language-switcher">
-								<label htmlFor="mobile-language-select">{locale === 'pt-br' ? 'Idioma' : 'Language'}</label>
+								<label htmlFor="mobile-language-select">{locale === 'pt-br' || locale === 'es' ? 'Idioma' : 'Language'}</label>
 								<select
 									id="mobile-language-select"
 									value={locale}
 									onChange={(event) => {
-										const nextLocale = event.target.value as 'en' | 'pt-br'
+										const nextLocale = event.target.value as 'en' | 'pt-br' | 'es'
 										setLocaleCookie(nextLocale)
-										window.location.href = nextLocale === 'en' ? languageLinks.en : languageLinks.pt
+										window.location.href = languageLinks[nextLocale]
 									}}
 								>
 									<option value="en">🇺🇸 English</option>
 									<option value="pt-br">🇧🇷 Português</option>
+									<option value="es">🇪🇸 Español</option>
 								</select>
 							</div>
 						</div>
@@ -86,20 +87,45 @@ function buildLanguageLinks(pathname: string, query: string) {
 		'/contact': '/pt-br/contato',
 		'/privacy': '/pt-br/privacidade',
 	}
+	const esPairs: Record<string, string> = {
+		'/': '/es',
+		'/courses': '/es/programas',
+		'/universities': '/es/universidades',
+		'/study-guide': '/es/guia-para-estudiar',
+		'/about': '/es/sobre',
+		'/contact': '/es/contacto',
+		'/privacy': '/es/privacidad',
+	}
 	const reversePairs = Object.fromEntries(Object.entries(localePairs).map(([en, pt]) => [pt, en]))
+	const reverseEsPairs = Object.fromEntries(Object.entries(esPairs).map(([en, es]) => [es, en]))
 	const enPath = pathname.startsWith('/pt-br/cursos/')
 		? pathname.replace(/^\/pt-br\/cursos/, '/courses')
-		: reversePairs[pathname] || pathname.replace(/^\/pt-br/, '') || '/'
+		: pathname.startsWith('/es/programas/')
+			? pathname.replace(/^\/es\/programas/, '/courses')
+		: pathname.startsWith('/pt-br/universidades/')
+			? pathname.replace(/^\/pt-br\/universidades/, '/universities')
+		: pathname.startsWith('/es/universidades/')
+			? pathname.replace(/^\/es\/universidades/, '/universities')
+		: reversePairs[pathname] || reverseEsPairs[pathname] || pathname.replace(/^\/(pt-br|es)/, '') || '/'
 	const ptPath = pathname.startsWith('/courses/')
 		? pathname.replace(/^\/courses/, '/pt-br/cursos')
+		: pathname.startsWith('/universities/')
+			? pathname.replace(/^\/universities/, '/pt-br/universidades')
 		: localePairs[pathname] || (pathname.startsWith('/pt-br') ? pathname : pathname)
+	const esPath = pathname.startsWith('/courses/')
+		? pathname.replace(/^\/courses/, '/es/programas')
+		: pathname.startsWith('/universities/')
+			? pathname.replace(/^\/universities/, '/es/universidades')
+		: esPairs[enPath] || esPairs[pathname] || (pathname.startsWith('/es') ? pathname : enPath)
 
 	return {
 		en: `${enPath}${suffix}`,
 		pt: `${ptPath}${suffix}`,
+		'pt-br': `${ptPath}${suffix}`,
+		es: `${esPath}${suffix}`,
 	}
 }
 
-function setLocaleCookie(locale: 'en' | 'pt-br') {
+function setLocaleCookie(locale: 'en' | 'pt-br' | 'es') {
 	document.cookie = `studyindach_locale=${locale}; path=/; max-age=31536000; samesite=lax`
 }

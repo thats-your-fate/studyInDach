@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 
 export default function Footer() {
 	const pathname = usePathname()
-	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : 'en'
+	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : pathname?.startsWith('/es') ? 'es' : 'en'
 	const ui = footerUi[locale]
 	const links = locale === 'pt-br'
 		? {
@@ -16,11 +16,24 @@ export default function Footer() {
 			studyGuide: '/pt-br/guia-de-estudos',
 			about: '/pt-br/sobre',
 			privacy: '/pt-br/privacidade',
-			english: '/pt-br/cursos?language=English',
+			english: '/pt-br/mestrado-na-alemanha-em-ingles',
 			bachelor: '/pt-br/cursos?degreeLevel=Bachelor',
-			master: '/pt-br/cursos?degreeLevel=Master',
-			publicUniversities: '/pt-br/cursos?tuitionType=No+Tuition+%2F+Semester+Fee+Only',
+			master: '/pt-br/mestrado-na-alemanha',
+			publicUniversities: '/pt-br/universidades-publicas-na-alemanha',
 		}
+		: locale === 'es'
+			? {
+				home: '/es',
+				courses: '/es/programas',
+				universities: '/es/universidades',
+				studyGuide: '/es/guia-para-estudiar',
+				about: '/es/sobre',
+				privacy: '/es/privacidad',
+				english: '/es/programas?languageOfInstruction=English',
+				bachelor: '/es/programas?degreeLevel=Bachelor',
+				master: '/es/programas?degreeLevel=Master',
+				publicUniversities: '/es/programas?tuitionType=No+Tuition+%2F+Semester+Fee+Only',
+			}
 		: {
 			home: '/',
 			courses: '/courses',
@@ -28,7 +41,7 @@ export default function Footer() {
 			studyGuide: '/study-guide',
 			about: '/about',
 			privacy: '/privacy',
-			english: '/courses?language=English',
+			english: '/courses?languageOfInstruction=English',
 			bachelor: '/courses?degreeLevel=Bachelor',
 			master: '/courses?degreeLevel=Master',
 			publicUniversities: '/courses?tuitionType=No+Tuition+%2F+Semester+Fee+Only',

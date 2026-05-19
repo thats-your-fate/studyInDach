@@ -1,9 +1,11 @@
 import Layout from "@/components/layout/Layout"
 import Section1 from "@/components/sections/contact/Section1"
 import Section2, { type ContactProgram } from "@/components/sections/contact/Section2"
+import { inquiryAttributionFromForm } from "@/lib/inquiry-attribution"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
@@ -30,10 +32,10 @@ async function submitInquiry(formData: FormData) {
 	"use server"
 
 	const programId = toNumber(formData.get("programId"))
-	const sourcePath = limit(field(formData, "sourcePath"), 500)
 	const locale = limit(field(formData, "locale"), 20) || "en"
-	const publicLocale = locale === "pt-br" ? "pt-br" : "en"
+	const publicLocale = locale === "pt-br" ? "pt-br" : locale === "es" ? "es" : "en"
 	const returnPath = contactReturnPath(programId, publicLocale)
+	const attribution = inquiryAttributionFromForm(formData, returnPath, headers().get("referer"))
 
 	if (field(formData, "website") || field(formData, "companyUrl")) {
 		redirect(contactStatePath(programId, "sent", "1", publicLocale))
@@ -75,7 +77,12 @@ async function submitInquiry(formData: FormData) {
 			universityNameSnapshot: program?.university.name || null,
 			programUrlSnapshot: program?.programUrl || null,
 			locale,
-			sourcePath: sourcePath || returnPath,
+			sourcePath: attribution.sourcePath,
+			referrer: attribution.referrer,
+			utmSource: attribution.utmSource,
+			utmMedium: attribution.utmMedium,
+			utmCampaign: attribution.utmCampaign,
+			landingPath: attribution.landingPath,
 		},
 	})
 
@@ -141,7 +148,7 @@ function looksLikeEmail(value: string) {
 }
 
 function contactReturnPath(programId: number | null, locale = "en") {
-	const base = locale === "pt-br" ? "/pt-br/contato" : "/contact"
+	const base = locale === "pt-br" ? "/pt-br/contato" : locale === "es" ? "/es/contacto" : "/contact"
 	return programId ? `${base}?programId=${programId}` : base
 }
 
@@ -151,5 +158,5 @@ function contactStatePath(programId: number | null, key: "sent" | "error", value
 		params.set("programId", String(programId))
 	}
 	params.set(key, value)
-	return `${locale === "pt-br" ? "/pt-br/contato" : "/contact"}?${params.toString()}`
+	return `${locale === "pt-br" ? "/pt-br/contato" : locale === "es" ? "/es/contacto" : "/contact"}?${params.toString()}`
 }

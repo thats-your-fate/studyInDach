@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 		canonical: absoluteUrl("/pt-br/privacidade"),
 		languages: {
 			en: absoluteUrl("/privacy"),
+			es: absoluteUrl("/es/privacidad"),
 			"pt-BR": absoluteUrl("/pt-br/privacidade"),
 			"x-default": absoluteUrl("/privacy"),
 		},

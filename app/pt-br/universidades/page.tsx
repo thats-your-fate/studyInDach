@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 		canonical: absoluteUrl("/pt-br/universidades"),
 		languages: {
 			en: absoluteUrl("/universities"),
+			es: absoluteUrl("/es/universidades"),
 			"pt-BR": absoluteUrl("/pt-br/universidades"),
 			"x-default": absoluteUrl("/universities"),
 		},

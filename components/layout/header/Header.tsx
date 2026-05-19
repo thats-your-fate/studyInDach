@@ -15,9 +15,9 @@ function SiteLogo() {
 export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) {
 	const pathname = usePathname()
 	const searchParams = useSearchParams()
-	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : 'en'
+	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : pathname?.startsWith('/es') ? 'es' : 'en'
 	const navItems = navItemsByLocale[locale]
-	const coursesPath = locale === 'pt-br' ? '/pt-br/cursos' : '/courses'
+	const coursesPath = locale === 'pt-br' ? '/pt-br/cursos' : locale === 'es' ? '/es/programas' : '/courses'
 	const languageLinks = buildLanguageLinks(pathname || '/', searchParams.toString())
 	const contactHeader = pathname === '/contact' || pathname === '/pt-br/contato'
 
@@ -46,7 +46,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 					</div>
 					<nav className={`navbar navbar-expand-lg navbar-transparent border-bottom border-top border-white border-opacity-10 p-0 shadow-none ${contactHeader ? 'contact-navbar-solid' : ''} ${scroll ? 'navbar-stick top-0 position-fixed' : ''}`}>
 						<div className="container">
-							<Link className="navbar-brand py-5" href="/">
+							<Link className="navbar-brand py-5" href={locale === 'pt-br' ? '/pt-br' : locale === 'es' ? '/es' : '/'}>
 								<SiteLogo />
 							</Link>
 							<div className="d-none d-lg-flex me-auto ms-5 align-self-stretch z-35 position-relative">
@@ -59,9 +59,9 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 								</ul>
 							</div>
 							<div className="d-flex align-items-center gap-4 align-self-stretch">
-								<LanguageSwitcher currentLocale={locale} enHref={languageLinks.en} ptHref={languageLinks.pt} />
+								<LanguageSwitcher currentLocale={locale} links={languageLinks} />
 								<form action={coursesPath} className="input-group position-relative d-none d-md-flex w-auto">
-									<input type="text" className="form-control rounded-start-4 text-white bg-white bg-opacity-25 border-0" name="q" placeholder={locale === 'pt-br' ? 'Buscar programas...' : 'Search programs...'} />
+									<input type="text" className="form-control rounded-start-4 text-white bg-white bg-opacity-25 border-0" name="q" placeholder={locale === 'pt-br' ? 'Buscar programas...' : locale === 'es' ? 'Buscar programas...' : 'Search programs...'} />
 									<div className="border-0 rounded-end-4 bg-white bg-opacity-25 ms-0">
 										<button className="btn btn-yellow px-4 bg-transparent h-100 rounded-4 aos-init aos-animate" type="submit" id="button-search" aria-label="search">
 											<i className="ri-search-line text-green-3" />
@@ -81,14 +81,14 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 							<button className="btn-close" aria-label="Close"><i className="ri-close-line" /></button>
 						</div>
 						<div className="offCanvas__logo mb-30">
-							<Link className="d-flex align-items-center gap-2" href="/">
+							<Link className="d-flex align-items-center gap-2" href={locale === 'pt-br' ? '/pt-br' : locale === 'es' ? '/es' : '/'}>
 								<SiteLogo />
 							</Link>
 						</div>
 						<div className="offCanvas__side-info mb-30">
 							<div className="contact-list mb-30">
 								<h4>Study in DACH</h4>
-								<p>{locale === 'pt-br' ? 'Encontre programas de estudo na Alemanha, Áustria e Suíça.' : 'Find degree programs across Germany, Austria, and Switzerland.'}</p>
+								<p>{locale === 'pt-br' ? 'Encontre programas de estudo na Alemanha, Áustria e Suíça.' : locale === 'es' ? 'Encuentra programas de estudio en Alemania, Austria y Suiza.' : 'Find degree programs across Germany, Austria, and Switzerland.'}</p>
 							</div>
 							<div className="contact-list mb-30">
 								<h4>Email</h4>
@@ -109,14 +109,14 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 	)
 }
 
-function LanguageSwitcher({ currentLocale, enHref, ptHref }: { currentLocale: string; enHref: string; ptHref: string }) {
+function LanguageSwitcher({ currentLocale, links }: { currentLocale: string; links: Record<'en' | 'pt-br' | 'es', string> }) {
 	const currentLanguage = languages.find((language) => language.locale === currentLocale) || languages[0]
 	const [isOpen, setIsOpen] = useState(false)
 
 	return (
 		<div
 			className={`language-switcher language-dropdown d-none d-lg-flex ${isOpen ? 'open' : ''}`}
-			aria-label="Language switcher"
+			aria-label={currentLocale === 'pt-br' ? 'Seletor de idioma' : currentLocale === 'es' ? 'Selector de idioma' : 'Language switcher'}
 			onMouseEnter={() => setIsOpen(true)}
 		>
 			<button
@@ -134,7 +134,7 @@ function LanguageSwitcher({ currentLocale, enHref, ptHref }: { currentLocale: st
 				{languages.map((language) => (
 					<Link
 						key={language.locale}
-						href={language.locale === 'en' ? enHref : ptHref}
+						href={links[language.locale]}
 						className={currentLocale === language.locale ? 'active' : ''}
 						hrefLang={language.hrefLang}
 						onClick={() => {
@@ -151,9 +151,10 @@ function LanguageSwitcher({ currentLocale, enHref, ptHref }: { currentLocale: st
 	)
 }
 
-const languages: Array<{ locale: 'en' | 'pt-br'; hrefLang: string; flag: string; short: string; label: string }> = [
+const languages: Array<{ locale: 'en' | 'pt-br' | 'es'; hrefLang: string; flag: string; short: string; label: string }> = [
 	{ locale: 'en', hrefLang: 'en', flag: '🇺🇸', short: 'EN', label: 'English' },
 	{ locale: 'pt-br', hrefLang: 'pt-BR', flag: '🇧🇷', short: 'PT', label: 'Português' },
+	{ locale: 'es', hrefLang: 'es', flag: '🇪🇸', short: 'ES', label: 'Español' },
 ]
 
 function buildLanguageLinks(pathname: string, query: string) {
@@ -167,20 +168,45 @@ function buildLanguageLinks(pathname: string, query: string) {
 		'/contact': '/pt-br/contato',
 		'/privacy': '/pt-br/privacidade',
 	}
+	const esPairs: Record<string, string> = {
+		'/': '/es',
+		'/courses': '/es/programas',
+		'/universities': '/es/universidades',
+		'/study-guide': '/es/guia-para-estudiar',
+		'/about': '/es/sobre',
+		'/contact': '/es/contacto',
+		'/privacy': '/es/privacidad',
+	}
 	const reversePairs = Object.fromEntries(Object.entries(localePairs).map(([en, pt]) => [pt, en]))
+	const reverseEsPairs = Object.fromEntries(Object.entries(esPairs).map(([en, es]) => [es, en]))
 	const enPath = pathname.startsWith('/pt-br/cursos/')
 		? pathname.replace(/^\/pt-br\/cursos/, '/courses')
-		: reversePairs[pathname] || pathname.replace(/^\/pt-br/, '') || '/'
+		: pathname.startsWith('/es/programas/')
+			? pathname.replace(/^\/es\/programas/, '/courses')
+		: pathname.startsWith('/pt-br/universidades/')
+			? pathname.replace(/^\/pt-br\/universidades/, '/universities')
+		: pathname.startsWith('/es/universidades/')
+			? pathname.replace(/^\/es\/universidades/, '/universities')
+		: reversePairs[pathname] || reverseEsPairs[pathname] || pathname.replace(/^\/(pt-br|es)/, '') || '/'
 	const ptPath = pathname.startsWith('/courses/')
 		? pathname.replace(/^\/courses/, '/pt-br/cursos')
+		: pathname.startsWith('/universities/')
+			? pathname.replace(/^\/universities/, '/pt-br/universidades')
 		: localePairs[pathname] || (pathname.startsWith('/pt-br') ? pathname : pathname)
+	const esPath = pathname.startsWith('/courses/')
+		? pathname.replace(/^\/courses/, '/es/programas')
+		: pathname.startsWith('/universities/')
+			? pathname.replace(/^\/universities/, '/es/universidades')
+		: esPairs[enPath] || esPairs[pathname] || (pathname.startsWith('/es') ? pathname : enPath)
 
 	return {
 		en: `${enPath}${suffix}`,
 		pt: `${ptPath}${suffix}`,
+		'pt-br': `${ptPath}${suffix}`,
+		es: `${esPath}${suffix}`,
 	}
 }
 
-function setLocaleCookie(locale: 'en' | 'pt-br') {
+function setLocaleCookie(locale: 'en' | 'pt-br' | 'es') {
 	document.cookie = `studyindach_locale=${locale}; path=/; max-age=31536000; samesite=lax`
 }

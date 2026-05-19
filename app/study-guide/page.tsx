@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 		canonical: absoluteUrl("/study-guide"),
 		languages: {
 			en: absoluteUrl("/study-guide"),
+			es: absoluteUrl("/es/guia-para-estudiar"),
 			"pt-BR": absoluteUrl("/pt-br/guia-de-estudos"),
 			"x-default": absoluteUrl("/study-guide"),
 		},

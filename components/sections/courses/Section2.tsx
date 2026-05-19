@@ -48,9 +48,11 @@ const languageAliases: Record<string, string> = {
 	deutsch: "German",
 	allemand: "German",
 	german: "German",
+	alemao: "German",
 	englisch: "English",
 	anglais: "English",
 	english: "English",
+	ingles: "English",
 	franzosisch: "French",
 	"franzoesisch": "French",
 	french: "French",
@@ -294,7 +296,7 @@ function buildCourseParams(filters: FilterState, search: string, page: number) {
 	}
 	filterKeys().forEach((key) => {
 		filters[key].forEach((value) => {
-			params.append(key, value)
+			params.append(key === "language" ? "languageOfInstruction" : key, value)
 		})
 	})
 	if (page > 1) {
@@ -469,6 +471,7 @@ function CourseCard({ course, locale }: { course: ProgramCard; locale: PublicLoc
 		.slice(0, 3)
 	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree)].filter(isUsefulValue))
 		.map((item) => optionLabel(item, locale))
+		.filter((item) => !titleStartsWithDegree(course.title, item))
 	const degreeLabel = metaItems.join(" · ")
 	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).map((item) => optionLabel(item, locale)).join(" / ") || localizedUsefulValue(course.studyMode, locale)
 	const tuition = optionLabel(usefulValue(course.tuitionType) || usefulValue(course.tuitionOrFees), locale)
@@ -655,7 +658,7 @@ function filterKeys() {
 
 function splitValues(value: string) {
 	return value
-		.split(/[;,/|]+/)
+		.split(/[;,/|+]+/)
 		.map((item) => item.trim())
 		.filter(Boolean)
 }
@@ -823,4 +826,10 @@ function compactAcademicDegree(value: string) {
 		return "B.Eng."
 	}
 	return value
+}
+
+function titleStartsWithDegree(title: string, degreeLabel: string) {
+	const normalizedTitle = normalize(title)
+	const normalizedDegree = normalize(degreeLabel)
+	return Boolean(normalizedDegree) && normalizedTitle.startsWith(`${normalizedDegree} `)
 }

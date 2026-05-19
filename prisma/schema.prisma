@@ -112,10 +112,18 @@ model Inquiry {
 
   locale                  String?
   sourcePath              String?
+  referrer                String?
+  utmSource               String?
+  utmMedium               String?
+  utmCampaign             String?
+  landingPath             String?
   adminNotes              String?
 
   @@index([status])
   @@index([email])
   @@index([programId])
+  @@index([locale])
+  @@index([sourcePath])
+  @@index([landingPath])
   @@index([createdAt])
 }

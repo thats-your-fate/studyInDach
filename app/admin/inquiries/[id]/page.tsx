@@ -69,10 +69,17 @@ export default async function AdminInquiryDetailPage({
 								<DetailGrid
 									items={[
 										["Status", inquiry.status],
+										["Locale", inquiry.locale || "-"],
 										["Name", inquiry.name || "-"],
 										["Email", inquiry.email],
 										["Country of residence", inquiry.countryOfResidence || "-"],
 										["Preferred study country", inquiry.preferredStudyCountry || "-"],
+										["Source path", inquiry.sourcePath || "-"],
+										["Landing path", inquiry.landingPath || "-"],
+										["Referrer", inquiry.referrer || "-"],
+										["UTM source", inquiry.utmSource || "-"],
+										["UTM medium", inquiry.utmMedium || "-"],
+										["UTM campaign", inquiry.utmCampaign || "-"],
 										["Created", formatDate(inquiry.createdAt)],
 										["Updated", formatDate(inquiry.updatedAt)],
 									]}
@@ -98,6 +105,14 @@ export default async function AdminInquiryDetailPage({
 									<div>
 										<dt>Source path</dt>
 										<dd>{inquiry.sourcePath || "-"}</dd>
+									</div>
+									<div>
+										<dt>Landing path</dt>
+										<dd>{inquiry.landingPath || "-"}</dd>
+									</div>
+									<div>
+										<dt>UTM</dt>
+										<dd>{[inquiry.utmSource, inquiry.utmMedium, inquiry.utmCampaign].filter(Boolean).join(" / ") || "-"}</dd>
 									</div>
 									<div>
 										<dt>Locale</dt>

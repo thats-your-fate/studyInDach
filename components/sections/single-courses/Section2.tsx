@@ -30,8 +30,8 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 	}
 
 	const applyUrl = program.applicationUrl || program.programUrl
-	const orientationUrl = locale === "pt-br" ? `/pt-br/contato?programId=${program.id}` : `/contact?programId=${program.id}`
-	const universityProfileUrl = locale === "pt-br" ? `/pt-br/universidades/${program.universityId}` : `/universities/${program.universityId}`
+	const orientationUrl = locale === "pt-br" ? `/pt-br/contato?programId=${program.id}` : locale === "es" ? `/es/contacto?programId=${program.id}` : `/contact?programId=${program.id}`
+	const universityProfileUrl = locale === "pt-br" ? `/pt-br/universidades/${program.universityId}` : locale === "es" ? `/es/universidades/${program.universityId}` : `/universities/${program.universityId}`
 	const heroImage = extractImageUrl(program.heroImageUrl) || program.fallbackImageUrl
 	const quickFacts: Fact[] = [
 		{ icon: "ri-graduation-cap-line", label: ui.facts.degree, value: requiredLocalizedValue(program.academicDegree || program.degreeLevel, locale) },
@@ -298,7 +298,9 @@ function RelatedProgramCard({ program, locale }: { program: ProgramCard; locale:
 	const degreeLabel = optionLabel(program.degreeLevel, locale)
 	const fieldLabel = optionalLocalizedValue(program.studyField || program.subjectArea, locale)
 	const languageLabel = optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale)
-	const metaItems = [degreeLabel, fieldLabel, languageLabel].filter(isUsefulValue)
+	const metaItems = [degreeLabel, fieldLabel, languageLabel]
+		.filter(isUsefulValue)
+		.filter((item) => !titleStartsWithDegree(program.title, item))
 
 	return (
 		<Link href={program.detailPath} className="related-program-card">
@@ -343,7 +345,10 @@ function buildCostItems(program: ProgramDetail, locale: PublicLocale) {
 }
 
 function compactLanguages(value: string) {
-	const languages = splitList(value).map((language) => language.replace(/\s*\(.*?\)\s*/g, "").trim())
+	const languages = value
+		.split(/[;|/+]+/)
+		.map((language) => language.replace(/\s*\(.*?\)\s*/g, "").trim())
+		.filter(Boolean)
 	return Array.from(new Set(languages)).slice(0, 2).join(" / ") || value
 }
 
@@ -420,6 +425,9 @@ function fallbackBestFor(program: ProgramDetail, locale: PublicLocale = "en") {
 	if (locale === "pt-br") {
 		return `Estudantes procurando um programa de ${localizedValue(program.degreeLevel, locale).toLowerCase()} em ${localizedValue(program.studyField || program.subjectArea, locale)} na ${program.universityName}.`
 	}
+	if (locale === "es") {
+		return `Estudiantes que buscan un programa de ${localizedValue(program.degreeLevel, locale).toLowerCase()} en ${localizedValue(program.studyField || program.subjectArea, locale)} en ${program.universityName}.`
+	}
 	return `Students looking for a ${program.degreeLevel.toLowerCase()} program in ${program.studyField || program.subjectArea} at ${program.universityName}.`
 }
 
@@ -477,4 +485,19 @@ function isUsefulValue(value: string | null | undefined): value is string {
 		.replace(/[^a-z0-9]+/g, " ")
 		.trim()
 	return Boolean(normalized) && !["unknown", "n a", "na", "null", "undefined"].includes(normalized)
+}
+
+function titleStartsWithDegree(title: string, degreeLabel: string) {
+	const normalizedTitle = normalizeText(title)
+	const normalizedDegree = normalizeText(degreeLabel)
+	return Boolean(normalizedDegree) && normalizedTitle.startsWith(`${normalizedDegree} `)
+}
+
+function normalizeText(value: string) {
+	return String(value || "")
+		.toLowerCase()
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim()
 }

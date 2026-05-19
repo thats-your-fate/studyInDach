@@ -17,7 +17,15 @@ export async function generateMetadata({ params }: UniversityPageProps): Promise
 	return {
 		title: `${university.name} Degree Programs | Study in DACH`,
 		description: `Browse degree programs at ${university.name}.`,
-		alternates: { canonical: absoluteUrl(`/universities/${university.id}`) },
+		alternates: {
+			canonical: absoluteUrl(`/universities/${university.id}`),
+			languages: {
+				en: absoluteUrl(`/universities/${university.id}`),
+				es: absoluteUrl(`/es/universidades/${university.id}`),
+				"pt-BR": absoluteUrl(`/pt-br/universidades/${university.id}`),
+				"x-default": absoluteUrl(`/universities/${university.id}`),
+			},
+		},
 	}
 }
 

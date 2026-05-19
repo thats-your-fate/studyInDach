@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 		canonical: absoluteUrl("/pt-br/sobre"),
 		languages: {
 			en: absoluteUrl("/about"),
+			es: absoluteUrl("/es/sobre"),
 			"pt-BR": absoluteUrl("/pt-br/sobre"),
 			"x-default": absoluteUrl("/about"),
 		},

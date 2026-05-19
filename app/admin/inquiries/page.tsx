@@ -28,8 +28,20 @@ export default async function AdminInquiriesPage({
 			inquiry.programNameSnapshot,
 			inquiry.universityNameSnapshot,
 			inquiry.message,
+			inquiry.locale,
+			inquiry.sourcePath,
+			inquiry.landingPath,
+			inquiry.utmSource,
+			inquiry.utmMedium,
+			inquiry.utmCampaign,
 		].join(" ").toLowerCase().includes(query))
 		: inquiries
+	const summaries = {
+		locale: topCounts(inquiries.map((inquiry) => inquiry.locale || "unknown")),
+		sourcePath: topCounts(inquiries.map((inquiry) => inquiry.sourcePath || "unknown"), 8),
+		program: topCounts(inquiries.map((inquiry) => inquiry.programNameSnapshot || "General inquiry"), 8),
+		status: topCounts(inquiries.map((inquiry) => inquiry.status)),
+	}
 
 	return (
 		<Layout>
@@ -38,6 +50,13 @@ export default async function AdminInquiriesPage({
 					<AdminHeader title="Inquiries" />
 
 					<div className="admin-panel bg-white rounded-3 p-5">
+						<div className="program-summary-grid mb-5">
+							<SummaryCard title="By locale" items={summaries.locale} />
+							<SummaryCard title="By status" items={summaries.status} />
+							<SummaryCard title="Top source paths" items={summaries.sourcePath} />
+							<SummaryCard title="Top programs" items={summaries.program} />
+						</div>
+
 						<form className="row g-3 align-items-end mb-5">
 							<label className="col-md-3">
 								<span className="fs-7 text-uppercase text-primary fw-bold">Status</span>
@@ -71,10 +90,12 @@ export default async function AdminInquiriesPage({
 											<span>{formatDate(inquiry.createdAt)}</span>
 											<strong>{inquiry.name || "No name"} · {inquiry.email}</strong>
 											<p>{inquiry.programNameSnapshot || "General inquiry"}{inquiry.universityNameSnapshot ? ` · ${inquiry.universityNameSnapshot}` : ""}</p>
+											<p>Locale: {inquiry.locale || "-"} · Source: {inquiry.sourcePath || "-"}</p>
 										</div>
 										<div>
 											<span className={`inquiry-status status-${inquiry.status}`}>{inquiry.status}</span>
 											<p>{inquiry.preferredStudyCountry || "No country preference"}</p>
+											<p>UTM: {[inquiry.utmSource, inquiry.utmMedium, inquiry.utmCampaign].filter(Boolean).join(" / ") || "-"}</p>
 										</div>
 										<p>{preview(inquiry.message)}</p>
 										<span className="btn-text text-primary">View details</span>
@@ -87,6 +108,33 @@ export default async function AdminInquiriesPage({
 			</section>
 		</Layout>
 	)
+}
+
+function SummaryCard({ title, items }: { title: string; items: Array<[string, number]> }) {
+	return (
+		<div className="program-summary-card">
+			<h3>{title}</h3>
+			{items.length ? (
+				<ul className="mb-0 ps-3">
+					{items.map(([label, count]) => (
+						<li key={label}>{label}: {count}</li>
+					))}
+				</ul>
+			) : (
+				<p className="mb-0">No data yet.</p>
+			)}
+		</div>
+	)
+}
+
+function topCounts(values: string[], limit = 6): Array<[string, number]> {
+	const counts = new Map<string, number>()
+	values.forEach((value) => {
+		counts.set(value, (counts.get(value) || 0) + 1)
+	})
+	return [...counts.entries()]
+		.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+		.slice(0, limit)
 }
 
 function AdminHeader({ title }: { title: string }) {

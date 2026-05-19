@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
 	}
 
 	const requestHeaders = new Headers(request.headers)
-	requestHeaders.set("x-site-locale", request.nextUrl.pathname.startsWith("/pt-br") ? "pt-br" : "en")
+	requestHeaders.set("x-site-locale", request.nextUrl.pathname.startsWith("/pt-br") ? "pt-br" : request.nextUrl.pathname.startsWith("/es") ? "es" : "en")
 
 	if (!request.nextUrl.pathname.startsWith("/admin")) {
 		return NextResponse.next({
@@ -57,18 +57,19 @@ export const config = {
 
 function preferredLocaleFromRequest(request: NextRequest) {
 	const chosenLocale = request.cookies.get(LOCALE_COOKIE)?.value
-	if (chosenLocale === "en" || chosenLocale === "pt-br") {
+	if (chosenLocale === "en" || chosenLocale === "pt-br" || chosenLocale === "es") {
 		return chosenLocale
 	}
 
 	const acceptLanguage = request.headers.get("accept-language") || ""
+	if (acceptLanguage.toLowerCase().startsWith("es")) return "es"
 	return acceptLanguage.toLowerCase().startsWith("pt") ? "pt-br" : "en"
 }
 
-function localeRedirectTarget(request: NextRequest, preferredLocale: "en" | "pt-br") {
+function localeRedirectTarget(request: NextRequest, preferredLocale: "en" | "pt-br" | "es") {
 	const { pathname, search } = request.nextUrl
 
-	if (preferredLocale !== "pt-br" || request.cookies.has(LOCALE_COOKIE)) {
+	if ((preferredLocale !== "pt-br" && preferredLocale !== "es") || request.cookies.has(LOCALE_COOKIE)) {
 		return null
 	}
 	if (!pathname.startsWith("/courses")) {
@@ -76,7 +77,7 @@ function localeRedirectTarget(request: NextRequest, preferredLocale: "en" | "pt-
 	}
 
 	const target = request.nextUrl.clone()
-	target.pathname = pathname.replace(/^\/courses/, "/pt-br/cursos")
+	target.pathname = pathname.replace(/^\/courses/, preferredLocale === "es" ? "/es/programas" : "/pt-br/cursos")
 	target.search = search
 	return target
 }

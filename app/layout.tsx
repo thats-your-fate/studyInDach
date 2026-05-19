@@ -56,7 +56,8 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode
 }>) {
-    const locale = headers().get("x-site-locale") === "pt-br" ? "pt-BR" : "en"
+    const siteLocale = headers().get("x-site-locale")
+    const locale = siteLocale === "pt-br" ? "pt-BR" : siteLocale === "es" ? "es" : "en"
     return (
         <html lang={locale}>
             <body 

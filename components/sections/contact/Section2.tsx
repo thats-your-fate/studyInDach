@@ -1,4 +1,5 @@
 import { contactUi, optionLabel, type PublicLocale } from "@/lib/i18n"
+import AttributionFields from "./AttributionFields"
 
 export type ContactProgram = {
 	id: number
@@ -18,7 +19,7 @@ type Section2Props = {
 
 export default function Section2({ action, selectedProgram, sent, error, programContactMode = false, locale = "en" }: Section2Props) {
 	const ui = contactUi[locale]
-	const contactPath = locale === "pt-br" ? "/pt-br/contato" : "/contact"
+	const contactPath = locale === "pt-br" ? "/pt-br/contato" : locale === "es" ? "/es/contacto" : "/contact"
 	const sourcePath = selectedProgram ? `${contactPath}?programId=${selectedProgram.id}` : contactPath
 
 	return (
@@ -50,7 +51,7 @@ export default function Section2({ action, selectedProgram, sent, error, program
 
 						<form action={action} className="input-group mt-4 position-relative wow img-custom-anim-left">
 							<input type="hidden" name="programId" value={selectedProgram?.id || ""} />
-							<input type="hidden" name="sourcePath" value={sourcePath} />
+							<AttributionFields initialSourcePath={sourcePath} />
 							<input type="hidden" name="locale" value={locale} />
 							<input className="inquiry-honeypot" tabIndex={-1} autoComplete="off" name="website" aria-hidden="true" />
 							<input className="inquiry-honeypot" tabIndex={-1} autoComplete="off" name="companyUrl" aria-hidden="true" />

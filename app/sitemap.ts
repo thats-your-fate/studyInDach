@@ -22,6 +22,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/pt-br/guia-de-estudos",
 		"/pt-br/sobre",
 		"/pt-br/privacidade",
+		"/pt-br/estudar-na-alemanha",
+		"/pt-br/mestrado-na-alemanha",
+		"/pt-br/mestrado-na-alemanha-em-ingles",
+		"/pt-br/universidades-publicas-na-alemanha",
+		"/pt-br/estudar-informatica-na-alemanha",
+		"/pt-br/estudar-engenharia-na-alemanha",
+		"/pt-br/doutorado-na-alemanha",
+		"/es/programas",
+		"/es/universidades",
+		"/es/guia-para-estudiar",
+		"/es/sobre",
+		"/es/privacidad",
 	].map((path) => ({
 		url: absoluteUrl(path),
 		lastModified: now,
@@ -30,14 +42,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/courses?degreeLevel=Bachelor",
 		"/courses?degreeLevel=Master",
 		"/courses?degreeLevel=Doctorate",
-		"/courses?language=English",
+		"/courses?languageOfInstruction=English",
 		"/courses?country=Germany",
 		"/courses?country=Austria",
 		"/courses?country=Switzerland",
 		"/courses?studyField=Computer%20Science%20%26%20Data",
 		"/pt-br/cursos?degreeLevel=Master",
-		"/pt-br/cursos?language=English",
+		"/pt-br/cursos?languageOfInstruction=English",
 		"/pt-br/cursos?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only",
+		"/es/programas?degreeLevel=Master",
+		"/es/programas?languageOfInstruction=English",
+		"/es/programas?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only",
 	].map((path) => ({ url: absoluteUrl(path), lastModified: now }))
 	const universityUrls = universities.map((university) => ({
 		url: absoluteUrl(`/universities/${university.id}`),
@@ -45,6 +60,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	}))
 	const translatedUniversityUrls = universities.map((university) => ({
 		url: absoluteUrl(`/pt-br/universidades/${university.id}`),
+		lastModified: now,
+	}))
+	const spanishUniversityUrls = universities.map((university) => ({
+		url: absoluteUrl(`/es/universidades/${university.id}`),
 		lastModified: now,
 	}))
 	const programUrls = programs.map((program) => ({
@@ -61,11 +80,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		.map((program) => ({
 			url: absoluteUrl(programDetailPath({
 				id: program.id,
-				title: program.programName,
+				title: program.translations.find((translation) => translation.locale === "pt")?.localizedProgramName || program.programName,
 				degreeLevel: program.degreeLevel || "Degree program",
 				universityName: program.university.name,
 			}, "pt-br")),
 			lastModified: now,
 		}))
-	return [...main, ...filters, ...universityUrls, ...translatedUniversityUrls, ...programUrls, ...translatedProgramUrls]
+	const spanishProgramUrls = programs
+		.filter((program) => program.translations.some((translation) => translation.locale === "es"))
+		.map((program) => ({
+			url: absoluteUrl(programDetailPath({
+				id: program.id,
+				title: program.translations.find((translation) => translation.locale === "es")?.localizedProgramName || program.programName,
+				degreeLevel: program.degreeLevel || "Degree program",
+				universityName: program.university.name,
+			}, "es")),
+			lastModified: now,
+		}))
+	return [...main, ...filters, ...universityUrls, ...translatedUniversityUrls, ...spanishUniversityUrls, ...programUrls, ...translatedProgramUrls, ...spanishProgramUrls]
 }

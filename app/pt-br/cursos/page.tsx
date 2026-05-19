@@ -25,6 +25,7 @@ export function generateMetadata({
 			languages: {
 				"pt-BR": absoluteUrl(canonicalPath),
 				en: absoluteUrl(courseCanonicalPathEn(searchParams)),
+				es: absoluteUrl(courseCanonicalPath(searchParams, "/es/programas")),
 				"x-default": absoluteUrl(courseCanonicalPathEn(searchParams)),
 			},
 		},
@@ -66,7 +67,7 @@ export default async function Cursos({
 function coursePageTitlePt(searchParams?: CoursePageSearchParams) {
 	const degreeLevel = firstParam(searchParams?.degreeLevel)
 	const country = firstParam(searchParams?.country)
-	const language = firstParam(searchParams?.language)
+	const language = firstParam(searchParams?.languageOfInstruction) || firstParam(searchParams?.language)
 	const field = firstParam(searchParams?.studyField)
 
 	const degreeLabel = degreeLevel === "Master"
@@ -105,13 +106,20 @@ function courseCanonicalPathEn(searchParams?: CoursePageSearchParams) {
 
 function courseCanonicalPath(searchParams: CoursePageSearchParams | undefined, pathname: string) {
 	const params = new URLSearchParams()
-	const allowed = ["degreeLevel", "language", "country", "studyField", "tuitionType", "page"]
+	const allowed = ["degreeLevel", "country", "studyField", "tuitionType", "page"]
 	allowed.forEach((key) => {
 		const value = searchParams?.[key]
 		const values = Array.isArray(value) ? value : value ? [value] : []
 		values.filter(Boolean).forEach((item) => params.append(key, item))
 	})
+	appendLanguageParam(params, searchParams)
 	return params.toString() ? `${pathname}?${params.toString()}` : pathname
+}
+
+function appendLanguageParam(params: URLSearchParams, searchParams?: CoursePageSearchParams) {
+	const value = searchParams?.languageOfInstruction || searchParams?.language
+	const values = Array.isArray(value) ? value : value ? [value] : []
+	values.filter(Boolean).forEach((item) => params.append("languageOfInstruction", item))
 }
 
 function itemListJsonLd(programs: Array<{ title: string; detailPath: string; universityName: string }>, searchParams?: CoursePageSearchParams) {
