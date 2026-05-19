@@ -118,7 +118,6 @@ function LanguageSwitcher({ currentLocale, enHref, ptHref }: { currentLocale: st
 			className={`language-switcher language-dropdown d-none d-lg-flex ${isOpen ? 'open' : ''}`}
 			aria-label="Language switcher"
 			onMouseEnter={() => setIsOpen(true)}
-			onMouseLeave={() => setIsOpen(false)}
 		>
 			<button
 				type="button"
