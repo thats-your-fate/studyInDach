@@ -1,6 +1,7 @@
 'use client'
 
 import { coursesUi, optionLabel, t, type PublicLocale } from "@/lib/i18n"
+import CourseCard from "@/components/sections/courses/CourseCard"
 import type { CourseFilterKey, CourseFilterState, ProgramCard, UniversityFilter } from "@/lib/study-programs"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -462,56 +463,6 @@ function ChipGroup({
 	)
 }
 
-function CourseCard({ course, locale }: { course: ProgramCard; locale: PublicLocale }) {
-	const ui = coursesUi[locale]
-	const imageSrc = cardImageSrc(course)
-	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus]
-		.filter(isUsefulValue)
-		.map((tag) => optionLabel(tag, locale))
-		.slice(0, 3)
-	const metaItems = uniqueInOrder([course.degreeLevel, compactAcademicDegree(course.academicDegree)].filter(isUsefulValue))
-		.map((item) => optionLabel(item, locale))
-		.filter((item) => !titleStartsWithDegree(course.title, item))
-	const degreeLabel = metaItems.join(" · ")
-	const studyMode = [course.onlineOrOnCampus, course.fullTimeOrPartTime].filter(isUsefulValue).map((item) => optionLabel(item, locale)).join(" / ") || localizedUsefulValue(course.studyMode, locale)
-	const tuition = optionLabel(usefulValue(course.tuitionType) || usefulValue(course.tuitionOrFees), locale)
-	const displayLocation = compactLocation(course, locale)
-	const displayLanguage = optionLabel(compactLanguages(course.languageOfInstruction), locale)
-	const factMeta = [displayLocation, displayLanguage, tuition, studyMode].filter(isUsefulValue).join(" · ")
-	const summary = course.summary?.trim()
-	const fitLabel = isUsefulValue(course.internationalStudentFit) ? optionLabel(course.internationalStudentFit, locale) : ""
-
-	return (
-		<div className="course-card-modern h-100">
-			<Link href={course.detailPath} className="course-card-image">
-				<img src={imageSrc} alt={course.title} />
-				{fitLabel && <span>{fitLabel}</span>}
-			</Link>
-			<div className="course-card-body">
-				<div className="course-card-meta">
-					<span>{degreeLabel || ui.degreeProgram}</span>
-					{factMeta && <span>{factMeta}</span>}
-				</div>
-				<h5>
-					<Link href={course.detailPath}>{course.title}</Link>
-				</h5>
-				<p className="course-university">{course.universityName}</p>
-				<div className="course-facts">
-					{usefulValue(displayLocation) && <span><i className="ri-map-pin-line" /> {displayLocation}</span>}
-					{usefulValue(displayLanguage) && <span><i className="ri-translate-2" /> {displayLanguage}</span>}
-					{tuition && <span><i className="ri-bank-line" /> {tuition}</span>}
-					{studyMode && <span><i className="ri-computer-line" /> {studyMode}</span>}
-				</div>
-				{summary && <p className="course-card-summary">{summary}</p>}
-				<div className="course-card-tags">
-					{tags.map((tag) => <span key={tag}>{tag}</span>)}
-				</div>
-				<Link href={course.detailPath} className="course-card-action">{ui.viewProgram}</Link>
-			</div>
-		</div>
-	)
-}
-
 function buildOptions(courses: ProgramCard[], filters: FilterState, search: string): FilterState {
 	return filterKeys().reduce((result, key) => {
 		const peerFilters = { ...filters, [key]: [] }
@@ -799,33 +750,6 @@ function usefulValue(value: string | null | undefined) {
 
 function localizedUsefulValue(value: string | null | undefined, locale: PublicLocale) {
 	return optionLabel(usefulValue(value), locale)
-}
-
-function compactAcademicDegree(value: string) {
-	const normalized = normalize(value)
-	const parenthetical = value.match(/\(([A-Z][A-Za-z. ]{1,12})\)/)?.[1]?.replace(/\s+/g, "")
-	if (parenthetical) {
-		return parenthetical
-	}
-	if (normalized.includes("master of science")) {
-		return "M.Sc."
-	}
-	if (normalized.includes("bachelor of science")) {
-		return "B.Sc."
-	}
-	if (normalized.includes("master of arts")) {
-		return "M.A."
-	}
-	if (normalized.includes("bachelor of arts")) {
-		return "B.A."
-	}
-	if (normalized.includes("master of engineering")) {
-		return "M.Eng."
-	}
-	if (normalized.includes("bachelor of engineering")) {
-		return "B.Eng."
-	}
-	return value
 }
 
 function titleStartsWithDegree(title: string, degreeLabel: string) {

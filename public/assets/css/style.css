@@ -1467,6 +1467,35 @@ body .bg-secondary-2 {
   font-weight: 900;
 }
 
+.university-program-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 0 0 24px;
+}
+
+.university-program-filters label {
+  display: grid;
+  gap: 6px;
+  min-width: 210px;
+  color: var(--tc-theme-primary);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.university-program-filters select {
+  height: 48px;
+  border: 1px solid rgba(1, 71, 60, 0.14);
+  border-radius: 8px;
+  background: var(--tc-system-white);
+  color: var(--tc-system-black);
+  padding: 0 14px;
+  font-weight: 700;
+  text-transform: none;
+}
+
 .related-program-card {
   display: block;
   padding: 20px;
@@ -1492,6 +1521,20 @@ body .bg-secondary-2 {
 
 .related-program-meta {
   line-height: 1.5;
+}
+
+.related-program-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  border-radius: 8px;
+  background: var(--tc-theme-primary);
+  color: var(--tc-system-white) !important;
+  padding: 10px 14px;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  text-transform: none !important;
 }
 
 .program-bullet-list {
@@ -1663,7 +1706,7 @@ body .bg-secondary-2 {
 }
 
 .program-contact-page {
-  padding-top: 190px;
+  padding-top: 120px;
 }
 
 .admin-panel {
@@ -1825,7 +1868,7 @@ body .bg-secondary-2 {
   }
 
   .program-contact-page {
-    padding-top: 140px;
+    padding-top: 100px;
   }
 
   .program-orientation-cta,

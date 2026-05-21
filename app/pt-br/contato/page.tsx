@@ -1,4 +1,5 @@
 import Layout from "@/components/layout/Layout"
+import Section1 from "@/components/sections/contact/Section1"
 import Section2, { type ContactProgram } from "@/components/sections/contact/Section2"
 import { inquiryAttributionFromForm } from "@/lib/inquiry-attribution"
 import { optionLabel } from "@/lib/i18n"
@@ -116,6 +117,7 @@ export default async function ContactPt({
 
 	return (
 		<Layout>
+			<Section1 locale="pt-br" />
 			<Section2
 				action={submitInquiry}
 				selectedProgram={selectedProgram}

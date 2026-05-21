@@ -1,5 +1,25 @@
+import type { PublicLocale } from "@/lib/i18n"
 
-export default function Section1() {
+const contactHero = {
+	en: {
+		eyebrow: "contact",
+		titlePrefix: "Contact",
+		titleAccent: "Study in DACH",
+	},
+	"pt-br": {
+		eyebrow: "contato",
+		titlePrefix: "Contato",
+		titleAccent: "Study in DACH",
+	},
+	es: {
+		eyebrow: "contacto",
+		titlePrefix: "Contacto",
+		titleAccent: "Study in DACH",
+	},
+}
+
+export default function Section1({ locale = "en" }: { locale?: PublicLocale }) {
+	const ui = contactHero[locale]
 	return (
 		<>
 
@@ -20,12 +40,12 @@ export default function Section1() {
 						<div className="col-12 text-center">
 							<span className="content-top btn-text fw-bold text-white">
 								<i className="ri-git-repository-line text-green-3" />
-								&nbsp; contact
+								&nbsp; {ui.eyebrow}
 							</span>
 							<h1 className="text-white ds-1 lh-sm mb-0 text-anime-style-2">
-								Contact
+								{ui.titlePrefix}{" "}
 								<span className="position-relative">
-									Study in DACH
+									{ui.titleAccent}
 									<span className="position-absolute top-0 start-0 pt-5 z-0 d-none d-md-block">
 										<svg xmlns="http://www.w3.org/2000/svg" width={268} height={22} viewBox="0 0 268 22" fill="none">
 											<path d="M2 20C70.6975 12.6711 219.674 -1.06621 266 2.61526" stroke="#D5D52B" strokeWidth={3} strokeLinecap="round" />

@@ -257,6 +257,12 @@ export const programUi = {
 		similarPrograms: "Similar programs",
 		mobileApply: "Apply",
 		disclaimer: "Program data is collected from public university sources and may be incomplete or outdated. Always verify deadlines, fees, and admission requirements on the official university website.",
+		programSectionsAria: "Program sections",
+		livingCostEstimates: {
+			default: "Approx. EUR 850-1,200/month",
+			austria: "Approx. EUR 950-1,300/month",
+			switzerland: "Approx. CHF 1,500-2,200/month",
+		},
 		highlights: {
 			internationalFriendly: "International-student friendly",
 			englishFriendly: "English-friendly instruction",
@@ -328,6 +334,12 @@ export const programUi = {
 		similarPrograms: "Programas semelhantes",
 		mobileApply: "Candidatar-se",
 		disclaimer: "Os dados do programa são coletados de fontes públicas das universidades e podem estar incompletos ou desatualizados. Sempre confirme prazos, taxas e requisitos de admissão no site oficial da universidade.",
+		programSectionsAria: "Seções do programa",
+		livingCostEstimates: {
+			default: "Aprox. 850–1.200 EUR/mês",
+			austria: "Aprox. 950–1.300 EUR/mês",
+			switzerland: "Aprox. 1.500–2.200 CHF/mês",
+		},
 		highlights: {
 			internationalFriendly: "Adequado para estudantes internacionais",
 			englishFriendly: "Ensino acessível em inglês",
@@ -399,6 +411,12 @@ export const programUi = {
 		similarPrograms: "Programas similares",
 		mobileApply: "Postular",
 		disclaimer: "Los datos del programa se recopilan de fuentes públicas de universidades y pueden estar incompletos o desactualizados. Verifica siempre plazos, tasas y requisitos de admisión en el sitio oficial de la universidad.",
+		programSectionsAria: "Secciones del programa",
+		livingCostEstimates: {
+			default: "Aprox. 850–1.200 EUR/mes",
+			austria: "Aprox. 950–1.300 EUR/mes",
+			switzerland: "Aprox. 1.500–2.200 CHF/mes",
+		},
 		highlights: {
 			internationalFriendly: "Adecuado para estudiantes internacionales",
 			englishFriendly: "Enseñanza accesible en inglés",
@@ -608,6 +626,7 @@ const optionLabels: Record<PublicLocale, Record<string, string>> = {
 		Medium: "Média",
 		Low: "Baixa",
 		"Computer Science & Data": "Ciência da Computação e Dados",
+		"Study program": "Programa de estudo",
 		"Mathematics & Statistics": "Matemática e Estatística",
 		"Business & Economics": "Negócios e Economia",
 		"Engineering & Technology": "Engenharia e Tecnologia",
@@ -668,6 +687,7 @@ const optionLabels: Record<PublicLocale, Record<string, string>> = {
 		Medium: "Media",
 		Low: "Baja",
 		"Computer Science & Data": "Informática y datos",
+		"Study program": "Programa de estudio",
 		"Mathematics & Statistics": "Matemáticas y estadística",
 		"Business & Economics": "Negocios y economía",
 		"Engineering & Technology": "Ingeniería y tecnología",

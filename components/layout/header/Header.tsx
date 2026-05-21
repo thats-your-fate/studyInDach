@@ -19,7 +19,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 	const navItems = navItemsByLocale[locale]
 	const coursesPath = locale === 'pt-br' ? '/pt-br/cursos' : locale === 'es' ? '/es/programas' : '/courses'
 	const languageLinks = buildLanguageLinks(pathname || '/', searchParams.toString())
-	const contactHeader = pathname === '/contact' || pathname === '/pt-br/contato'
+	const contactHeader = pathname === '/contact' || pathname === '/pt-br/contato' || pathname === '/es/contacto'
 
 	return (
 		<>

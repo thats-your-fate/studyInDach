@@ -113,7 +113,7 @@ export default async function Contact({
 
 	return (
 		<Layout>
-			{!programId && <Section1 />}
+			<Section1 locale="en" />
 			<Section2
 				action={submitInquiry}
 				selectedProgram={selectedProgram}

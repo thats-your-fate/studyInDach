@@ -1,4 +1,5 @@
 import { optionLabel, programUi, t, type PublicLocale } from "@/lib/i18n"
+import { displayLanguageCombination, joinMetaSegments } from "@/lib/program-display"
 import type { ProgramCard, ProgramDetail } from "@/lib/study-programs"
 import Link from "next/link"
 
@@ -16,13 +17,14 @@ type Fact = {
 export default function Section2({ program, locale = "en" }: Section2Props) {
 	const ui = programUi[locale]
 	if (!program) {
+		const backHref = locale === "pt-br" ? "/pt-br/cursos" : locale === "es" ? "/es/programas" : "/courses"
 		return (
 			<section className="program-detail-page">
 				<div className="container">
 					<div className="program-empty-state">
 						<h4>{ui.notFoundTitle}</h4>
 						<p>{ui.notFoundText}</p>
-						<Link href={locale === "pt-br" ? "/pt-br/cursos" : "/courses"} className="btn btn-primary">{ui.backToPrograms}</Link>
+						<Link href={backHref} className="btn btn-primary">{ui.backToPrograms}</Link>
 					</div>
 				</div>
 			</section>
@@ -36,7 +38,7 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 	const quickFacts: Fact[] = [
 		{ icon: "ri-graduation-cap-line", label: ui.facts.degree, value: requiredLocalizedValue(program.academicDegree || program.degreeLevel, locale) },
 		{ icon: "ri-time-line", label: ui.facts.duration, value: optionalLocalizedValue(program.duration, locale) },
-		{ icon: "ri-translate-2", label: ui.facts.language, value: optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale) },
+		{ icon: "ri-translate-2", label: ui.facts.language, value: displayLanguageCombination(program.languageOfInstruction, locale, " / ") },
 		{ icon: "ri-map-pin-line", label: ui.facts.location, value: localizedLocation([program.location, program.country], locale) },
 		{ icon: "ri-bank-line", label: ui.facts.tuition, value: optionalLocalizedValue(program.tuitionType || program.tuitionOrFees, locale) },
 		{ icon: "ri-calendar-line", label: ui.facts.start, value: optionalLocalizedValue(compactStart(program.startTerms), locale) },
@@ -44,7 +46,7 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 		{ icon: "ri-layout-line", label: ui.facts.mode, value: localizedList([program.onlineOrOnCampus, program.fullTimeOrPartTime], locale, " / ") },
 	].filter((fact) => fact.value)
 	const heroChips = [
-		optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale),
+		displayLanguageCombination(program.languageOfInstruction, locale, " / "),
 		optionalLocalizedValue(program.duration, locale),
 		optionalLocalizedValue(program.tuitionType || program.tuitionOrFees, locale),
 		optionalLocalizedValue(program.state || program.country, locale),
@@ -109,7 +111,7 @@ export default function Section2({ program, locale = "en" }: Section2Props) {
 					</aside>
 				</div>
 
-				<nav className="program-section-nav" aria-label={locale === "pt-br" ? "Seções do programa" : "Program sections"}>
+				<nav className="program-section-nav" aria-label={ui.programSectionsAria}>
 					{sectionNav.map(([label, id]) => <a key={id} href={`#${id}`}>{label}</a>)}
 				</nav>
 
@@ -297,7 +299,7 @@ function InfoCard({ label, value, icon }: { label: string; value: string; icon: 
 function RelatedProgramCard({ program, locale }: { program: ProgramCard; locale: PublicLocale }) {
 	const degreeLabel = optionLabel(program.degreeLevel, locale)
 	const fieldLabel = optionalLocalizedValue(program.studyField || program.subjectArea, locale)
-	const languageLabel = optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale)
+	const languageLabel = displayLanguageCombination(program.languageOfInstruction, locale, " / ")
 	const metaItems = [degreeLabel, fieldLabel, languageLabel]
 		.filter(isUsefulValue)
 		.filter((item) => !titleStartsWithDegree(program.title, item))
@@ -306,7 +308,7 @@ function RelatedProgramCard({ program, locale }: { program: ProgramCard; locale:
 		<Link href={program.detailPath} className="related-program-card">
 			<h3>{program.title}</h3>
 			<p>{program.universityName}</p>
-			{metaItems.length > 0 && <div className="related-program-meta">{metaItems.join(" · ")}</div>}
+			{metaItems.length > 0 && <div className="related-program-meta">{joinMetaSegments(metaItems)}</div>}
 		</Link>
 	)
 }
@@ -331,7 +333,7 @@ function buildAdmissionItems(program: ProgramDetail, locale: PublicLocale) {
 		{ icon: "ri-shield-check-line", label: ui.admissionType, value: optionalLocalizedValue(program.applicationDifficulty || normalizeAdmission(program.restrictedAdmission), locale) },
 		{ icon: "ri-file-list-3-line", label: ui.requirements, value: usefulValue(program.admissionRequirements) },
 		{ icon: "ri-calendar-event-line", label: ui.deadline, value: usefulValue(program.applicationDeadlines) },
-		{ icon: "ri-translate-2", label: ui.facts.language, value: optionalLocalizedValue(compactLanguages(program.languageOfInstruction), locale) },
+		{ icon: "ri-translate-2", label: ui.facts.language, value: displayLanguageCombination(program.languageOfInstruction, locale, " / ") },
 	].filter((item) => item.value)
 }
 
@@ -403,22 +405,14 @@ function initials(value: string) {
 }
 
 function estimatedLivingCosts(country: string, locale: PublicLocale = "en") {
-	if (locale === "pt-br") {
-		if (country === "Switzerland") {
-			return "Aprox. CHF 1.500-2.200/mês"
-		}
-		if (country === "Austria") {
-			return "Aprox. EUR 950-1.300/mês"
-		}
-		return "Aprox. EUR 850-1.200/mês"
-	}
+	const estimates = programUi[locale].livingCostEstimates
 	if (country === "Switzerland") {
-		return "Approx. CHF 1,500-2,200/month"
+		return estimates.switzerland
 	}
 	if (country === "Austria") {
-		return "Approx. EUR 950-1,300/month"
+		return estimates.austria
 	}
-	return "Approx. EUR 850-1,200/month"
+	return estimates.default
 }
 
 function fallbackBestFor(program: ProgramDetail, locale: PublicLocale = "en") {

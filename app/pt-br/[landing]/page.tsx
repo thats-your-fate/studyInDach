@@ -1,5 +1,5 @@
 import Layout from "@/components/layout/Layout"
-import { optionLabel } from "@/lib/i18n"
+import CourseCard from "@/components/sections/courses/CourseCard"
 import { absoluteUrl } from "@/lib/seo"
 import { getCoursesPageData, type CourseSearchParams, type ProgramCard } from "@/lib/study-programs"
 import type { Metadata } from "next"
@@ -270,9 +270,11 @@ export default async function PtLandingPage({ params }: LandingParams) {
 							<p>Prévia de programas</p>
 							<h2>{data.totalMatching} programas encontrados</h2>
 						</div>
-						<div className="related-program-grid">
+						<div className="row g-4">
 							{programs.map((program) => (
-								<ProgramPreviewCard key={program.id} program={program} />
+								<div className="col-12 col-md-6 col-xl-4" key={program.id}>
+									<CourseCard course={program} locale="pt-br" />
+								</div>
 							))}
 						</div>
 						<div className="text-center mt-5">
@@ -328,26 +330,6 @@ export default async function PtLandingPage({ params }: LandingParams) {
 	)
 }
 
-function ProgramPreviewCard({ program }: { program: ProgramCard }) {
-	const meta = [
-		optionLabel(program.degreeLevel, "pt-br"),
-		optionLabel(program.studyField || program.subjectArea, "pt-br"),
-		optionLabel(compactLanguages(program.languageOfInstruction), "pt-br"),
-	].filter(Boolean).join(" · ")
-	const location = [program.location, optionLabel(program.country, "pt-br")].filter(Boolean).join(", ")
-	const summary = program.summary?.trim()
-
-	return (
-		<Link href={program.detailPath} className="related-program-card">
-			<span>{meta}</span>
-			<h3>{program.title}</h3>
-			<p className="mb-1">{program.universityName}</p>
-			{location && <p className="mb-1">{location}</p>}
-			{summary && <p>{summary.slice(0, 150)}{summary.length > 150 ? "..." : ""}</p>}
-		</Link>
-	)
-}
-
 function catalogPath(filters: CourseSearchParams) {
 	const params = new URLSearchParams()
 	Object.entries(filters).forEach(([key, value]) => {
@@ -380,17 +362,4 @@ function itemListJsonLd(page: LandingConfig, programs: ProgramCard[]) {
 			},
 		})),
 	}
-}
-
-function compactLanguages(value: string) {
-	const normalized = value
-		.split(/[;,/|+]+/)
-		.map((item) => item.trim())
-		.filter(Boolean)
-		.map((item) => {
-			if (/english|englisch|anglais|ingl[eê]s/i.test(item)) return "English"
-			if (/german|deutsch|alem[aã]o/i.test(item)) return "German"
-			return item
-		})
-	return Array.from(new Set(normalized)).join(" / ")
 }

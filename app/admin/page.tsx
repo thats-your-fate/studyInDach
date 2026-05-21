@@ -51,6 +51,8 @@ async function updateProgram(formData: FormData) {
 			contactEmail: nullableField(formData, "contactEmail"),
 			summary: nullableField(formData, "summary"),
 			heroImageUrl: nullableField(formData, "heroImageUrl"),
+			reviewStatus: nullableField(formData, "reviewStatus") || "pending",
+			qualityFlags: nullableField(formData, "qualityFlags"),
 		},
 	})
 	revalidateAdmin()
@@ -101,6 +103,7 @@ export default async function AdminPage({
 						</div>
 						<div className="d-flex flex-wrap gap-2">
 							<Link href="/admin/data-quality" className="btn btn-outline-secondary">Data quality</Link>
+							<Link href="/admin/program-review" className="btn btn-outline-secondary">Program review</Link>
 							<Link href="/admin/inquiries" className="btn btn-outline-secondary">Inquiries</Link>
 							<Link href="/courses" className="btn btn-primary">View programs</Link>
 						</div>
@@ -237,6 +240,8 @@ function ProgramForm({ program }: { program: any }) {
 			<TextArea label="Admission Requirements" name="admissionRequirements" value={program.admissionRequirements} className="col-lg-6" />
 			<TextArea label="Tuition or Fees" name="tuitionOrFees" value={program.tuitionOrFees} className="col-lg-6" />
 			<TextArea label="Summary" name="summary" value={program.summary} className="col-12" />
+			<TextInput label="Review Status" name="reviewStatus" value={program.reviewStatus} className="col-lg-3" />
+			<TextInput label="Quality Flags" name="qualityFlags" value={program.qualityFlags} className="col-lg-9" />
 			<div className="col-12">
 				<button className="btn btn-primary" type="submit">Save Studiengang</button>
 			</div>

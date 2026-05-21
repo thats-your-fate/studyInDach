@@ -51,6 +51,10 @@ model DegreeProgram {
   metadataConfidence    String?
   image                 String?
   authorImage           String?
+  reviewStatus          String     @default("pending")
+  isPublished           Boolean    @default(true)
+  isLikelyDegreeProgram Boolean    @default(true)
+  qualityFlags          String?
   universityId          String
   university            University @relation(fields: [universityId], references: [id], onDelete: Cascade)
   translations          DegreeProgramTranslation[]
@@ -58,6 +62,9 @@ model DegreeProgram {
   @@index([degreeLevel])
   @@index([studyField])
   @@index([subjectArea])
+  @@index([reviewStatus])
+  @@index([isPublished])
+  @@index([isLikelyDegreeProgram])
   @@index([universityId])
 }
 

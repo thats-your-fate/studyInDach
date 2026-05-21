@@ -38,6 +38,7 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 	return {
 		title,
 		description,
+		robots: program.isPublished && program.isLikelyDegreeProgram ? undefined : { index: false, follow: true },
 		alternates: {
 			canonical: absoluteUrl(canonicalPath),
 			languages,

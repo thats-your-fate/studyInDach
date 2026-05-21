@@ -5,7 +5,11 @@ import type { MetadataRoute } from "next"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const [programs, universities] = await Promise.all([
-		prisma.degreeProgram.findMany({ include: { university: true, translations: true }, orderBy: { id: "asc" } }),
+		prisma.degreeProgram.findMany({
+			where: { isPublished: true, isLikelyDegreeProgram: true },
+			include: { university: true, translations: true },
+			orderBy: { id: "asc" },
+		}),
 		prisma.university.findMany({ orderBy: { name: "asc" } }),
 	])
 	const now = new Date()

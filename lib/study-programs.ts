@@ -38,6 +38,10 @@ export type ProgramCard = {
 	tuitionType: string
 	workExperienceRequired: string
 	metadataConfidence: string
+	reviewStatus: string
+	isPublished: boolean
+	isLikelyDegreeProgram: boolean
+	qualityFlags: string
 }
 
 export type UniversityFilter = {
@@ -119,11 +123,16 @@ export type ProgramDetail = ProgramCard & {
 }
 
 const filterKeys = Object.keys(emptyCourseFilters) as CourseFilterKey[]
+const publicProgramWhere = {
+	isPublished: true,
+	isLikelyDegreeProgram: true,
+}
 
 export async function getCoursesPageData(searchParams: CourseSearchParams = {}, locale: PublicLocale = "en") {
 	const translationLocale = dbTranslationLocale(locale)
 	const [programs, universities] = await Promise.all([
 		prisma.degreeProgram.findMany({
+			where: publicProgramWhere,
 			include: {
 				university: true,
 				translations: {
@@ -140,6 +149,10 @@ export async function getCoursesPageData(searchParams: CourseSearchParams = {}, 
 	])
 	const allPrograms = programs.map((program) => toProgramCard(program, "en"))
 	const displayPrograms = new Map(programs.map((program) => [program.id, toProgramCard(program, locale)]))
+	const universityCounts = new Map<string, number>()
+	programs.forEach((program) => {
+		universityCounts.set(program.universityId, (universityCounts.get(program.universityId) || 0) + 1)
+	})
 	const filters = parseCourseFilters(searchParams)
 	const search = parseSingleParam(searchParams.q)
 	const page = Math.max(1, Number.parseInt(parseSingleParam(searchParams.page) || "1", 10) || 1)
@@ -156,13 +169,13 @@ export async function getCoursesPageData(searchParams: CourseSearchParams = {}, 
 			.slice(start, start + COURSE_PAGE_SIZE)
 			.map((program) => displayPrograms.get(program.id) || program),
 		universities: universities
-			.filter((university) => university._count.programs > 0)
+			.filter((university) => (universityCounts.get(university.id) || 0) > 0)
 			.map((university) => ({
 				id: university.id,
 				name: university.name,
 				location: university.location || "",
 				state: university.state || "",
-				programCount: university._count.programs,
+				programCount: universityCounts.get(university.id) || 0,
 			})),
 		totalPrograms: allPrograms.length,
 		totalMatching: matchingPrograms.length,
@@ -179,7 +192,7 @@ export async function getProgramDetail(id?: string, locale: PublicLocale = "en")
 	const parsedId = Number(id)
 	const translationLocale = dbTranslationLocale(locale)
 	const program = await prisma.degreeProgram.findFirst({
-		where: Number.isFinite(parsedId) && parsedId > 0 ? { id: parsedId } : undefined,
+		where: Number.isFinite(parsedId) && parsedId > 0 ? { id: parsedId } : publicProgramWhere,
 		include: {
 			university: true,
 			translations: {
@@ -195,6 +208,7 @@ export async function getProgramDetail(id?: string, locale: PublicLocale = "en")
 
 	const relatedPrograms = await prisma.degreeProgram.findMany({
 		where: {
+			...publicProgramWhere,
 			id: { not: program.id },
 			degreeLevel: program.degreeLevel || undefined,
 			studyField: program.studyField || undefined,
@@ -320,6 +334,10 @@ function toProgramCard(program: any, locale: PublicLocale = "en"): ProgramCard {
 		tuitionType: program.tuitionType || "",
 		workExperienceRequired: program.workExperienceRequired || "",
 		metadataConfidence: program.metadataConfidence || "",
+		reviewStatus: program.reviewStatus || "pending",
+		isPublished: program.isPublished ?? true,
+		isLikelyDegreeProgram: program.isLikelyDegreeProgram ?? true,
+		qualityFlags: program.qualityFlags || "",
 	}
 }
 

@@ -1,5 +1,6 @@
 import Layout from "@/components/layout/Layout"
 import { optionLabel } from "@/lib/i18n"
+import { cleanDisplayValue, cleanProgramTitleForLocale, displayLanguageCombination, joinMetaSegments, titleStartsWithDegree } from "@/lib/program-display"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import { programDetailPath } from "@/lib/study-programs"
@@ -11,6 +12,10 @@ export const dynamic = "force-dynamic"
 
 type UniversityPageProps = {
 	params: { slug: string }
+	searchParams?: {
+		degreeLevel?: string
+		languageOfInstruction?: string
+	}
 }
 
 export async function generateMetadata({ params }: UniversityPageProps): Promise<Metadata> {
@@ -31,13 +36,13 @@ export async function generateMetadata({ params }: UniversityPageProps): Promise
 	}
 }
 
-export default async function UniversityPtPage({ params }: UniversityPageProps) {
+export default async function UniversityPtPage({ params, searchParams }: UniversityPageProps) {
 	const university = await prisma.university.findUnique({
 		where: { id: params.slug },
 		include: {
 			programs: {
+				where: { isPublished: true, isLikelyDegreeProgram: true },
 				orderBy: { programName: "asc" },
-				take: 30,
 				include: {
 					translations: { where: { locale: "pt" }, take: 1 },
 				},
@@ -48,6 +53,14 @@ export default async function UniversityPtPage({ params }: UniversityPageProps) 
 	if (!university) notFound()
 
 	const location = [university.location, optionLabel(university.state || "", "pt-br")].filter(Boolean).join(", ") || "DACH"
+	const selectedDegree = cleanDisplayValue(searchParams?.degreeLevel)
+	const selectedLanguage = cleanDisplayValue(searchParams?.languageOfInstruction)
+	const degreeOptions = uniqueOptions(university.programs.map((program) => program.degreeLevel))
+	const languageOptions = uniqueOptions(university.programs.flatMap((program) => splitOptionValues(program.languageOfInstruction)))
+	const filteredPrograms = university.programs
+		.filter((program) => !selectedDegree || program.degreeLevel === selectedDegree)
+		.filter((program) => !selectedLanguage || splitOptionValues(program.languageOfInstruction).includes(selectedLanguage))
+		.slice(0, 30)
 
 	return (
 		<Layout>
@@ -72,11 +85,21 @@ export default async function UniversityPtPage({ params }: UniversityPageProps) 
 							{university.websiteUrl && <a href={university.websiteUrl} target="_blank">Site da universidade</a>}
 						</div>
 					</div>
+					<ProgramFilters
+						basePath={`/pt-br/universidades/${university.id}`}
+						degreeOptions={degreeOptions}
+						languageOptions={languageOptions}
+						selectedDegree={selectedDegree}
+						selectedLanguage={selectedLanguage}
+					/>
 					<div className="related-program-grid">
-						{university.programs.map((program) => {
-							const title = cleanPtProgramTitle(program.translations[0]?.localizedProgramName || program.programName)
+						{filteredPrograms.map((program) => {
+							const title = cleanProgramTitleForLocale(program.translations[0]?.localizedProgramName || program.programName, "pt-br")
 							const degree = optionLabel(program.degreeLevel || "Program", "pt-br")
-							const showDegree = !startsWithDegree(title, degree)
+							const field = optionLabel(program.studyField || program.subjectArea || "Study program", "pt-br")
+							const language = displayLanguageCombination(program.translations[0]?.languageOfInstruction || program.languageOfInstruction, "pt-br", " / ")
+							const showDegree = !titleStartsWithDegree(title, "pt-br")
+							const meta = joinMetaSegments([showDegree ? degree : "", field, language])
 							return (
 								<Link
 									key={program.id}
@@ -89,12 +112,14 @@ export default async function UniversityPtPage({ params }: UniversityPageProps) 
 									}, "pt-br")}
 									className="related-program-card"
 								>
-									{showDegree && <span>{degree}</span>}
 									<h3>{title}</h3>
-									<p>{optionLabel(program.studyField || program.subjectArea || "Study program", "pt-br")}</p>
+									<p>{university.name}</p>
+									{meta && <div className="related-program-meta">{meta}</div>}
+									<span className="related-program-action">Ver programa</span>
 								</Link>
 							)
 						})}
+						{filteredPrograms.length === 0 && <p>Nenhum programa corresponde a estes filtros.</p>}
 					</div>
 				</div>
 			</section>
@@ -102,19 +127,45 @@ export default async function UniversityPtPage({ params }: UniversityPageProps) 
 	)
 }
 
-function cleanPtProgramTitle(value: string) {
-	return value.replace(/^Mestre em\s+/i, "Mestrado em ")
+function ProgramFilters({
+	basePath,
+	degreeOptions,
+	languageOptions,
+	selectedDegree,
+	selectedLanguage,
+}: {
+	basePath: string
+	degreeOptions: string[]
+	languageOptions: string[]
+	selectedDegree: string
+	selectedLanguage: string
+}) {
+	return (
+		<form className="university-program-filters" method="get" action={basePath}>
+			<label>
+				<span>Nível do curso</span>
+				<select name="degreeLevel" defaultValue={selectedDegree}>
+					<option value="">Todos</option>
+					{degreeOptions.map((value) => <option value={value} key={value}>{optionLabel(value, "pt-br")}</option>)}
+				</select>
+			</label>
+			<label>
+				<span>Idioma</span>
+				<select name="languageOfInstruction" defaultValue={selectedLanguage}>
+					<option value="">Todos</option>
+					{languageOptions.map((value) => <option value={value} key={value}>{displayLanguageCombination(value, "pt-br")}</option>)}
+				</select>
+			</label>
+			<button className="btn btn-primary" type="submit">Filtrar</button>
+			{(selectedDegree || selectedLanguage) && <Link href={basePath} className="btn btn-outline-secondary">Limpar filtros</Link>}
+		</form>
+	)
 }
 
-function startsWithDegree(title: string, degree: string) {
-	return normalizeText(title).startsWith(`${normalizeText(degree)} `)
+function uniqueOptions(values: Array<string | null | undefined>) {
+	return Array.from(new Set(values.map((value) => cleanDisplayValue(value)).filter(Boolean))).sort((a, b) => a.localeCompare(b))
 }
 
-function normalizeText(value: string) {
-	return value
-		.toLowerCase()
-		.normalize("NFKD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.replace(/[^a-z0-9]+/g, " ")
-		.trim()
+function splitOptionValues(value: string | null | undefined) {
+	return cleanDisplayValue(value).split(/[;,/|+]+/).map((part) => cleanDisplayValue(part)).filter(Boolean)
 }
