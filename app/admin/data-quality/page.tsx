@@ -1,5 +1,6 @@
 import Layout from "@/components/layout/Layout"
 import { prisma } from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -18,6 +19,81 @@ type ProgramIssueRow = {
 type DuplicateGroup<T> = {
 	key: string
 	items: T[]
+}
+
+async function updateProgramDuplicate(formData: FormData) {
+	"use server"
+
+	const id = Number(formData.get("id"))
+	const canonicalId = Number(formData.get("canonicalId"))
+	const action = String(formData.get("action") || "")
+	if (!Number.isFinite(id) || id <= 0) return
+
+	if (action === "clear") {
+		await prisma.degreeProgram.update({
+			where: { id },
+			data: { duplicateStatus: "unique", canonicalProgramId: null, duplicateNotes: null, isPublished: true },
+		})
+	} else if (action === "mark" && Number.isFinite(canonicalId) && canonicalId > 0 && canonicalId !== id) {
+		await prisma.degreeProgram.update({
+			where: { id },
+			data: {
+				duplicateStatus: "duplicate",
+				canonicalProgramId: canonicalId,
+				duplicateNotes: `Duplicate candidate. Canonical program ID: ${canonicalId}`,
+			},
+		})
+	} else if (action === "hide" && Number.isFinite(canonicalId) && canonicalId > 0 && canonicalId !== id) {
+		await prisma.degreeProgram.update({
+			where: { id },
+			data: {
+				duplicateStatus: "duplicate",
+				canonicalProgramId: canonicalId,
+				isPublished: false,
+				duplicateNotes: `Hidden duplicate. Canonical program ID: ${canonicalId}`,
+			},
+		})
+	}
+
+	revalidatePublicDuplicatePaths()
+}
+
+async function updateUniversityDuplicate(formData: FormData) {
+	"use server"
+
+	const id = String(formData.get("id") || "")
+	const canonicalId = String(formData.get("canonicalId") || "")
+	const action = String(formData.get("action") || "")
+	if (!id) return
+
+	if (action === "clear") {
+		await prisma.university.update({
+			where: { id },
+			data: { duplicateStatus: "unique", canonicalUniversityId: null, duplicateNotes: null },
+		})
+	} else if ((action === "mark" || action === "hide") && canonicalId && canonicalId !== id) {
+		await prisma.university.update({
+			where: { id },
+			data: {
+				duplicateStatus: "duplicate",
+				canonicalUniversityId: canonicalId,
+				duplicateNotes: `${action === "hide" ? "Hidden duplicate" : "Duplicate candidate"}. Canonical university ID: ${canonicalId}`,
+			},
+		})
+	}
+
+	revalidatePublicDuplicatePaths()
+}
+
+function revalidatePublicDuplicatePaths() {
+	revalidatePath("/courses")
+	revalidatePath("/pt-br/cursos")
+	revalidatePath("/es/programas")
+	revalidatePath("/universities")
+	revalidatePath("/pt-br/universidades")
+	revalidatePath("/es/universidades")
+	revalidatePath("/sitemap.xml")
+	revalidatePath("/admin/data-quality")
 }
 
 const visibleProgramFields = [
@@ -95,7 +171,21 @@ export default async function AdminDataQualityPage() {
 	).filter((group) => group.items.length > 1)
 	const duplicateProgramNames = duplicateGroups(
 		programs,
-		(program) => `${program.universityId}|${normalizeName(program.programName)}|${normalizeName(program.degreeLevel || "")}`,
+		(program) => `${program.universityId}|${normalizeName(program.programName)}`,
+	).filter((group) => group.items.length > 1)
+	const duplicateLocalizedNames = duplicateGroups(
+		programs.flatMap((program) => localizedNameKeys(program).map((key) => ({ key, program }))),
+		(item) => item.key,
+	)
+		.filter((group) => group.items.length > 1)
+		.map((group) => ({
+			key: group.key,
+			items: uniquePrograms(group.items.map((item) => item.program)),
+		}))
+		.filter((group) => group.items.length > 1)
+	const duplicateSourcePaths = duplicateGroups(
+		programs.filter((program) => useful(program.programUrl)),
+		(program) => `${program.universityId}|${normalizeSourcePath(program.programUrl || "")}`,
 	).filter((group) => group.items.length > 1)
 	const duplicateUniversityWebsites = duplicateGroups(
 		universities.filter((university) => useful(university.websiteUrl)),
@@ -139,7 +229,15 @@ export default async function AdminDataQualityPage() {
 						</div>
 
 						<div className="col-12">
-							<DuplicateProgramTable title="Same university + same normalized program name + same degree level" groups={duplicateProgramNames} />
+							<DuplicateProgramTable title="Same university + same normalized program name" groups={duplicateProgramNames} />
+						</div>
+
+						<div className="col-12">
+							<DuplicateProgramTable title="Same university + same degree level + similar localized title" groups={duplicateLocalizedNames} />
+						</div>
+
+						<div className="col-12">
+							<DuplicateProgramTable title="Same source URL path across language variants" groups={duplicateSourcePaths} />
 						</div>
 
 						<div className="col-12">
@@ -275,6 +373,12 @@ function DuplicateProgramTable({ title, groups }: { title: string; groups: Array
 												#{program.id} {program.programName}
 											</Link>
 											<div>{program.university.name}</div>
+											<div className="fs-8">
+												{program.duplicateStatus || "unique"}
+												{program.canonicalProgramId ? ` · canonical #${program.canonicalProgramId}` : ""}
+												{program.isPublished ? "" : " · hidden"}
+											</div>
+											<ProgramDuplicateActions program={program} candidates={group.items} />
 										</div>
 									))}
 								</td>
@@ -311,6 +415,11 @@ function DuplicateUniversityTable({ title, groups }: { title: string; groups: Ar
 												{university.name}
 											</Link>
 											<div>{[university.location, university.state].filter(Boolean).join(", ")} · {university._count.programs} programs</div>
+											<div className="fs-8">
+												{university.duplicateStatus || "unique"}
+												{university.canonicalUniversityId ? ` · canonical ${university.canonicalUniversityId}` : ""}
+											</div>
+											<UniversityDuplicateActions university={university} candidates={group.items} />
 										</div>
 									))}
 								</td>
@@ -321,6 +430,48 @@ function DuplicateUniversityTable({ title, groups }: { title: string; groups: Ar
 				</table>
 			</div>
 		</div>
+	)
+}
+
+function ProgramDuplicateActions({ program, candidates }: { program: ProgramWithQaData; candidates: ProgramWithQaData[] }) {
+	const canonicalOptions = candidates.filter((candidate) => candidate.id !== program.id)
+	if (!canonicalOptions.length) return null
+
+	return (
+		<form action={updateProgramDuplicate} className="d-flex flex-wrap gap-2 align-items-center mt-2">
+			<input type="hidden" name="id" value={program.id} />
+			<select name="canonicalId" defaultValue={program.canonicalProgramId || canonicalOptions[0]?.id} className="form-select form-select-sm" style={{ maxWidth: 320 }}>
+				{canonicalOptions.map((candidate) => (
+					<option key={candidate.id} value={candidate.id}>
+						#{candidate.id} {candidate.programName.slice(0, 70)}
+					</option>
+				))}
+			</select>
+			<button name="action" value="mark" className="btn btn-outline-secondary btn-sm" type="submit">Mark duplicate</button>
+			<button name="action" value="hide" className="btn btn-outline-secondary btn-sm" type="submit">Hide duplicate</button>
+			<button name="action" value="clear" className="btn btn-outline-secondary btn-sm" type="submit">Clear</button>
+		</form>
+	)
+}
+
+function UniversityDuplicateActions({ university, candidates }: { university: UniversityWithQaData; candidates: UniversityWithQaData[] }) {
+	const canonicalOptions = candidates.filter((candidate) => candidate.id !== university.id)
+	if (!canonicalOptions.length) return null
+
+	return (
+		<form action={updateUniversityDuplicate} className="d-flex flex-wrap gap-2 align-items-center mt-2">
+			<input type="hidden" name="id" value={university.id} />
+			<select name="canonicalId" defaultValue={university.canonicalUniversityId || canonicalOptions[0]?.id} className="form-select form-select-sm" style={{ maxWidth: 320 }}>
+				{canonicalOptions.map((candidate) => (
+					<option key={candidate.id} value={candidate.id}>
+						{candidate.name.slice(0, 70)}
+					</option>
+				))}
+			</select>
+			<button name="action" value="mark" className="btn btn-outline-secondary btn-sm" type="submit">Mark duplicate</button>
+			<button name="action" value="hide" className="btn btn-outline-secondary btn-sm" type="submit">Hide from indexes</button>
+			<button name="action" value="clear" className="btn btn-outline-secondary btn-sm" type="submit">Clear</button>
+		</form>
 	)
 }
 
@@ -420,6 +571,23 @@ function duplicateGroups<T>(items: T[], keyFor: (item: T) => string) {
 	return Array.from(groups.entries()).map(([key, groupItems]) => ({ key, items: groupItems }))
 }
 
+function localizedNameKeys(program: ProgramWithQaData) {
+	const names = [
+		program.programName,
+		...program.translations.map((translation) => translation.localizedProgramName),
+	]
+	return Array.from(new Set(names
+		.map((name) => normalizeProgramTitleForDuplicate(name))
+		.filter(Boolean)
+		.map((name) => `${program.universityId}|${normalizeName(program.degreeLevel || "")}|${name}`)))
+}
+
+function uniquePrograms(programs: ProgramWithQaData[]) {
+	const byId = new Map<number, ProgramWithQaData>()
+	programs.forEach((program) => byId.set(program.id, program))
+	return Array.from(byId.values())
+}
+
 function programEditHref(universityId: string, programId: number) {
 	return `/admin?university=${encodeURIComponent(universityId)}&program=${programId}`
 }
@@ -439,6 +607,28 @@ function normalizeUrl(value: string) {
 		.replace(/^https?:\/\//, "")
 		.replace(/^www\./, "")
 		.replace(/\/+$/, "")
+}
+
+function normalizeSourcePath(value: string) {
+	try {
+		const parsed = new URL(value)
+		return parsed.pathname
+			.toLowerCase()
+			.replace(/\/(en|de|es|pt|pt-br|fr|it)(?=\/|$)/g, "")
+			.replace(/\/(english|deutsch|spanish|portuguese)(?=\/|$)/g, "")
+			.replace(/\/index\.(html?|php)$/g, "")
+			.replace(/\/+$/g, "")
+	} catch {
+		return normalizeUrl(value)
+	}
+}
+
+function normalizeProgramTitleForDuplicate(value: string | null | undefined) {
+	return normalizeName(value || "")
+		.replace(/\b(bachelor|master|doctorate|phd|b a|b sc|m a|m sc|msc|ma|ba|bsc|licenciatura|maestria|mestrado|bacharelado|doutorado|degree|program|programme|studiengang|studium)\b/g, " ")
+		.replace(/\b(in|im|em|en|of|de|der|die|das|und|and|y|e)\b/g, " ")
+		.replace(/\s+/g, " ")
+		.trim()
 }
 
 function normalizeName(value: string) {

@@ -32,6 +32,9 @@ async function main() {
 	const englishProgramUrls = sitemapPaths.filter((path) => path.startsWith("/courses/"))
 	const ptProgramUrls = sitemapPaths.filter((path) => path.startsWith("/pt-br/cursos/"))
 	const esProgramUrls = sitemapPaths.filter((path) => path.startsWith("/es/programas/"))
+	const englishUniversityUrls = sitemapPaths.filter((path) => path.startsWith("/universities/"))
+	const ptUniversityUrls = sitemapPaths.filter((path) => path.startsWith("/pt-br/universidades/"))
+	const esUniversityUrls = sitemapPaths.filter((path) => path.startsWith("/es/universidades/"))
 	const englishUrls = sitemapPaths.filter((path) => !path.startsWith("/pt-br/") && !path.startsWith("/es/"))
 	const ptUrls = sitemapPaths.filter((path) => path.startsWith("/pt-br/"))
 	const esUrls = sitemapPaths.filter((path) => path.startsWith("/es/"))
@@ -70,6 +73,7 @@ async function main() {
 	await checkStaticPages()
 	await checkContactNoindex()
 	await checkProgramPages(englishProgramUrls, ptProgramUrls, esProgramUrls)
+	await checkLocalizedAlternateRoutes(ptProgramUrls, esProgramUrls, ptUniversityUrls, esUniversityUrls)
 	await checkPtRegressionPages(ptProgramUrls)
 	await checkEsRegressionPages(esProgramUrls)
 	await checkOldRedirect(englishProgramUrls[0] || ptProgramUrls[0])
@@ -83,6 +87,62 @@ async function main() {
 
 	printHeader("Result")
 	console.log("SEO checks passed.")
+}
+
+async function checkLocalizedAlternateRoutes(ptProgramUrls, esProgramUrls, ptUniversityUrls, esUniversityUrls) {
+	printHeader("Localized alternate route regressions")
+
+	if (ptProgramUrls[0]) {
+		const html = await fetchText(ptProgramUrls[0])
+		const enHref = findAlternateHref(html, "en")
+		const enPath = enHref ? toPathWithSearch(enHref) : ""
+		const prefixSwappedPt = ptProgramUrls[0].replace(/^\/pt-br\/cursos/, "/courses")
+		printMetric(`${ptProgramUrls[0]} English alternate`, enPath || "-")
+		if (enPath === prefixSwappedPt) {
+			fail(`${ptProgramUrls[0]} English alternate appears to reuse the PT-BR slug under /courses.`)
+		}
+		if (enPath && !enPath.startsWith("/courses/")) {
+			fail(`${ptProgramUrls[0]} English alternate does not point to /courses/.`)
+		}
+	}
+
+	if (esProgramUrls[0]) {
+		const html = await fetchText(esProgramUrls[0])
+		const enHref = findAlternateHref(html, "en")
+		const enPath = enHref ? toPathWithSearch(enHref) : ""
+		const prefixSwappedEs = esProgramUrls[0].replace(/^\/es\/programas/, "/courses")
+		printMetric(`${esProgramUrls[0]} English alternate`, enPath || "-")
+		if (enPath === prefixSwappedEs) {
+			fail(`${esProgramUrls[0]} English alternate appears to reuse the Spanish slug under /courses.`)
+		}
+		if (enPath && !enPath.startsWith("/courses/")) {
+			fail(`${esProgramUrls[0]} English alternate does not point to /courses/.`)
+		}
+	}
+
+	if (ptUniversityUrls[0]) {
+		await expectDistinctUniversityAlternates(ptUniversityUrls[0], "PT-BR")
+	}
+	if (esUniversityUrls[0]) {
+		await expectDistinctUniversityAlternates(esUniversityUrls[0], "Spanish")
+	}
+}
+
+async function expectDistinctUniversityAlternates(path, label) {
+	const html = await fetchText(path)
+	const en = findAlternateHref(html, "en")
+	const pt = findAlternateHref(html, "pt-BR")
+	const es = findAlternateHref(html, "es")
+	const paths = [en, pt, es].filter(Boolean).map(toPathWithSearch)
+	printMetric(`${label} university alternate en`, en ? toPathWithSearch(en) : "-")
+	printMetric(`${label} university alternate pt-BR`, pt ? toPathWithSearch(pt) : "-")
+	printMetric(`${label} university alternate es`, es ? toPathWithSearch(es) : "-")
+	if (paths.length !== 3 || new Set(paths).size !== 3) {
+		fail(`${path} must have distinct EN/PT-BR/ES university alternate URLs.`)
+	}
+	if (!paths.some((item) => item.startsWith("/universities/"))) fail(`${path} is missing an English university alternate.`)
+	if (!paths.some((item) => item.startsWith("/pt-br/universidades/"))) fail(`${path} is missing a PT-BR university alternate.`)
+	if (!paths.some((item) => item.startsWith("/es/universidades/"))) fail(`${path} is missing a Spanish university alternate.`)
 }
 
 async function checkEsRegressionPages(esProgramUrls) {

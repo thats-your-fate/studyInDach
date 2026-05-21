@@ -26,12 +26,12 @@ const guideItems = [
 	{
 		title: "Estudar na Áustria",
 		body: "Veja pontos importantes para pesquisar programas austríacos, incluindo prazos, taxas, idioma e diferenças entre instituições.",
-		href: "/pt-br/guia-de-estudos/estudar-na-austria",
+		href: "/pt-br/estudar-na-austria",
 	},
 	{
 		title: "Estudar na Suíça",
 		body: "Compare opções suíças com atenção a custo de vida, idioma local, estrutura acadêmica e requisitos oficiais de cada universidade.",
-		href: "/pt-br/guia-de-estudos/estudar-na-suica",
+		href: "/pt-br/estudar-na-suica",
 	},
 	{
 		title: "Bacharelado, mestrado e doutorado",
@@ -41,7 +41,7 @@ const guideItems = [
 	{
 		title: "Programas em inglês",
 		body: "Encontre cursos com ensino em inglês e confira se há exigências adicionais de alemão, francês, italiano ou outro idioma.",
-		href: "/pt-br/mestrado-na-alemanha-em-ingles",
+		href: "/pt-br/programas-em-ingles",
 	},
 	{
 		title: "Universidades públicas",

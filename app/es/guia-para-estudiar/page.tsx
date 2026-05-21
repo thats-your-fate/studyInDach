@@ -18,11 +18,11 @@ export const metadata: Metadata = {
 }
 
 const guideItems = [
-	["Estudiar en Alemania", "Compara universidades, tipos de programa, idiomas de enseñanza y costos antes de elegir una postulación.", "/es/guia-para-estudiar/estudiar-en-alemania"],
-	["Estudiar en Austria", "Revisa plazos, tasas, idioma y diferencias entre instituciones austríacas.", "/es/guia-para-estudiar/estudiar-en-austria"],
-	["Estudiar en Suiza", "Evalúa costo de vida, idioma local, estructura académica y requisitos oficiales de cada universidad.", "/es/guia-para-estudiar/estudiar-en-suiza"],
+	["Estudiar en Alemania", "Compara universidades, tipos de programa, idiomas de enseñanza y costos antes de elegir una postulación.", "/es/estudiar-en-alemania"],
+	["Estudiar en Austria", "Revisa plazos, tasas, idioma y diferencias entre instituciones austríacas.", "/es/estudiar-en-austria"],
+	["Estudiar en Suiza", "Evalúa costo de vida, idioma local, estructura académica y requisitos oficiales de cada universidad.", "/es/estudiar-en-suiza"],
 	["Licenciatura, maestría y doctorado", "Entiende las diferencias entre niveles académicos y filtra programas compatibles con tu perfil.", "/es/guia-para-estudiar/licenciatura-maestria-doctorado"],
-	["Programas en inglés", "Encuentra programas impartidos en inglés y verifica posibles requisitos adicionales de idioma.", "/es/guia-para-estudiar/programas-en-ingles"],
+	["Programas en inglés", "Encuentra programas impartidos en inglés y verifica posibles requisitos adicionales de idioma.", "/es/programas-en-ingles"],
 	["Universidades públicas", "Descubre opciones públicas, pero confirma tasas y reglas de admisión en el sitio oficial.", "/es/guia-para-estudiar/universidades-publicas"],
 	["Costos, tasas y comprobación financiera", "Compara matrícula, tasas semestrales, vivienda, seguro y posibles comprobantes financieros.", "/es/guia-para-estudiar/costos-tasas-comprobacion-financiera"],
 	["Requisitos de idioma", "Interpreta requisitos como B2, C1, inglés académico y reglas específicas para internacionales.", "/es/guia-para-estudiar/requisitos-de-idioma"],

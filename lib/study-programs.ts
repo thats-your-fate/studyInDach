@@ -42,6 +42,8 @@ export type ProgramCard = {
 	isPublished: boolean
 	isLikelyDegreeProgram: boolean
 	qualityFlags: string
+	duplicateStatus: string
+	canonicalProgramId: number | null
 }
 
 export type UniversityFilter = {
@@ -123,9 +125,39 @@ export type ProgramDetail = ProgramCard & {
 }
 
 const filterKeys = Object.keys(emptyCourseFilters) as CourseFilterKey[]
+const publicLanguageOptions = ["English", "German", "English + German", "French", "Italian", "Spanish", "Other"]
+const publicStartTermOptions = ["Winter", "Summer", "Winter / Summer", "Rolling", "Other"]
+const publicStudyFieldBuckets = [
+	"Computer Science & Data",
+	"Engineering & Technology",
+	"Business & Economics",
+	"Natural Sciences",
+	"Medicine & Health",
+	"Law & Public Policy",
+	"Social Sciences",
+	"Humanities",
+	"Language & Cultural Studies",
+	"Arts, Design & Media",
+	"Education & Teaching",
+	"Environmental & Sustainability Studies",
+	"Interdisciplinary",
+]
+const defaultFilterOptionLimits: Partial<Record<CourseFilterKey, number>> = {
+	university: 80,
+	location: 80,
+	state: 80,
+	duration: 60,
+	ects: 60,
+}
 const publicProgramWhere = {
 	isPublished: true,
 	isLikelyDegreeProgram: true,
+	duplicateStatus: { not: "duplicate" },
+	canonicalProgramId: null,
+}
+export const publicUniversityWhere = {
+	duplicateStatus: { not: "duplicate" },
+	canonicalUniversityId: null,
 }
 
 export async function getCoursesPageData(searchParams: CourseSearchParams = {}, locale: PublicLocale = "en") {
@@ -143,6 +175,7 @@ export async function getCoursesPageData(searchParams: CourseSearchParams = {}, 
 			orderBy: [{ university: { name: "asc" } }, { programName: "asc" }],
 		}),
 		prisma.university.findMany({
+			where: publicUniversityWhere,
 			include: { _count: { select: { programs: true } } },
 			orderBy: { name: "asc" },
 		}),
@@ -206,6 +239,11 @@ export async function getProgramDetail(id?: string, locale: PublicLocale = "en")
 		return null
 	}
 
+	const canonicalProgram = await resolveCanonicalProgram(program, translationLocale)
+	if (canonicalProgram.id !== program.id) {
+		return getProgramDetail(String(canonicalProgram.id), locale)
+	}
+
 	const relatedPrograms = await prisma.degreeProgram.findMany({
 		where: {
 			...publicProgramWhere,
@@ -264,9 +302,33 @@ export async function getProgramDetailBySlugs(universitySlug: string, degreeSlug
 }
 
 export function programDetailPath(program: Pick<ProgramCard, "id" | "title" | "degreeLevel" | "universityName"> & { originalTitle?: string }, locale: PublicLocale = "en") {
+	return getProgramUrl(program, locale)
+}
+
+export function getProgramUrl(program: {
+	id: number
+	title?: string | null
+	programName?: string | null
+	originalTitle?: string | null
+	degreeLevel?: string | null
+	universityName?: string | null
+	university?: { name?: string | null } | null
+	translations?: Array<{ locale: string; localizedProgramName?: string | null }> | null
+}, locale: PublicLocale = "en") {
 	const basePath = locale === "pt-br" ? "/pt-br/cursos" : locale === "es" ? "/es/programas" : "/courses"
-	const programSlugTitle = locale === "pt-br" ? cleanPtProgramTitle(program.title) : locale === "es" ? program.title : program.originalTitle || program.title
-	return `${basePath}/${slugify(program.universityName, "university")}/${slugify(program.degreeLevel, "degree")}/${slugify(programSlugTitle, "program")}-${program.id}`
+	const translation = program.translations?.find((item) => item.locale === dbTranslationLocale(locale))
+	const originalTitle = program.programName || program.originalTitle || program.title || ""
+	const localizedTitle = locale === "en" ? originalTitle : translation?.localizedProgramName || program.title || originalTitle
+	const programSlugTitle = locale === "pt-br" ? cleanPtProgramTitle(localizedTitle) : localizedTitle
+	const universityName = program.university?.name || program.universityName || "university"
+	return `${basePath}/${slugify(universityName, "university")}/${slugify(program.degreeLevel || "Degree program", "degree")}/${slugify(programSlugTitle, "program")}-${program.id}`
+}
+
+export function getUniversityUrl(university: { id?: string | null }, locale: PublicLocale = "en") {
+	const slug = university.id || "university"
+	if (locale === "pt-br") return `/pt-br/universidades/${slug}`
+	if (locale === "es") return `/es/universidades/${slug}`
+	return `/universities/${slug}`
 }
 
 export async function getProgramPathByLocale(programId: number, locale: PublicLocale) {
@@ -278,12 +340,12 @@ export async function getProgramPathByLocale(programId: number, locale: PublicLo
 		},
 	})
 	if (!program) return ""
-	return programDetailPath({
+	return getProgramUrl({
 		id: program.id,
+		programName: program.programName,
 		title: program.translations[0]?.localizedProgramName || program.programName,
-		originalTitle: program.programName,
 		degreeLevel: program.degreeLevel || "Degree program",
-		universityName: program.university.name,
+		university: program.university,
 	}, locale)
 }
 
@@ -338,7 +400,27 @@ function toProgramCard(program: any, locale: PublicLocale = "en"): ProgramCard {
 		isPublished: program.isPublished ?? true,
 		isLikelyDegreeProgram: program.isLikelyDegreeProgram ?? true,
 		qualityFlags: program.qualityFlags || "",
+		duplicateStatus: program.duplicateStatus || "unique",
+		canonicalProgramId: program.canonicalProgramId || null,
 	}
+}
+
+async function resolveCanonicalProgram(program: any, translationLocale: string) {
+	if (!program?.canonicalProgramId) {
+		return program
+	}
+
+	const canonical = await prisma.degreeProgram.findUnique({
+		where: { id: program.canonicalProgramId },
+		include: {
+			university: true,
+			translations: {
+				where: { locale: { in: ["en", "pt", translationLocale] } },
+			},
+		},
+	})
+
+	return canonical || program
 }
 
 function slugify(value: string, fallback: string) {
@@ -468,7 +550,7 @@ function buildCourseFilterOptions(programs: ProgramCard[], filters: CourseFilter
 	return filterKeys.reduce((result, key) => {
 		const peerFilters = { ...filters, [key]: [] }
 		const matchingPrograms = programs.filter((program) => matchesCourseFilters(program, peerFilters, search))
-		result[key] = uniqueSorted(matchingPrograms.flatMap((program) => courseFilterValues(program, key)))
+		result[key] = limitFilterOptions(key, uniqueSorted(matchingPrograms.flatMap((program) => courseFilterValues(program, key))))
 		return result
 	}, { ...emptyCourseFilters })
 }
@@ -484,11 +566,11 @@ function courseFilterValues(program: ProgramCard, key: CourseFilterKey) {
 		case "degreeLevel":
 			return [program.degreeLevel]
 		case "studyField":
-			return [program.studyField, program.secondaryStudyField, program.subjectArea]
+			return normalizeStudyFields([program.studyField, program.secondaryStudyField, program.subjectArea])
 		case "university":
 			return [program.universityName]
 		case "language":
-			return splitValues(program.languageOfInstruction).map(normalizeLanguage)
+			return normalizeLanguageBuckets(program.languageOfInstruction)
 		case "fullTimeOrPartTime":
 			return [program.fullTimeOrPartTime || normalizePace(program.studyMode)]
 		case "state":
@@ -504,7 +586,7 @@ function courseFilterValues(program: ProgramCard, key: CourseFilterKey) {
 		case "onlineOrOnCampus":
 			return [program.onlineOrOnCampus || normalizeFormat(program.studyMode)]
 		case "startTerms":
-			return splitValues(program.startTerms).map(normalizeStartTerm)
+			return normalizeStartTermBuckets(program.startTerms)
 		case "ects":
 			return [program.ects]
 		case "duration":
@@ -560,10 +642,13 @@ function parseMultiParam(value: string | string[] | undefined) {
 
 function normalizeCourseFilterParam(key: CourseFilterKey, value: string) {
 	if (key === "language") {
-		return normalizeLanguage(value)
+		return normalizePublicLanguageParam(value)
 	}
 	if (key === "startTerms") {
 		return normalizeStartTerm(value)
+	}
+	if (key === "studyField") {
+		return normalizeStudyField(value)
 	}
 	return value
 }
@@ -596,7 +681,34 @@ function normalizeLanguage(value: string) {
 		spanish: "Spanish",
 		spanisch: "Spanish",
 	}
-	return aliases[normalized] || value.replace(/\s*\(.*?\)\s*/g, "").trim()
+	return aliases[normalized] || ""
+}
+
+function normalizePublicLanguageParam(value: string) {
+	const normalized = normalize(value)
+	if (normalized.includes("english") && normalized.includes("german")) return "English + German"
+	const language = normalizeLanguage(value)
+	return publicLanguageOptions.includes(language) ? language : "Other"
+}
+
+function normalizeLanguageBuckets(value: string) {
+	const raw = String(value || "")
+	const normalized = normalize(raw)
+	if (!normalized) return []
+	if (/\b(depending|chosen courses|e g|semester|modules? may|varies|various)\b/.test(normalized) && !/\b(english|englisch|ingles|anglais|german|deutsch|alemao|aleman|french|francais|italian|spanish)\b/.test(normalized)) {
+		return []
+	}
+	const languages = uniqueInOrder(splitValues(raw).map(normalizeLanguage).filter(Boolean))
+	if (!languages.length) {
+		if (normalized.includes("english") || normalized.includes("englisch") || normalized.includes("ingles") || normalized.includes("anglais")) return ["English"]
+		if (normalized.includes("german") || normalized.includes("deutsch") || normalized.includes("alemao") || normalized.includes("aleman")) return ["German"]
+		return ["Other"]
+	}
+	const hasEnglish = languages.includes("English")
+	const hasGerman = languages.includes("German")
+	const buckets = [...languages.filter((language) => publicLanguageOptions.includes(language))]
+	if (hasEnglish && hasGerman) buckets.unshift("English + German")
+	return uniqueInOrder(buckets.length ? buckets : ["Other"])
 }
 
 function cleanLocalizedProgramTitle(value: string, locale: PublicLocale) {
@@ -645,7 +757,52 @@ function normalizeStartTerm(value: string) {
 	if (normalized.includes("rolling") || normalized.includes("month") || normalized.includes("anytime") || normalized.includes("various")) {
 		return "Rolling"
 	}
-	return value
+	return "Other"
+}
+
+function normalizeStartTermBuckets(value: string) {
+	const buckets = uniqueInOrder(splitValues(value).map(normalizeStartTerm).filter(Boolean))
+	return buckets.length ? buckets : []
+}
+
+function normalizeStudyFields(values: Array<string | null | undefined>) {
+	return uniqueInOrder(values.map((value) => normalizeStudyField(value || "")).filter(Boolean))
+}
+
+function normalizeStudyField(value: string) {
+	const raw = String(value || "").trim()
+	if (!raw) return ""
+	if (publicStudyFieldBuckets.includes(raw)) return raw
+	const normalized = normalize(raw)
+	if (!normalized || normalized.length > 90) return ""
+	if (/(computer|informatics|informatik|software|data|artificial intelligence|machine learning|cyber|information systems)/.test(normalized)) return "Computer Science & Data"
+	if (/(engineering|ingenieur|mechanical|electrical|civil|mechatronic|technology|robotics|energy|materials)/.test(normalized)) return "Engineering & Technology"
+	if (/(business|management|economics|finance|accounting|marketing|entrepreneurship)/.test(normalized)) return "Business & Economics"
+	if (/(biology|chemistry|physics|mathematics|math|statistics|science|geology|pharmaceutical)/.test(normalized)) return "Natural Sciences"
+	if (/(medicine|medical|health|psychology|nursing|rehabilitation|biomedical)/.test(normalized)) return "Medicine & Health"
+	if (/(law|legal|policy|politic|public administration|governance)/.test(normalized)) return "Law & Public Policy"
+	if (/(social|sociology|anthropology|communication|international relations)/.test(normalized)) return "Social Sciences"
+	if (/(history|philosophy|religion|theology|literature|humanities|archaeology)/.test(normalized)) return "Humanities"
+	if (/(language|linguistic|cultural|culture|english|german|romance|asian|studies)/.test(normalized)) return "Language & Cultural Studies"
+	if (/(art|design|media|music|film|theatre|architecture|performance)/.test(normalized)) return "Arts, Design & Media"
+	if (/(education|teaching|teacher|pedagogy|lehramt)/.test(normalized)) return "Education & Teaching"
+	if (/(environment|sustainability|ecology|climate|renewable|biodiversity)/.test(normalized)) return "Environmental & Sustainability Studies"
+	if (/(interdisciplinary|combined|general)/.test(normalized)) return "Interdisciplinary"
+	return ""
+}
+
+function limitFilterOptions(key: CourseFilterKey, options: string[]) {
+	if (key === "language") {
+		return publicLanguageOptions.filter((option) => options.includes(option))
+	}
+	if (key === "startTerms") {
+		return publicStartTermOptions.filter((option) => options.includes(option))
+	}
+	if (key === "studyField") {
+		return publicStudyFieldBuckets.filter((option) => options.includes(option))
+	}
+	const limit = defaultFilterOptionLimits[key]
+	return limit ? options.slice(0, limit) : options
 }
 
 function normalizePace(value: string) {
@@ -693,6 +850,16 @@ function uniqueSorted(values: string[]) {
 		return Boolean(normalized) && !["unknown", "n a", "na", "null", "undefined"].includes(normalized)
 	})))
 		.sort((a, b) => a.localeCompare(b))
+}
+
+function uniqueInOrder(values: string[]) {
+	const seen = new Set<string>()
+	return values.filter((value) => {
+		const key = normalize(value)
+		if (!key || seen.has(key)) return false
+		seen.add(key)
+		return true
+	})
 }
 
 function normalize(value: string) {

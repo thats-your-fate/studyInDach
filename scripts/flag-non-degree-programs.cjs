@@ -5,13 +5,17 @@ const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 
 const titlePatterns = [
+	[/\bbachelor\s+project\b/i, "title: bachelor project"],
+	[/\bmaster\s+project\b/i, "title: master project"],
 	[/\b(1st|2nd|3rd|4th)\s+year\b/i, "title: yearly section"],
 	[/\b[1-4]\.\s*jahr\b/i, "title: yearly section"],
 	[/\bmodule\b/i, "title: module"],
 	[/\bmodul\b/i, "title: module"],
 	[/\bproject\b/i, "title: project"],
 	[/\bprojekt\b/i, "title: project"],
+	[/\bresearch\s+training\b/i, "title: research training"],
 	[/\bresearch\s+module\b/i, "title: research module"],
+	[/\badaptive\s+minds\s+research\s+area\b/i, "title: research area"],
 	[/\blecture\b/i, "title: lecture"],
 	[/\bseminar\b/i, "title: seminar"],
 	[/\bworkshop\b/i, "title: workshop"],
@@ -23,13 +27,26 @@ const titlePatterns = [
 ]
 
 const summaryPatterns = [
+	[/\bbachelor\s+project\b/i, "summary mentions bachelor project"],
+	[/\bmaster\s+project\b/i, "summary mentions master project"],
 	[/\bmodule\b/i, "summary mentions module"],
 	[/\bproject\b/i, "summary mentions project"],
+	[/\bprojekt\b/i, "summary mentions project"],
 	[/\byear\b/i, "summary mentions year/section"],
+	[/\b[1-4]\.\s*jahr\b/i, "summary mentions year/section"],
 	[/\bcourse\s+section\b/i, "summary mentions course section"],
 	[/\bmodul\b/i, "summary mentions module"],
-	[/\bprojekt\b/i, "summary mentions project"],
+	[/\bseminar\b/i, "summary mentions seminar"],
+	[/\blecture\b/i, "summary mentions lecture"],
+	[/\bpublication\b/i, "summary mentions publication"],
+	[/\bpresentation\b/i, "summary mentions presentation"],
+	[/\bperformance\b/i, "summary mentions performance"],
+	[/\bresearch\s+training\b/i, "summary mentions research training"],
+	[/\badaptive\s+minds\s+research\s+area\b/i, "summary mentions research area"],
 ]
+
+const suspiciousTitlePattern = /\b(bachelor\s+project|master\s+project|project|projekt|module|modul|research\s+module|research\s+training|lecture|seminar|workshop|publication|presentation|performance|adaptation\s+year|adaptive\s+minds\s+research\s+area|1st\s+year|2nd\s+year|3rd\s+year|4th\s+year|[1-4]\.\s*jahr)\b/i
+const canonicalDegreeLevels = new Set(["Bachelor", "Master", "Doctorate", "State Examination", "Certificate"])
 
 async function main() {
 	const dryRun = process.argv.includes("--dry-run")
@@ -41,19 +58,22 @@ async function main() {
 		orderBy: { id: "asc" },
 	})
 	let flagged = 0
+	let hidden = 0
 
 	for (const program of programs) {
-		const flags = detectFlags(program)
-		if (!flags.length) continue
+		const result = detectQuality(program)
+		if (!result.flags.length) continue
 		flagged += 1
-		const qualityFlags = mergeFlags(program.qualityFlags, flags).join("; ")
+		if (result.hideFromPublic) hidden += 1
+		const qualityFlags = mergeFlags(program.qualityFlags, result.flags).join("; ")
 		console.log(`#${program.id} ${program.programName}`)
 		console.log(`  ${qualityFlags}`)
+		if (result.hideFromPublic) console.log("  action: hide from public catalog")
 		if (!dryRun) {
 			await prisma.degreeProgram.update({
 				where: { id: program.id },
 				data: {
-					isLikelyDegreeProgram: false,
+					isLikelyDegreeProgram: result.hideFromPublic ? false : program.isLikelyDegreeProgram,
 					reviewStatus: "pending",
 					qualityFlags,
 				},
@@ -62,9 +82,10 @@ async function main() {
 	}
 
 	console.log(`${dryRun ? "Would flag" : "Flagged"} ${flagged} of ${programs.length} rows.`)
+	console.log(`${dryRun ? "Would hide" : "Hid"} ${hidden} rows from public catalog.`)
 }
 
-function detectFlags(program) {
+function detectQuality(program) {
 	const flags = []
 	const titles = [
 		program.programName,
@@ -89,14 +110,36 @@ function detectFlags(program) {
 	if (isDeeplyNestedProgramUrl(program.programUrl)) {
 		flags.push("url: deeply nested below likely degree page")
 	}
-	if (!useful(program.academicDegree) && likelyGuessedDegreeLevel(program.degreeLevel)) {
-		flags.push("degree: missing academicDegree with guessed degreeLevel")
+	if (!hasDegreeValidationSignal(program, titles)) {
+		flags.push("validation: missing reliable degree-program signal")
 	}
-	if (titles.some((title) => /\b(module|modul|project|projekt|lecture|seminar|workshop)\b/i.test(title))) {
+	if (titles.some((title) => suspiciousTitlePattern.test(title))) {
 		flags.push("title: obvious module/project wording")
 	}
 
-	return Array.from(new Set(flags))
+	const uniqueFlags = Array.from(new Set(flags))
+	const hideFromPublic = shouldHideFromPublic(uniqueFlags)
+
+	return { flags: uniqueFlags, hideFromPublic }
+}
+
+function shouldHideFromPublic(flags) {
+	return flags.some((flag) =>
+		flag.startsWith("title:")
+		|| flag === "validation: missing reliable degree-program signal"
+		|| flag.includes("course section")
+		|| flag.includes("research training")
+		|| flag.includes("research area")
+	)
+}
+
+function hasDegreeValidationSignal(program, titles) {
+	const titleLooksSuspicious = titles.some((title) => suspiciousTitlePattern.test(title))
+	if (titleLooksSuspicious) return false
+
+	return useful(program.academicDegree)
+		|| canonicalDegreeLevels.has(String(program.degreeLevel || "").trim())
+		|| looksLikeStudyProgramUrl(program.programUrl)
 }
 
 function isDeeplyNestedProgramUrl(value) {
@@ -111,8 +154,16 @@ function isDeeplyNestedProgramUrl(value) {
 	}
 }
 
-function likelyGuessedDegreeLevel(value) {
-	return ["Bachelor", "Master", "Doctorate", "Other"].includes(String(value || ""))
+function looksLikeStudyProgramUrl(value) {
+	if (!value) return false
+	try {
+		const parsed = new URL(value)
+		const path = decodeURIComponent(parsed.pathname).toLowerCase()
+		return /(studiengang|studiengaenge|studienangebot|degree-program|degree-programs|study-program|study-programs|programmes?|programs?|bachelor|master|phd|doctorate|promotion|studium\/studienangebot)/i.test(path)
+			&& !/(module|modul|project|projekt|seminar|lecture|publication|presentation|performance)/i.test(path)
+	} catch {
+		return false
+	}
 }
 
 function useful(value) {

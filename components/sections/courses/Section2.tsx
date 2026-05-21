@@ -63,6 +63,23 @@ const languageAliases: Record<string, string> = {
 	spanish: "Spanish",
 	spanisch: "Spanish",
 }
+const publicLanguageOptions = ["English", "German", "English + German", "French", "Italian", "Spanish", "Other"]
+const publicStartTermOptions = ["Winter", "Summer", "Winter / Summer", "Rolling", "Other"]
+const publicStudyFieldBuckets = [
+	"Computer Science & Data",
+	"Engineering & Technology",
+	"Business & Economics",
+	"Natural Sciences",
+	"Medicine & Health",
+	"Law & Public Policy",
+	"Social Sciences",
+	"Humanities",
+	"Language & Cultural Studies",
+	"Arts, Design & Media",
+	"Education & Teaching",
+	"Environmental & Sustainability Studies",
+	"Interdisciplinary",
+]
 
 export default function Section2({ courses, totalPrograms, totalMatching, page, totalPages, initialFilters, initialSearch, filterOptions, locale = "en" }: Section2Props) {
 	const router = useRouter()
@@ -483,11 +500,11 @@ function courseFilterValues(course: ProgramCard, key: FilterKey) {
 		case "degreeLevel":
 			return [course.degreeLevel]
 		case "studyField":
-			return [course.studyField, course.secondaryStudyField, course.subjectArea]
+			return normalizeStudyFields([course.studyField, course.secondaryStudyField, course.subjectArea])
 		case "university":
 			return [course.universityName]
 		case "language":
-			return splitValues(course.languageOfInstruction).map(normalizeLanguage)
+			return normalizeLanguageBuckets(course.languageOfInstruction)
 		case "fullTimeOrPartTime":
 			return [course.fullTimeOrPartTime || normalizePace(course.studyMode)]
 		case "state":
@@ -503,7 +520,7 @@ function courseFilterValues(course: ProgramCard, key: FilterKey) {
 		case "onlineOrOnCampus":
 			return [course.onlineOrOnCampus || normalizeFormat(course.studyMode)]
 		case "startTerms":
-			return splitValues(course.startTerms).map(normalizeStartTerm)
+			return normalizeStartTermBuckets(course.startTerms)
 		case "ects":
 			return [course.ects]
 		case "duration":
@@ -582,21 +599,10 @@ function mergeFilters(base: FilterState, inferred: FilterState): FilterState {
 function prioritizeFilterOptions(options: FilterState): FilterState {
 	return {
 		...options,
-		startTerms: prioritizeStartTerms(options.startTerms),
+		language: publicLanguageOptions.filter((option) => options.language.includes(option)),
+		studyField: publicStudyFieldBuckets.filter((option) => options.studyField.includes(option)),
+		startTerms: publicStartTermOptions.filter((option) => options.startTerms.includes(option)),
 	}
-}
-
-function prioritizeStartTerms(options: string[]) {
-	const priority = ["Winter", "Summer", "Winter / Summer", "Summer / Winter", "Rolling"]
-	const priorityIndex = new Map(priority.map((value, index) => [value, index]))
-	return [...options].sort((a, b) => {
-		const aIndex = priorityIndex.get(a)
-		const bIndex = priorityIndex.get(b)
-		if (aIndex !== undefined || bIndex !== undefined) {
-			return (aIndex ?? 999) - (bIndex ?? 999)
-		}
-		return a.localeCompare(b)
-	})
 }
 
 function matchesAny(values: string[], selected: string[]) {
@@ -616,7 +622,27 @@ function splitValues(value: string) {
 
 function normalizeLanguage(value: string) {
 	const normalized = normalize(value).replace("oe", "o")
-	return languageAliases[normalized] || value.replace(/\s*\(.*?\)\s*/g, "").trim()
+	return languageAliases[normalized] || ""
+}
+
+function normalizeLanguageBuckets(value: string) {
+	const raw = String(value || "")
+	const normalized = normalize(raw)
+	if (!normalized) return []
+	if (/\b(depending|chosen courses|e g|semester|modules? may|varies|various)\b/.test(normalized) && !/\b(english|englisch|ingles|anglais|german|deutsch|alemao|aleman|french|francais|italian|spanish)\b/.test(normalized)) {
+		return []
+	}
+	const languages = uniqueInOrder(splitValues(raw).map(normalizeLanguage).filter(Boolean))
+	if (!languages.length) {
+		if (normalized.includes("english") || normalized.includes("englisch") || normalized.includes("ingles") || normalized.includes("anglais")) return ["English"]
+		if (normalized.includes("german") || normalized.includes("deutsch") || normalized.includes("alemao") || normalized.includes("aleman")) return ["German"]
+		return ["Other"]
+	}
+	const hasEnglish = languages.includes("English")
+	const hasGerman = languages.includes("German")
+	const buckets = [...languages.filter((language) => publicLanguageOptions.includes(language))]
+	if (hasEnglish && hasGerman) buckets.unshift("English + German")
+	return uniqueInOrder(buckets.length ? buckets : ["Other"])
 }
 
 function normalizeStartTerm(value: string) {
@@ -657,7 +683,37 @@ function normalizeStartTerm(value: string) {
 	if (normalized.includes("rolling") || normalized.includes("month") || normalized.includes("anytime") || normalized.includes("various")) {
 		return "Rolling"
 	}
-	return value
+	return "Other"
+}
+
+function normalizeStartTermBuckets(value: string) {
+	return uniqueInOrder(splitValues(value).map(normalizeStartTerm).filter(Boolean))
+}
+
+function normalizeStudyFields(values: Array<string | null | undefined>) {
+	return uniqueInOrder(values.map((value) => normalizeStudyField(value || "")).filter(Boolean))
+}
+
+function normalizeStudyField(value: string) {
+	const raw = String(value || "").trim()
+	if (!raw) return ""
+	if (publicStudyFieldBuckets.includes(raw)) return raw
+	const normalized = normalize(raw)
+	if (!normalized || normalized.length > 90) return ""
+	if (/(computer|informatics|informatik|software|data|artificial intelligence|machine learning|cyber|information systems)/.test(normalized)) return "Computer Science & Data"
+	if (/(engineering|ingenieur|mechanical|electrical|civil|mechatronic|technology|robotics|energy|materials)/.test(normalized)) return "Engineering & Technology"
+	if (/(business|management|economics|finance|accounting|marketing|entrepreneurship)/.test(normalized)) return "Business & Economics"
+	if (/(biology|chemistry|physics|mathematics|math|statistics|science|geology|pharmaceutical)/.test(normalized)) return "Natural Sciences"
+	if (/(medicine|medical|health|psychology|nursing|rehabilitation|biomedical)/.test(normalized)) return "Medicine & Health"
+	if (/(law|legal|policy|politic|public administration|governance)/.test(normalized)) return "Law & Public Policy"
+	if (/(social|sociology|anthropology|communication|international relations)/.test(normalized)) return "Social Sciences"
+	if (/(history|philosophy|religion|theology|literature|humanities|archaeology)/.test(normalized)) return "Humanities"
+	if (/(language|linguistic|cultural|culture|english|german|romance|asian|studies)/.test(normalized)) return "Language & Cultural Studies"
+	if (/(art|design|media|music|film|theatre|architecture|performance)/.test(normalized)) return "Arts, Design & Media"
+	if (/(education|teaching|teacher|pedagogy|lehramt)/.test(normalized)) return "Education & Teaching"
+	if (/(environment|sustainability|ecology|climate|renewable|biodiversity)/.test(normalized)) return "Environmental & Sustainability Studies"
+	if (/(interdisciplinary|combined|general)/.test(normalized)) return "Interdisciplinary"
+	return ""
 }
 
 function normalizePace(value: string) {

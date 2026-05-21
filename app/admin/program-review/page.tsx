@@ -66,18 +66,47 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 					],
 				}
 
-	const programs = await prisma.degreeProgram.findMany({
-		where,
-		include: { university: true },
-		orderBy: [{ reviewStatus: "asc" }, { id: "asc" }],
-		take: 250,
-	})
+	const [programs, publishedValidPrograms, hiddenSuspiciousRows, pendingReviewRows] = await Promise.all([
+		prisma.degreeProgram.findMany({
+			where,
+			include: { university: true },
+			orderBy: [{ reviewStatus: "asc" }, { id: "asc" }],
+			take: 250,
+		}),
+		prisma.degreeProgram.count({
+			where: { isPublished: true, isLikelyDegreeProgram: true, duplicateStatus: { not: "duplicate" }, canonicalProgramId: null },
+		}),
+		prisma.degreeProgram.count({
+			where: {
+				OR: [
+					{ isPublished: false },
+					{ isLikelyDegreeProgram: false },
+				],
+			},
+		}),
+		prisma.degreeProgram.count({
+			where: {
+				reviewStatus: "pending",
+				OR: [
+					{ isLikelyDegreeProgram: false },
+					{ isPublished: false },
+					{ qualityFlags: { not: null } },
+				],
+			},
+		}),
+	])
 
 	return (
 		<Layout>
 			<section className="position-relative pt-250-keep pb-120 bg-secondary-2">
 				<div className="container">
 					<AdminHeader title="Program review" />
+
+					<div className="row g-4 mb-5">
+						<MetricCard label="Published valid programs" value={publishedValidPrograms} />
+						<MetricCard label="Hidden / suspicious rows" value={hiddenSuspiciousRows} />
+						<MetricCard label="Pending review rows" value={pendingReviewRows} />
+					</div>
 
 					<div className="admin-panel bg-white rounded-3 p-5">
 						<div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-5">
@@ -146,6 +175,17 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 				</div>
 			</section>
 		</Layout>
+	)
+}
+
+function MetricCard({ label, value }: { label: string; value: number }) {
+	return (
+		<div className="col-md-4">
+			<div className="admin-panel bg-white rounded-3 p-5 h-100">
+				<span className="fs-7 text-uppercase text-primary fw-bold">{label}</span>
+				<h2 className="ds-4 text-primary mb-0">{value}</h2>
+			</div>
+		</div>
 	)
 }
 

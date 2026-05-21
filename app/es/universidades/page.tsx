@@ -2,6 +2,7 @@ import Layout from "@/components/layout/Layout"
 import { optionLabel } from "@/lib/i18n"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
+import { publicUniversityWhere } from "@/lib/study-programs"
 import type { Metadata } from "next"
 import Link from "next/link"
 
@@ -23,8 +24,9 @@ export const metadata: Metadata = {
 
 export default async function UniversitiesEs() {
 	const universities = await prisma.university.findMany({
+		where: publicUniversityWhere,
 		orderBy: [{ state: "asc" }, { name: "asc" }],
-		include: { _count: { select: { programs: true } } },
+		include: { _count: { select: { programs: { where: { isPublished: true, isLikelyDegreeProgram: true, duplicateStatus: { not: "duplicate" }, canonicalProgramId: null } } } } },
 	})
 
 	return (

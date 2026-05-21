@@ -3,7 +3,7 @@
 import { navItemsByLocale } from '@/lib/i18n'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import MobileMenu from '../MobileMenu'
 
 function SiteLogo() {
@@ -18,8 +18,13 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : pathname?.startsWith('/es') ? 'es' : 'en'
 	const navItems = navItemsByLocale[locale]
 	const coursesPath = locale === 'pt-br' ? '/pt-br/cursos' : locale === 'es' ? '/es/programas' : '/courses'
-	const languageLinks = buildLanguageLinks(pathname || '/', searchParams.toString())
+	const fallbackLanguageLinks = useMemo(() => buildLanguageLinks(pathname || '/', searchParams.toString()), [pathname, searchParams])
+	const [languageLinks, setLanguageLinks] = useState(fallbackLanguageLinks)
 	const contactHeader = pathname === '/contact' || pathname === '/pt-br/contato' || pathname === '/es/contacto'
+
+	useEffect(() => {
+		setLanguageLinks(readDocumentLanguageLinks(fallbackLanguageLinks, locale))
+	}, [fallbackLanguageLinks, locale])
 
 	return (
 		<>
@@ -204,6 +209,36 @@ function buildLanguageLinks(pathname: string, query: string) {
 		pt: `${ptPath}${suffix}`,
 		'pt-br': `${ptPath}${suffix}`,
 		es: `${esPath}${suffix}`,
+	}
+}
+
+function readDocumentLanguageLinks<T extends Record<'en' | 'pt-br' | 'es', string>>(fallbackLinks: T, currentLocale: string): T {
+	if (typeof document === 'undefined') return fallbackLinks
+	const nextLinks = { ...fallbackLinks }
+	const canonical = pathFromAbsoluteUrl(document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href || '')
+	if (canonical) {
+		if (currentLocale === 'pt-br') nextLinks['pt-br'] = canonical
+		if (currentLocale === 'es') nextLinks.es = canonical
+		if (currentLocale === 'en') nextLinks.en = canonical
+	}
+	document.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][hreflang]').forEach((link) => {
+		const hrefLang = link.getAttribute('hreflang') || ''
+		const href = pathFromAbsoluteUrl(link.href)
+		if (!href) return
+		if (hrefLang.toLowerCase() === 'en') nextLinks.en = href
+		if (hrefLang.toLowerCase() === 'pt-br') nextLinks['pt-br'] = href
+		if (hrefLang.toLowerCase() === 'es') nextLinks.es = href
+	})
+	return nextLinks as T
+}
+
+function pathFromAbsoluteUrl(value: string) {
+	if (!value) return ''
+	try {
+		const url = new URL(value, window.location.origin)
+		return `${url.pathname}${url.search}`
+	} catch {
+		return value
 	}
 }
 

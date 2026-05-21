@@ -27,7 +27,7 @@ export default function PrivacyPtPage() {
 							<p>Privacidade</p>
 							<h1>Política de privacidade</h1>
 						</div>
-						<p>O Study in DACH coleta apenas as informações necessárias para operar o site, responder solicitações e melhorar o serviço.</p>
+						<p>O Study in DACH é independente e não é um site oficial de universidade. Coletamos apenas as informações necessárias para operar o site, responder solicitações e melhorar o serviço.</p>
 						<div className="program-summary-grid">
 							<PrivacyCard title="Solicitações pelo formulário de contato">
 								<p>Quando você envia o formulário de contato ou orientação gratuita, armazenamos os dados fornecidos, como nome, email, país de residência, país de estudo preferido, mensagem, confirmação de consentimento, programa selecionado, idioma da página, página de origem, referência e parâmetros UTM quando existirem.</p>
@@ -40,7 +40,7 @@ export default function PrivacyPtPage() {
 								<p>O provedor de hospedagem pode criar logs do servidor com dados técnicos, como endereço IP, navegador, URL acessada, horário da solicitação e informações de erro. Esses logs são usados para segurança, depuração e funcionamento confiável do site.</p>
 							</PrivacyCard>
 							<PrivacyCard title="Analytics">
-								<p>O código atual do Study in DACH não descreve nenhum serviço externo de analytics. Se analytics forem adicionados futuramente, esta página deve ser atualizada com provedor, finalidade, prazo de retenção e opções de controle.</p>
+								<p>O código atual do Study in DACH não usa nenhum serviço externo de analytics. Se analytics forem adicionados futuramente, esta página deve ser atualizada imediatamente com provedor, finalidade, prazo de retenção e opções de controle.</p>
 							</PrivacyCard>
 							<PrivacyCard title="Base de uso e retenção">
 								<p>Os dados de solicitação são usados para responder ao pedido feito por você e para realizar etapas solicitadas antes de qualquer possível relação de serviço. Logs técnicos básicos são usados por interesse operacional e de segurança.</p>

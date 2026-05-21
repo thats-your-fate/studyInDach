@@ -27,7 +27,7 @@ export default function PrivacyEsPage() {
 							<p>Privacidad</p>
 							<h1>Política de privacidad</h1>
 						</div>
-						<p>Study in DACH recopila solo la información necesaria para operar el sitio, responder solicitudes y mejorar el servicio.</p>
+						<p>Study in DACH es independiente y no es un sitio web oficial de ninguna universidad. Recopilamos solo la información necesaria para operar el sitio, responder solicitudes y mejorar el servicio.</p>
 						<div className="program-summary-grid">
 							<PrivacyCard title="Solicitudes del formulario de contacto">
 								<p>Cuando envías el formulario de contacto u orientación gratuita, almacenamos los datos que proporcionas, como nombre, email, país de residencia, país de estudio preferido, mensaje, confirmación de consentimiento, programa seleccionado, idioma de la página, página de origen, referencia y parámetros UTM si existen.</p>
@@ -40,7 +40,7 @@ export default function PrivacyEsPage() {
 								<p>El proveedor de alojamiento puede crear registros del servidor con datos técnicos como dirección IP, navegador, URL solicitada, hora de la solicitud e información de errores. Estos registros se usan para seguridad, depuración y entrega fiable del sitio.</p>
 							</PrivacyCard>
 							<PrivacyCard title="Analytics">
-								<p>El código actual de Study in DACH no describe ningún servicio externo de analytics. Si se añade analytics más adelante, esta página debe actualizarse con el proveedor, la finalidad, el periodo de retención y las opciones de control.</p>
+								<p>El código actual de Study in DACH no usa ningún servicio externo de analytics. Si se añade analytics más adelante, esta página debe actualizarse inmediatamente con el proveedor, la finalidad, el periodo de retención y las opciones de control.</p>
 							</PrivacyCard>
 							<PrivacyCard title="Base de uso y retención">
 								<p>Los datos de solicitud se usan para responder al pedido realizado por ti y para realizar pasos solicitados antes de una posible relación de servicio. Los registros técnicos básicos se usan por intereses operativos y de seguridad.</p>

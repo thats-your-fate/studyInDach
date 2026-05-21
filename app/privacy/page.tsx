@@ -26,7 +26,7 @@ export default function PrivacyPage() {
 							<p>Privacy</p>
 							<h1>Privacy Policy</h1>
 						</div>
-						<p>Study in DACH collects only the information needed to operate the website, respond to inquiries, and improve the service.</p>
+						<p>Study in DACH is independent and is not an official university website. We collect only the information needed to operate the website, respond to inquiries, and improve the service.</p>
 						<div className="program-summary-grid">
 							<PrivacyCard title="Contact form inquiries">
 								<p>When you submit the contact or free orientation form, we store the details you provide, such as your name, email address, country of residence, preferred study country, message, consent confirmation, selected program, locale, source page, referrer, and UTM parameters if present.</p>
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
 								<p>The hosting provider may create server logs containing technical data such as IP address, browser information, requested URL, timestamp, and error information. These logs are used for security, debugging, and reliable website delivery.</p>
 							</PrivacyCard>
 							<PrivacyCard title="Analytics">
-								<p>Study in DACH does not currently describe any external analytics service in this codebase. If analytics are added later, this page should be updated with the provider, purpose, retention period, and opt-out information.</p>
+								<p>Study in DACH does not currently use an external analytics service in this codebase. If analytics are added later, this page must be updated immediately with the provider, purpose, retention period, and opt-out information.</p>
 							</PrivacyCard>
 							<PrivacyCard title="Legal basis and retention">
 								<p>Inquiry data is processed to respond to your request and to take steps requested by you before any possible service relationship. Basic technical logs are processed for legitimate security and operational interests.</p>

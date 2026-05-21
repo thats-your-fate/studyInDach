@@ -1,9 +1,9 @@
 import Layout from "@/components/layout/Layout"
 import { optionLabel } from "@/lib/i18n"
-import { cleanDisplayValue, cleanProgramTitleForLocale, displayLanguageCombination, joinMetaSegments, titleStartsWithDegree } from "@/lib/program-display"
+import { cleanDisplayValue, cleanProgramTitleForLocale, displayAcademicDegree, displayLanguageCombination, joinMetaSegments } from "@/lib/program-display"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
-import { programDetailPath } from "@/lib/study-programs"
+import { getUniversityUrl, programDetailPath } from "@/lib/study-programs"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -15,22 +15,24 @@ type Params = {
 	searchParams?: {
 		degreeLevel?: string
 		languageOfInstruction?: string
+		studyField?: string
 	}
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
 	const university = await prisma.university.findUnique({ where: { id: params.slug } })
 	if (!university) return {}
+	const canonicalPath = getUniversityUrl(university, "es")
 	return {
 		title: `${university.name} - programas de estudio | Study in DACH`,
 		description: `Explora programas de estudio de ${university.name}.`,
 		alternates: {
-			canonical: absoluteUrl(`/es/universidades/${university.id}`),
+			canonical: absoluteUrl(canonicalPath),
 			languages: {
-				en: absoluteUrl(`/universities/${university.id}`),
-				es: absoluteUrl(`/es/universidades/${university.id}`),
-				"pt-BR": absoluteUrl(`/pt-br/universidades/${university.id}`),
-				"x-default": absoluteUrl(`/universities/${university.id}`),
+				en: absoluteUrl(getUniversityUrl(university, "en")),
+				es: absoluteUrl(canonicalPath),
+				"pt-BR": absoluteUrl(getUniversityUrl(university, "pt-br")),
+				"x-default": absoluteUrl(getUniversityUrl(university, "en")),
 			},
 		},
 	}
@@ -41,7 +43,7 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 		where: { id: params.slug },
 		include: {
 			programs: {
-				where: { isPublished: true, isLikelyDegreeProgram: true },
+				where: { isPublished: true, isLikelyDegreeProgram: true, duplicateStatus: { not: "duplicate" }, canonicalProgramId: null },
 				include: { translations: { where: { locale: "es" }, take: 1 } },
 				orderBy: [{ degreeLevel: "asc" }, { programName: "asc" }],
 			},
@@ -52,11 +54,14 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 	const location = [university.location, optionLabel(university.state || "", "es")].filter(Boolean).join(", ")
 	const selectedDegree = cleanDisplayValue(searchParams?.degreeLevel)
 	const selectedLanguage = cleanDisplayValue(searchParams?.languageOfInstruction)
+	const selectedStudyField = cleanDisplayValue(searchParams?.studyField)
 	const degreeOptions = uniqueOptions(university.programs.map((program) => program.degreeLevel))
 	const languageOptions = uniqueOptions(university.programs.flatMap((program) => splitOptionValues(program.languageOfInstruction)))
+	const studyFieldOptions = uniqueOptions(university.programs.map((program) => program.studyField || program.subjectArea))
 	const filteredPrograms = university.programs
 		.filter((program) => !selectedDegree || program.degreeLevel === selectedDegree)
 		.filter((program) => !selectedLanguage || splitOptionValues(program.languageOfInstruction).includes(selectedLanguage))
+		.filter((program) => !selectedStudyField || (program.studyField || program.subjectArea) === selectedStudyField)
 		.slice(0, 30)
 
 	return (
@@ -78,17 +83,18 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 						basePath={`/es/universidades/${university.id}`}
 						degreeOptions={degreeOptions}
 						languageOptions={languageOptions}
+						studyFieldOptions={studyFieldOptions}
 						selectedDegree={selectedDegree}
 						selectedLanguage={selectedLanguage}
+						selectedStudyField={selectedStudyField}
 					/>
 					<div className="related-program-grid">
 						{filteredPrograms.map((program) => {
-							const title = cleanProgramTitleForLocale(program.translations[0]?.localizedProgramName || program.programName, "es")
+							const title = cleanUniversityTitle(cleanProgramTitleForLocale(program.translations[0]?.localizedProgramName || program.programName, "es"), university.name)
 							const degree = optionLabel(program.degreeLevel || "Program", "es")
 							const field = optionLabel(program.studyField || program.subjectArea || "Study program", "es")
 							const language = displayLanguageCombination(program.translations[0]?.languageOfInstruction || program.languageOfInstruction, "es", " / ")
-							const showDegree = !titleStartsWithDegree(title, "es")
-							const meta = joinMetaSegments([showDegree ? degree : "", field, language])
+							const meta = joinMetaSegments([degree, displayAcademicDegree(program.academicDegree), field, language])
 							return (
 								<Link
 									key={program.id}
@@ -102,7 +108,6 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 									className="related-program-card"
 								>
 									<h3>{title}</h3>
-									<p>{university.name}</p>
 									{meta && <div className="related-program-meta">{meta}</div>}
 									<span className="related-program-action">Ver programa</span>
 								</Link>
@@ -120,14 +125,18 @@ function ProgramFilters({
 	basePath,
 	degreeOptions,
 	languageOptions,
+	studyFieldOptions,
 	selectedDegree,
 	selectedLanguage,
+	selectedStudyField,
 }: {
 	basePath: string
 	degreeOptions: string[]
 	languageOptions: string[]
+	studyFieldOptions: string[]
 	selectedDegree: string
 	selectedLanguage: string
+	selectedStudyField: string
 }) {
 	return (
 		<form className="university-program-filters" method="get" action={basePath}>
@@ -145,8 +154,15 @@ function ProgramFilters({
 					{languageOptions.map((value) => <option value={value} key={value}>{displayLanguageCombination(value, "es")}</option>)}
 				</select>
 			</label>
+			<label>
+				<span>Área de estudio</span>
+				<select name="studyField" defaultValue={selectedStudyField}>
+					<option value="">Todos</option>
+					{studyFieldOptions.map((value) => <option value={value} key={value}>{optionLabel(value, "es")}</option>)}
+				</select>
+			</label>
 			<button className="btn btn-primary" type="submit">Filtrar</button>
-			{(selectedDegree || selectedLanguage) && <Link href={basePath} className="btn btn-outline-secondary">Limpiar filtros</Link>}
+			{(selectedDegree || selectedLanguage || selectedStudyField) && <Link href={basePath} className="btn btn-outline-secondary">Limpiar filtros</Link>}
 		</form>
 	)
 }
@@ -157,4 +173,14 @@ function uniqueOptions(values: Array<string | null | undefined>) {
 
 function splitOptionValues(value: string | null | undefined) {
 	return cleanDisplayValue(value).split(/[;,/|+]+/).map((part) => cleanDisplayValue(part)).filter(Boolean)
+}
+
+function cleanUniversityTitle(title: string, universityName: string) {
+	return cleanDisplayValue(title)
+		.replace(new RegExp(`\\s+(at|en|de)\\s+${escapeRegExp(universityName)}\\s*$`, "i"), "")
+		.replace(new RegExp(`\\s+[-|–—]\\s+${escapeRegExp(universityName)}\\s*$`, "i"), "")
+}
+
+function escapeRegExp(value: string) {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }

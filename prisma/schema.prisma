@@ -8,56 +8,64 @@ datasource db {
 }
 
 model University {
-  id        String          @id
-  name      String
-  location  String?
-  state     String?
-  websiteUrl String?
-  programs  DegreeProgram[]
+  id                    String          @id
+  name                  String
+  location              String?
+  state                 String?
+  websiteUrl            String?
+  duplicateStatus       String          @default("unique")
+  canonicalUniversityId String?
+  duplicateNotes        String?
+  programs              DegreeProgram[]
 
   @@index([name])
+  @@index([duplicateStatus])
+  @@index([canonicalUniversityId])
 }
 
 model DegreeProgram {
-  id                    Int        @id @default(autoincrement())
-  slug                  String     @unique
-  programUrl            String     @unique
-  programName           String
-  degreeLevel           String?
-  academicDegree        String?
-  subjectArea           String?
-  languageOfInstruction String?
-  campusLocation        String?
-  duration              String?
-  ects                  String?
-  startTerms            String?
-  applicationDeadlines  String?
-  admissionRequirements String?
-  tuitionOrFees         String?
-  studyMode             String?
-  restrictedAdmission   String?
-  applicationUrl        String?
-  contactEmail          String?
-  summary               String?
-  heroImageUrl          String?
-  studyField            String?
-  secondaryStudyField   String?
+  id                      Int                        @id @default(autoincrement())
+  slug                    String                     @unique
+  programUrl              String                     @unique
+  programName             String
+  degreeLevel             String?
+  academicDegree          String?
+  subjectArea             String?
+  languageOfInstruction   String?
+  campusLocation          String?
+  duration                String?
+  ects                    String?
+  startTerms              String?
+  applicationDeadlines    String?
+  admissionRequirements   String?
+  tuitionOrFees           String?
+  studyMode               String?
+  restrictedAdmission     String?
+  applicationUrl          String?
+  contactEmail            String?
+  summary                 String?
+  heroImageUrl            String?
+  studyField              String?
+  secondaryStudyField     String?
   internationalStudentFit String?
-  onlineOrOnCampus      String?
-  fullTimeOrPartTime    String?
-  applicationDifficulty String?
-  tuitionType           String?
-  workExperienceRequired String?
-  metadataConfidence    String?
-  image                 String?
-  authorImage           String?
-  reviewStatus          String     @default("pending")
-  isPublished           Boolean    @default(true)
-  isLikelyDegreeProgram Boolean    @default(true)
-  qualityFlags          String?
-  universityId          String
-  university            University @relation(fields: [universityId], references: [id], onDelete: Cascade)
-  translations          DegreeProgramTranslation[]
+  onlineOrOnCampus        String?
+  fullTimeOrPartTime      String?
+  applicationDifficulty   String?
+  tuitionType             String?
+  workExperienceRequired  String?
+  metadataConfidence      String?
+  image                   String?
+  authorImage             String?
+  reviewStatus            String                     @default("pending")
+  isPublished             Boolean                    @default(true)
+  isLikelyDegreeProgram   Boolean                    @default(true)
+  qualityFlags            String?
+  duplicateStatus         String                     @default("unique")
+  canonicalProgramId      Int?
+  duplicateNotes          String?
+  universityId            String
+  university              University                 @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  translations            DegreeProgramTranslation[]
 
   @@index([degreeLevel])
   @@index([studyField])
@@ -65,6 +73,8 @@ model DegreeProgram {
   @@index([reviewStatus])
   @@index([isPublished])
   @@index([isLikelyDegreeProgram])
+  @@index([duplicateStatus])
+  @@index([canonicalProgramId])
   @@index([universityId])
 }
 
@@ -101,30 +111,30 @@ model DegreeProgramTranslation {
 }
 
 model Inquiry {
-  id                      Int      @id @default(autoincrement())
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  status                  String   @default("new")
-  name                    String?
-  email                   String
-  countryOfResidence      String?
-  preferredStudyCountry   String?
-  message                 String
+  status                String  @default("new")
+  name                  String?
+  email                 String
+  countryOfResidence    String?
+  preferredStudyCountry String?
+  message               String
 
-  programId               Int?
-  programNameSnapshot     String?
-  universityNameSnapshot  String?
-  programUrlSnapshot      String?
+  programId              Int?
+  programNameSnapshot    String?
+  universityNameSnapshot String?
+  programUrlSnapshot     String?
 
-  locale                  String?
-  sourcePath              String?
-  referrer                String?
-  utmSource               String?
-  utmMedium               String?
-  utmCampaign             String?
-  landingPath             String?
-  adminNotes              String?
+  locale      String?
+  sourcePath  String?
+  referrer    String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  landingPath String?
+  adminNotes  String?
 
   @@index([status])
   @@index([email])

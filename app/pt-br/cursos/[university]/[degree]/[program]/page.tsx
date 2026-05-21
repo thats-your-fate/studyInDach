@@ -3,7 +3,7 @@ import Section1 from "@/components/sections/single-courses/Section1"
 import Section2 from "@/components/sections/single-courses/Section2"
 import { optionLabel } from "@/lib/i18n"
 import { absoluteUrl } from "@/lib/seo"
-import { getProgramDetailBySlugs, getProgramPathByLocale, programDetailPath, type ProgramDetail } from "@/lib/study-programs"
+import { getProgramDetailBySlugs, getProgramPathByLocale, getProgramUrl, type ProgramDetail } from "@/lib/study-programs"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
@@ -24,21 +24,21 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 	const title = program.seoTitle || `${program.title} na ${program.universityName}`
 	const description = program.seoDescription || program.summary || `Conheça ${program.title} na ${program.universityName}.`
 	const languages: Record<string, string> = {
-		en: absoluteUrl(programDetailPath(program, "en")),
-		"x-default": absoluteUrl(programDetailPath(program, "en")),
+		en: absoluteUrl(getProgramUrl(program, "en")),
+		"x-default": absoluteUrl(getProgramUrl(program, "en")),
 	}
 
 	if (program.availableTranslationLocales.includes("pt")) {
 		languages["pt-BR"] = absoluteUrl(canonicalPath)
 	}
 	if (program.availableTranslationLocales.includes("es")) {
-		languages.es = absoluteUrl(await getProgramPathByLocale(program.id, "es") || programDetailPath(program, "es"))
+		languages.es = absoluteUrl(await getProgramPathByLocale(program.id, "es") || getProgramUrl(program, "es"))
 	}
 
 	return {
 		title,
 		description,
-		robots: program.isPublished && program.isLikelyDegreeProgram ? undefined : { index: false, follow: true },
+		robots: program.isPublished && program.isLikelyDegreeProgram && program.duplicateStatus !== "duplicate" && !program.canonicalProgramId ? undefined : { index: false, follow: true },
 		alternates: {
 			canonical: absoluteUrl(canonicalPath),
 			languages,
