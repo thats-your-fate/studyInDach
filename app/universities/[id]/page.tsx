@@ -102,9 +102,16 @@ export default async function UniversityPage({ params, searchParams }: Universit
 							clear: "Clear filters",
 						}}
 					/>
-					<div className="related-program-grid">
+					<ul className="related-program-grid list-unstyled p-0 m-0">
 						{filteredPrograms.map((program) => {
 							const title = cleanUniversityTitle(program.programName, university.name)
+							const detailPath = programDetailPath({
+								id: program.id,
+								title,
+								originalTitle: program.programName,
+								degreeLevel: program.degreeLevel || "Degree program",
+								universityName: university.name,
+							})
 							const meta = joinMetaSegments([
 								program.degreeLevel || "Program",
 								displayAcademicDegree(program.academicDegree),
@@ -112,25 +119,17 @@ export default async function UniversityPage({ params, searchParams }: Universit
 								displayLanguageCombination(program.languageOfInstruction, "en", " / "),
 							])
 							return (
-								<Link
-									key={program.id}
-									href={programDetailPath({
-										id: program.id,
-										title,
-										originalTitle: program.programName,
-										degreeLevel: program.degreeLevel || "Degree program",
-										universityName: university.name,
-									})}
-									className="related-program-card"
-								>
-									<h3>{title}</h3>
-									{meta && <div className="related-program-meta">{meta}</div>}
-									<span className="related-program-action">View program</span>
-								</Link>
+								<li key={program.id}>
+									<article className="related-program-card h-100">
+										<h3><Link href={detailPath}>{title}</Link></h3>
+										{meta && <div className="related-program-meta">{meta}</div>}
+										<Link href={detailPath} className="related-program-action">View program</Link>
+									</article>
+								</li>
 							)
 						})}
-						{filteredPrograms.length === 0 && <p>No programs match these filters.</p>}
-					</div>
+						{filteredPrograms.length === 0 && <li>No programs match these filters.</li>}
+					</ul>
 				</div>
 			</section>
 		</Layout>

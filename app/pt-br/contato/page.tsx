@@ -111,7 +111,7 @@ export default async function ContactPt({
 			id: program.id,
 			name: cleanPtProgramTitle(program.translations[0]?.localizedProgramName || program.programName),
 			universityName: program.university.name,
-			location: [program.university.location, optionLabel(program.university.state || "", "pt-br")].filter(Boolean).join(", "),
+			location: [optionLabel(program.university.location || "", "pt-br"), optionLabel(program.university.state || "", "pt-br")].filter(Boolean).join(", "),
 		}
 		: null
 

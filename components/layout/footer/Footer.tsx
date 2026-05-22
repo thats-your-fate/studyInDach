@@ -17,7 +17,7 @@ export default function Footer() {
 			about: '/pt-br/sobre',
 			privacy: '/pt-br/privacidade',
 			english: '/pt-br/mestrado-na-alemanha-em-ingles',
-			bachelor: '/pt-br/cursos?degreeLevel=Bachelor',
+			bachelor: '/pt-br/bacharelado-na-alemanha',
 			master: '/pt-br/mestrado-na-alemanha',
 			publicUniversities: '/pt-br/universidades-publicas-na-alemanha',
 		}
@@ -29,10 +29,10 @@ export default function Footer() {
 				studyGuide: '/es/guia-para-estudiar',
 				about: '/es/sobre',
 				privacy: '/es/privacidad',
-				english: '/es/programas?languageOfInstruction=English',
-				bachelor: '/es/programas?degreeLevel=Bachelor',
+				english: '/es/programas-en-ingles',
+				bachelor: '/es/licenciatura-en-alemania',
 				master: '/es/programas?degreeLevel=Master',
-				publicUniversities: '/es/programas?tuitionType=No+Tuition+%2F+Semester+Fee+Only',
+				publicUniversities: '/es/universidades-publicas-en-alemania',
 			}
 		: {
 			home: '/',

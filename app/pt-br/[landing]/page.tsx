@@ -265,6 +265,30 @@ const landingPages: Record<string, LandingConfig> = {
 			{ label: "Orientação gratuita", href: "/pt-br/contato" },
 		],
 	},
+	"bacharelado-na-alemanha": {
+		slug: "bacharelado-na-alemanha",
+		title: "Bacharelado na Alemanha",
+		metaTitle: "Bacharelado na Alemanha: programas de graduação | Study in DACH",
+		description: "Compare programas de bacharelado na Alemanha por área, idioma, universidade, custos e formato de estudo.",
+		intro: "Bacharelados na Alemanha podem ter requisitos de idioma, documentos escolares específicos e processos de admissão diferentes para estudantes internacionais. Use esta página para descobrir opções e depois confirme tudo com a universidade.",
+		filters: { degreeLevel: "Bachelor", country: "Germany" },
+		notes: [
+			"Verifique se o programa exige alemão, inglês ou uma combinação de idiomas.",
+			"Confira equivalência escolar, documentos acadêmicos e possíveis requisitos adicionais.",
+			"Compare cidade, custo de vida, formato de estudo e tipo de mensalidade.",
+			"Confirme prazos de candidatura e regras para candidatos internacionais no site oficial.",
+		],
+		faq: [
+			{ question: "Posso fazer bacharelado na Alemanha em inglês?", answer: "Sim, existem opções, mas a oferta costuma ser menor que em mestrados. Use o filtro de idioma para encontrar programas compatíveis." },
+			{ question: "Bacharelado na Alemanha exige alemão?", answer: "Muitos programas de graduação exigem alemão, mas isso varia por universidade e área. Verifique sempre o idioma oficial de ensino." },
+			{ question: "O que comparar antes de escolher?", answer: "Compare idioma, área, cidade, custos, requisitos escolares, formato de estudo e página oficial de candidatura." },
+		],
+		relatedLinks: [
+			{ label: "Estudar na Alemanha", href: "/pt-br/estudar-na-alemanha" },
+			{ label: "Programas em inglês", href: "/pt-br/programas-em-ingles" },
+			{ label: "Catálogo filtrado", href: "/pt-br/cursos?degreeLevel=Bachelor&country=Germany" },
+		],
+	},
 }
 
 export function generateMetadata({ params }: LandingParams): Metadata {

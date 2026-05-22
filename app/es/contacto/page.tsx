@@ -111,7 +111,7 @@ export default async function ContactEs({
 			id: program.id,
 			name: program.translations[0]?.localizedProgramName || program.programName,
 			universityName: program.university.name,
-			location: [program.university.location, optionLabel(program.university.state || "", "es")].filter(Boolean).join(", "),
+			location: [optionLabel(program.university.location || "", "es"), optionLabel(program.university.state || "", "es")].filter(Boolean).join(", "),
 		}
 		: null
 

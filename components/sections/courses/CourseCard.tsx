@@ -58,7 +58,7 @@ function cardImageSrc(course: ProgramCard) {
 }
 
 function compactLocation(course: ProgramCard, locale: PublicLocale = "en") {
-	return [course.location, optionLabel(course.state, locale), optionLabel(course.country, locale)].filter(isUsefulValue).join(", ")
+	return [optionLabel(course.location, locale), optionLabel(course.state, locale), optionLabel(course.country, locale)].filter(isUsefulValue).join(", ")
 }
 
 function isUsefulValue(value: string | null | undefined): value is string {

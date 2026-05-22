@@ -22,15 +22,14 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 	const { program, canonicalPath } = result
 	const title = program.seoTitle || `${program.title} at ${program.universityName}`
 	const description = program.seoDescription || program.summary || `Discover ${program.title} at ${program.universityName}.`
+	const englishPath = await getProgramPathByLocale(program.id, "en") || getProgramUrl(program, "en")
+	const ptPath = await getProgramPathByLocale(program.id, "pt-br") || getProgramUrl(program, "pt-br")
+	const esPath = await getProgramPathByLocale(program.id, "es") || getProgramUrl(program, "es")
 	const languages: Record<string, string> = {
-		en: absoluteUrl(canonicalPath),
-		"x-default": absoluteUrl(canonicalPath),
-	}
-	if (program.availableTranslationLocales.includes("pt")) {
-		languages["pt-BR"] = absoluteUrl(await getProgramPathByLocale(program.id, "pt-br") || getProgramUrl(program, "pt-br"))
-	}
-	if (program.availableTranslationLocales.includes("es")) {
-		languages.es = absoluteUrl(await getProgramPathByLocale(program.id, "es") || getProgramUrl(program, "es"))
+		en: absoluteUrl(englishPath),
+		"pt-BR": absoluteUrl(ptPath),
+		es: absoluteUrl(esPath),
+		"x-default": absoluteUrl(englishPath),
 	}
 
 	return {

@@ -51,7 +51,7 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 	})
 	if (!university) notFound()
 
-	const location = [university.location, optionLabel(university.state || "", "es")].filter(Boolean).join(", ")
+	const location = [optionLabel(university.location || "", "es"), optionLabel(university.state || "", "es")].filter(Boolean).join(", ")
 	const selectedDegree = cleanDisplayValue(searchParams?.degreeLevel)
 	const selectedLanguage = cleanDisplayValue(searchParams?.languageOfInstruction)
 	const selectedStudyField = cleanDisplayValue(searchParams?.studyField)
@@ -88,33 +88,32 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 						selectedLanguage={selectedLanguage}
 						selectedStudyField={selectedStudyField}
 					/>
-					<div className="related-program-grid">
+					<ul className="related-program-grid list-unstyled p-0 m-0">
 						{filteredPrograms.map((program) => {
 							const title = cleanUniversityTitle(cleanProgramTitleForLocale(program.translations[0]?.localizedProgramName || program.programName, "es"), university.name)
+							const detailPath = programDetailPath({
+								id: program.id,
+								title,
+								originalTitle: program.programName,
+								degreeLevel: program.degreeLevel || "Degree program",
+								universityName: university.name,
+							}, "es")
 							const degree = optionLabel(program.degreeLevel || "Program", "es")
 							const field = optionLabel(program.studyField || program.subjectArea || "Study program", "es")
 							const language = displayLanguageCombination(program.translations[0]?.languageOfInstruction || program.languageOfInstruction, "es", " / ")
 							const meta = joinMetaSegments([degree, displayAcademicDegree(program.academicDegree), field, language])
 							return (
-								<Link
-									key={program.id}
-									href={programDetailPath({
-										id: program.id,
-										title,
-										originalTitle: program.programName,
-										degreeLevel: program.degreeLevel || "Degree program",
-										universityName: university.name,
-									}, "es")}
-									className="related-program-card"
-								>
-									<h3>{title}</h3>
-									{meta && <div className="related-program-meta">{meta}</div>}
-									<span className="related-program-action">Ver programa</span>
-								</Link>
+								<li key={program.id}>
+									<article className="related-program-card h-100">
+										<h3><Link href={detailPath}>{title}</Link></h3>
+										{meta && <div className="related-program-meta">{meta}</div>}
+										<Link href={detailPath} className="related-program-action">Ver programa</Link>
+									</article>
+								</li>
 							)
 						})}
-						{filteredPrograms.length === 0 && <p>Ningún programa coincide con estos filtros.</p>}
-					</div>
+						{filteredPrograms.length === 0 && <li>Ningún programa coincide con estos filtros.</li>}
+					</ul>
 				</div>
 			</section>
 		</Layout>

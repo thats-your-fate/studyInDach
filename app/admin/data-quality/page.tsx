@@ -25,7 +25,9 @@ async function updateProgramDuplicate(formData: FormData) {
 	"use server"
 
 	const id = Number(formData.get("id"))
-	const canonicalId = Number(formData.get("canonicalId"))
+	const selectedCanonicalId = Number(formData.get("canonicalId"))
+	const manualCanonicalId = Number(formData.get("manualCanonicalId"))
+	const canonicalId = Number.isFinite(manualCanonicalId) && manualCanonicalId > 0 ? manualCanonicalId : selectedCanonicalId
 	const action = String(formData.get("action") || "")
 	if (!Number.isFinite(id) || id <= 0) return
 
@@ -34,7 +36,7 @@ async function updateProgramDuplicate(formData: FormData) {
 			where: { id },
 			data: { duplicateStatus: "unique", canonicalProgramId: null, duplicateNotes: null, isPublished: true },
 		})
-	} else if (action === "mark" && Number.isFinite(canonicalId) && canonicalId > 0 && canonicalId !== id) {
+	} else if (action === "mark" && await validCanonicalProgramId(id, canonicalId)) {
 		await prisma.degreeProgram.update({
 			where: { id },
 			data: {
@@ -43,7 +45,7 @@ async function updateProgramDuplicate(formData: FormData) {
 				duplicateNotes: `Duplicate candidate. Canonical program ID: ${canonicalId}`,
 			},
 		})
-	} else if (action === "hide" && Number.isFinite(canonicalId) && canonicalId > 0 && canonicalId !== id) {
+	} else if (action === "hide" && await validCanonicalProgramId(id, canonicalId)) {
 		await prisma.degreeProgram.update({
 			where: { id },
 			data: {
@@ -56,6 +58,17 @@ async function updateProgramDuplicate(formData: FormData) {
 	}
 
 	revalidatePublicDuplicatePaths()
+}
+
+async function validCanonicalProgramId(id: number, canonicalId: number) {
+	if (!Number.isFinite(canonicalId) || canonicalId <= 0 || canonicalId === id) {
+		return false
+	}
+	const canonical = await prisma.degreeProgram.findUnique({
+		where: { id: canonicalId },
+		select: { id: true },
+	})
+	return Boolean(canonical)
 }
 
 async function updateUniversityDuplicate(formData: FormData) {
@@ -167,13 +180,27 @@ export default async function AdminDataQualityPage() {
 	const programIssues = buildProgramIssues(programs)
 	const duplicateUrls = duplicateGroups(
 		programs.filter((program) => useful(program.programUrl)),
-		(program) => normalizeUrl(program.programUrl || ""),
+		(program) => normalizeProgramUrlAcrossLanguageVariants(program.programUrl || ""),
 	).filter((group) => group.items.length > 1)
 	const duplicateProgramNames = duplicateGroups(
 		programs,
 		(program) => `${program.universityId}|${normalizeName(program.programName)}`,
 	).filter((group) => group.items.length > 1)
+	const similarProgramNames = duplicateGroups(
+		programs,
+		(program) => `${program.universityId}|${normalizeName(program.degreeLevel || "")}|${similarTitleKey(program.programName)}`,
+	).filter((group) => group.key.split("|").at(-1) && group.items.length > 1)
 	const duplicateLocalizedNames = duplicateGroups(
+		programs.flatMap((program) => localizedExactNameKeys(program).map((key) => ({ key, program }))),
+		(item) => item.key,
+	)
+		.filter((group) => group.items.length > 1)
+		.map((group) => ({
+			key: group.key,
+			items: uniquePrograms(group.items.map((item) => item.program)),
+		}))
+		.filter((group) => group.items.length > 1)
+	const similarLocalizedNames = duplicateGroups(
 		programs.flatMap((program) => localizedNameKeys(program).map((key) => ({ key, program }))),
 		(item) => item.key,
 	)
@@ -183,6 +210,18 @@ export default async function AdminDataQualityPage() {
 			items: uniquePrograms(group.items.map((item) => item.program)),
 		}))
 		.filter((group) => group.items.length > 1)
+	const duplicateAcademicFieldTitles = duplicateGroups(
+		programs,
+		(program) => [
+			program.universityId,
+			normalizeName(program.academicDegree || ""),
+			normalizeName(program.studyField || program.subjectArea || ""),
+			similarTitleKey(program.programName),
+		].join("|"),
+	).filter((group) => {
+		const [, academicDegree, studyField, titleKey] = group.key.split("|")
+		return Boolean(academicDegree && studyField && titleKey && group.items.length > 1)
+	})
 	const duplicateSourcePaths = duplicateGroups(
 		programs.filter((program) => useful(program.programUrl)),
 		(program) => `${program.universityId}|${normalizeSourcePath(program.programUrl || "")}`,
@@ -225,7 +264,7 @@ export default async function AdminDataQualityPage() {
 						</div>
 
 						<div className="col-12">
-							<DuplicateProgramTable title="Duplicate program URLs" groups={duplicateUrls} />
+							<DuplicateProgramTable title="Duplicate program URLs across language variants" groups={duplicateUrls} />
 						</div>
 
 						<div className="col-12">
@@ -233,7 +272,19 @@ export default async function AdminDataQualityPage() {
 						</div>
 
 						<div className="col-12">
-							<DuplicateProgramTable title="Same university + same degree level + similar localized title" groups={duplicateLocalizedNames} />
+							<DuplicateProgramTable title="Same university + same degree level + very similar program name" groups={similarProgramNames} />
+						</div>
+
+						<div className="col-12">
+							<DuplicateProgramTable title="Same university + same localized program name after normalization" groups={duplicateLocalizedNames} />
+						</div>
+
+						<div className="col-12">
+							<DuplicateProgramTable title="Same university + same degree level + similar localized title" groups={similarLocalizedNames} />
+						</div>
+
+						<div className="col-12">
+							<DuplicateProgramTable title="Same university + same academic degree + study field + similar title" groups={duplicateAcademicFieldTitles} />
 						</div>
 
 						<div className="col-12">
@@ -435,21 +486,29 @@ function DuplicateUniversityTable({ title, groups }: { title: string; groups: Ar
 
 function ProgramDuplicateActions({ program, candidates }: { program: ProgramWithQaData; candidates: ProgramWithQaData[] }) {
 	const canonicalOptions = candidates.filter((candidate) => candidate.id !== program.id)
-	if (!canonicalOptions.length) return null
 
 	return (
 		<form action={updateProgramDuplicate} className="d-flex flex-wrap gap-2 align-items-center mt-2">
 			<input type="hidden" name="id" value={program.id} />
-			<select name="canonicalId" defaultValue={program.canonicalProgramId || canonicalOptions[0]?.id} className="form-select form-select-sm" style={{ maxWidth: 320 }}>
+			<select name="canonicalId" defaultValue={program.canonicalProgramId || canonicalOptions[0]?.id || ""} className="form-select form-select-sm" style={{ maxWidth: 320 }}>
+				<option value="">Choose canonical program</option>
 				{canonicalOptions.map((candidate) => (
 					<option key={candidate.id} value={candidate.id}>
 						#{candidate.id} {candidate.programName.slice(0, 70)}
 					</option>
 				))}
 			</select>
+			<input
+				name="manualCanonicalId"
+				type="number"
+				min="1"
+				placeholder="or program ID"
+				className="form-control form-control-sm"
+				style={{ maxWidth: 160 }}
+			/>
 			<button name="action" value="mark" className="btn btn-outline-secondary btn-sm" type="submit">Mark duplicate</button>
 			<button name="action" value="hide" className="btn btn-outline-secondary btn-sm" type="submit">Hide duplicate</button>
-			<button name="action" value="clear" className="btn btn-outline-secondary btn-sm" type="submit">Clear</button>
+			<button name="action" value="clear" className="btn btn-outline-secondary btn-sm" type="submit">Restore as unique</button>
 		</form>
 	)
 }
@@ -582,6 +641,13 @@ function localizedNameKeys(program: ProgramWithQaData) {
 		.map((name) => `${program.universityId}|${normalizeName(program.degreeLevel || "")}|${name}`)))
 }
 
+function localizedExactNameKeys(program: ProgramWithQaData) {
+	return Array.from(new Set(program.translations
+		.map((translation) => `${translation.locale}|${normalizeProgramTitleForDuplicate(translation.localizedProgramName)}`)
+		.filter((key) => !key.endsWith("|"))
+		.map((key) => `${program.universityId}|${key}`)))
+}
+
 function uniquePrograms(programs: ProgramWithQaData[]) {
 	const byId = new Map<number, ProgramWithQaData>()
 	programs.forEach((program) => byId.set(program.id, program))
@@ -609,18 +675,36 @@ function normalizeUrl(value: string) {
 		.replace(/\/+$/, "")
 }
 
+function normalizeProgramUrlAcrossLanguageVariants(value: string) {
+	try {
+		const parsed = new URL(value)
+		const host = parsed.hostname.toLowerCase().replace(/^www\./, "")
+		const path = normalizeLanguageVariantPath(parsed.pathname)
+		return `${host}${path}`
+	} catch {
+		return normalizeLanguageVariantPath(normalizeUrl(value))
+	}
+}
+
 function normalizeSourcePath(value: string) {
 	try {
 		const parsed = new URL(value)
-		return parsed.pathname
-			.toLowerCase()
-			.replace(/\/(en|de|es|pt|pt-br|fr|it)(?=\/|$)/g, "")
-			.replace(/\/(english|deutsch|spanish|portuguese)(?=\/|$)/g, "")
-			.replace(/\/index\.(html?|php)$/g, "")
-			.replace(/\/+$/g, "")
+		return normalizeLanguageVariantPath(parsed.pathname)
 	} catch {
-		return normalizeUrl(value)
+		return normalizeLanguageVariantPath(normalizeUrl(value))
 	}
+}
+
+function normalizeLanguageVariantPath(value: string) {
+	return `/${value}`
+		.toLowerCase()
+		.replace(/\/+/g, "/")
+		.replace(/\/(en|de|es|pt|pt-br|fr|it)(?=\/|$)/g, "")
+		.replace(/\/(english|deutsch|german|spanish|espanol|portuguese|portugues)(?=\/|$)/g, "")
+		.replace(/\/index\.(html?|php)$/g, "")
+		.replace(/[?#].*$/g, "")
+		.replace(/\/+$/g, "")
+		.replace(/^\/?/, "/")
 }
 
 function normalizeProgramTitleForDuplicate(value: string | null | undefined) {
@@ -630,6 +714,34 @@ function normalizeProgramTitleForDuplicate(value: string | null | undefined) {
 		.replace(/\s+/g, " ")
 		.trim()
 }
+
+function similarTitleKey(value: string | null | undefined) {
+	const normalized = normalizeProgramTitleForDuplicate(value)
+	const tokens = normalized
+		.split(/\s+/)
+		.filter((token) => token.length > 2)
+		.filter((token) => !titleStopWords.has(token))
+	if (tokens.length < 2) {
+		return ""
+	}
+	return Array.from(new Set(tokens)).sort().slice(0, 8).join(" ")
+}
+
+const titleStopWords = new Set([
+	"and",
+	"und",
+	"der",
+	"die",
+	"das",
+	"for",
+	"with",
+	"auf",
+	"zum",
+	"zur",
+	"fur",
+	"from",
+	"the",
+])
 
 function normalizeName(value: string) {
 	return value

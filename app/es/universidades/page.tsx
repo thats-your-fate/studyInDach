@@ -45,7 +45,7 @@ export default async function UniversitiesEs() {
 								<div className="program-info-card h-100">
 									<i className="ri-bank-line" />
 									<div>
-										<span>{[university.location, optionLabel(university.state || "", "es")].filter(Boolean).join(", ") || "DACH"}</span>
+										<span>{[optionLabel(university.location || "", "es"), optionLabel(university.state || "", "es")].filter(Boolean).join(", ") || "DACH"}</span>
 										<strong>{university.name}</strong>
 										<p className="mb-0 mt-2">{university._count.programs} programas en la base de datos</p>
 										<Link href={`/es/universidades/${university.id}`} className="d-inline-block mt-3">Ver perfil de la universidad</Link>
