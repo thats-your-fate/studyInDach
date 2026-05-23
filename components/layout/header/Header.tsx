@@ -22,6 +22,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 	const fallbackLanguageLinks = useMemo(() => buildLanguageLinks(pathname || '/', searchParams.toString()), [pathname, searchParams])
 	const [languageLinks, setLanguageLinks] = useState(fallbackLanguageLinks)
 	const contactHeader = pathname === '/contact' || pathname === '/pt-br/contato' || pathname === '/es/contacto'
+	const solidHeader = contactHeader || pathname?.startsWith('/admin')
 
 	useEffect(() => {
 		setLanguageLinks(readDocumentLanguageLinks(fallbackLanguageLinks, locale))
@@ -40,7 +41,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 								</a>
 							</div>
 							<div className="social-icons d-none d-md-flex">
-								{['bi-facebook', 'bi-twitter-x', 'bi-linkedin', 'bi-behance'].map((icon, index) => (
+								{['bi-facebook', 'bi-twitter-x', 'bi-linkedin'].map((icon, index) => (
 									<Link key={icon} href="#" className={`border border-top-0 text-white border-bottom-0 border-opacity-10 border-white icon-shape icon-md ${index === 0 ? 'border-end-0' : ''}`}>
 										<span className="text-white">
 											<i className={`bi ${icon}`} />
@@ -50,7 +51,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 							</div>
 						</div>
 					</div>
-					<nav className={`navbar navbar-expand-lg navbar-transparent border-bottom border-top border-white border-opacity-10 p-0 shadow-none ${contactHeader ? 'contact-navbar-solid' : ''} ${scroll ? 'navbar-stick top-0 position-fixed' : ''}`}>
+					<nav className={`navbar navbar-expand-lg navbar-transparent border-bottom border-top border-white border-opacity-10 p-0 shadow-none ${solidHeader ? 'contact-navbar-solid' : ''} ${scroll ? 'navbar-stick top-0 position-fixed' : ''}`}>
 						<div className="container">
 							<Link className="navbar-brand py-5" href={locale === 'pt-br' ? '/pt-br' : locale === 'es' ? '/es' : '/'}>
 								<SiteLogo />
@@ -67,7 +68,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 							<div className="d-flex align-items-center gap-4 align-self-stretch">
 								<LanguageSwitcher currentLocale={locale} links={languageLinks} />
 								<form action={coursesPath} className="input-group position-relative d-none d-md-flex w-auto">
-									<input type="text" className="form-control rounded-start-4 text-white bg-white bg-opacity-25 border-0" name="q" placeholder={locale === 'pt-br' ? 'Buscar programas...' : locale === 'es' ? 'Buscar programas...' : 'Search programs...'} />
+									<input type="text" className="form-control header-search-input rounded-start-4 text-white bg-white bg-opacity-25 border-0" name="q" placeholder={locale === 'pt-br' ? 'Buscar programas...' : locale === 'es' ? 'Buscar programas...' : 'Search programs...'} />
 									<div className="border-0 rounded-end-4 bg-white bg-opacity-25 ms-0">
 										<button className="btn btn-yellow px-4 bg-transparent h-100 rounded-4 aos-init aos-animate" type="submit" id="button-search" aria-label="search">
 											<i className="ri-search-line text-green-3" />
@@ -102,7 +103,7 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 							</div>
 						</div>
 						<div className="offCanvas__social-icon mt-30">
-							{['bi-facebook', 'bi-twitter-x', 'bi-linkedin', 'bi-behance'].map((icon) => (
+							{['bi-facebook', 'bi-twitter-x', 'bi-linkedin'].map((icon) => (
 								<Link key={icon} href="#"><i className={`bi ${icon}`} /></Link>
 							))}
 						</div>

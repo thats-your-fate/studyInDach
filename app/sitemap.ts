@@ -1,17 +1,19 @@
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
+import { publishedBlogWhere } from "@/lib/blog-posts"
 import { getLocalizedProgramUrl, getLocalizedUniversityUrl } from "@/lib/localized-urls"
 import { getProgramUrl, getUniversityUrl, publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
 import type { MetadataRoute } from "next"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-	const [programs, universities] = await Promise.all([
+	const [programs, universities, blogPosts] = await Promise.all([
 		prisma.degreeProgram.findMany({
 			where: publicProgramWhere,
 			include: { university: true, translations: true },
 			orderBy: { id: "asc" },
 		}),
 		prisma.university.findMany({ where: publicUniversityWhere, orderBy: { name: "asc" } }),
+		prisma.blogPost.findMany({ where: publishedBlogWhere, orderBy: { publishedAt: "desc" } }),
 	])
 	const now = new Date()
 	const main = [
@@ -19,6 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/courses",
 		"/universities",
 		"/study-guide",
+		"/blog",
 		"/about",
 		"/impressum",
 		"/privacy",
@@ -83,6 +86,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/es/programas?languageOfInstruction=English",
 		"/es/programas?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only",
 	].map((path) => ({ url: absoluteUrl(path), lastModified: now }))
+	const blogUrls = blogPosts.map((post) => ({
+		url: absoluteUrl(`/blog/${post.slug}`),
+		lastModified: post.updatedAt,
+	}))
 	const universityAlternateGroups = await Promise.all(universities.map(async (university) => {
 		const en = absoluteUrl(await getLocalizedUniversityUrl(university.id, "en") || getUniversityUrl(university, "en"))
 		const pt = absoluteUrl(await getLocalizedUniversityUrl(university.id, "pt-br") || getUniversityUrl(university, "pt-br"))
@@ -135,5 +142,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 				alternates: { languages: programAlternateGroups[index] },
 			}
 		})
-	return [...main, ...filters, ...universityUrls, ...translatedUniversityUrls, ...spanishUniversityUrls, ...programUrls, ...translatedProgramUrls, ...spanishProgramUrls]
+	return [...main, ...filters, ...blogUrls, ...universityUrls, ...translatedUniversityUrls, ...spanishUniversityUrls, ...programUrls, ...translatedProgramUrls, ...spanishProgramUrls]
 }

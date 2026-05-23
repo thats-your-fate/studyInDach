@@ -105,6 +105,7 @@ export default async function AdminPage({
 							<Link href="/admin/data-quality" className="btn btn-outline-secondary">Data quality</Link>
 							<Link href="/admin/program-review" className="btn btn-outline-secondary">Program review</Link>
 							<Link href="/admin/inquiries" className="btn btn-outline-secondary">Inquiries</Link>
+							<Link href="/admin/blog" className="btn btn-outline-secondary">Blog posts</Link>
 							<Link href="/courses" className="btn btn-primary">View programs</Link>
 						</div>
 					</div>

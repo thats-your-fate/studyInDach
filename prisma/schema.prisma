@@ -144,3 +144,25 @@ model Inquiry {
   @@index([landingPath])
   @@index([createdAt])
 }
+
+model BlogPost {
+  id             Int       @id @default(autoincrement())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  publishedAt    DateTime?
+  title          String
+  slug           String    @unique
+  excerpt        String?
+  content        String
+  coverImage     String?
+  status         String    @default("draft")
+  authorName     String?
+  seoTitle       String?
+  seoDescription String?
+  locale         String    @default("en")
+
+  @@index([slug])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([locale])
+}

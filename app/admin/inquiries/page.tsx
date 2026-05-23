@@ -151,6 +151,7 @@ function AdminHeader({ title }: { title: string }) {
 				<Link href="/admin" className="btn btn-outline-secondary">Program admin</Link>
 				<Link href="/admin/data-quality" className="btn btn-outline-secondary">Data quality</Link>
 				<Link href="/admin/program-review" className="btn btn-outline-secondary">Program review</Link>
+				<Link href="/admin/blog" className="btn btn-outline-secondary">Blog posts</Link>
 				<Link href="/courses" className="btn btn-primary">View programs</Link>
 			</div>
 		</div>

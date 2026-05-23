@@ -69,7 +69,7 @@ export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 						</div>
 						<div className="social-links">
 							<div className="social-icons gap-4 mt-4">
-								{['bi-facebook', 'bi-twitter-x', 'bi-linkedin', 'bi-behance'].map((icon) => (
+								{['bi-facebook', 'bi-twitter-x', 'bi-linkedin'].map((icon) => (
 									<Link key={icon} href="#" className="border border-opacity-10 border-white icon-shape icon-md">
 										<i className={`bi ${icon}`} />
 									</Link>
