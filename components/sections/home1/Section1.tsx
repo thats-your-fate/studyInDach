@@ -1,6 +1,71 @@
+import type { PublicLocale } from '@/lib/i18n'
 import Link from 'next/link'
 
-export default function Section1() {
+const heroCopy = {
+	en: {
+		eyebrow: 'degree discovery platform',
+		titleStart: 'Find your degree',
+		titleHighlight: 'DACH',
+		searchAria: 'Search degree programs',
+		searchPlaceholder: 'Search AI masters in Germany taught in English',
+		country: 'Country',
+		germany: 'Germany',
+		austria: 'Austria',
+		switzerland: 'Switzerland',
+		english: 'English-taught',
+		masters: 'Master programs',
+		searchNow: 'search now',
+		courses: '/courses',
+		germanyHref: '/courses?country=Germany',
+		austriaHref: '/courses?country=Austria',
+		switzerlandHref: '/courses?country=Switzerland',
+		englishHref: '/courses?languageOfInstruction=English',
+		mastersHref: '/courses?degreeLevel=Master',
+	},
+	'pt-br': {
+		eyebrow: 'plataforma de descoberta de cursos',
+		titleStart: 'Encontre seu curso',
+		titleHighlight: 'DACH',
+		searchAria: 'Buscar programas de estudo',
+		searchPlaceholder: 'Busque mestrados de IA na Alemanha em inglês',
+		country: 'País',
+		germany: 'Alemanha',
+		austria: 'Áustria',
+		switzerland: 'Suíça',
+		english: 'Em inglês',
+		masters: 'Mestrados',
+		searchNow: 'buscar',
+		courses: '/pt-br/cursos',
+		germanyHref: '/pt-br/cursos?country=Germany',
+		austriaHref: '/pt-br/cursos?country=Austria',
+		switzerlandHref: '/pt-br/cursos?country=Switzerland',
+		englishHref: '/pt-br/cursos?languageOfInstruction=English',
+		mastersHref: '/pt-br/cursos?degreeLevel=Master',
+	},
+	es: {
+		eyebrow: 'plataforma para descubrir programas',
+		titleStart: 'Encuentra tu programa',
+		titleHighlight: 'DACH',
+		searchAria: 'Buscar programas de estudio',
+		searchPlaceholder: 'Busca másteres de IA en Alemania en inglés',
+		country: 'País',
+		germany: 'Alemania',
+		austria: 'Austria',
+		switzerland: 'Suiza',
+		english: 'En inglés',
+		masters: 'Maestrías',
+		searchNow: 'buscar',
+		courses: '/es/programas',
+		germanyHref: '/es/programas?country=Germany',
+		austriaHref: '/es/programas?country=Austria',
+		switzerlandHref: '/es/programas?country=Switzerland',
+		englishHref: '/es/programas?languageOfInstruction=English',
+		mastersHref: '/es/programas?degreeLevel=Master',
+	},
+} satisfies Record<PublicLocale, Record<string, string>>
+
+export default function Section1({ locale = 'en' }: { locale?: PublicLocale }) {
+	const copy = heroCopy[locale]
 	return (
 		<>
 
@@ -21,12 +86,12 @@ export default function Section1() {
 						<div className="col-lg-6 col-md-12 px-md-0 ">
 							<span className="content-top btn-text fw-bold text-white">
 								<i className="ri-git-repository-line text-green-3" />
-								&nbsp; degree discovery platform
+								&nbsp; {copy.eyebrow}
 							</span>
 							<h1 className="text-white ds-1 lh-sm mb-5 text-anime-style-3">
-								Find your degree <br /> in 
+								{copy.titleStart} <br /> in 
 								<span className="text-green-3 position-relative   ps-3">
-									 DACH
+									 {copy.titleHighlight}
 									<span className="position-absolute top-0 start-0 pt-5 z-0 d-none d-md-block">
 										<svg xmlns="http://www.w3.org/2000/svg" width={370} height={22} viewBox="0 0 370 22" fill="none">
 											<path d="M1.5 20.0001C97 12.8334 304.1 -0.599919 368.5 3.00008" stroke="#D5D52B" strokeWidth={3} strokeLinecap="round" />
@@ -34,24 +99,23 @@ export default function Section1() {
 									</span>
 								</span>
 							</h1>
-							<form action="#" className="d-none d-md-block">
+							<form action={copy.courses} className="d-none d-md-block">
 								<div className="input-group">
-									<input type="text" className="form-control border-0 search rounded-start-4" aria-label="Search degree programs" placeholder="Search AI masters in Germany taught in English" />
+									<input type="text" name="q" className="form-control border-0 search rounded-start-4" aria-label={copy.searchAria} placeholder={copy.searchPlaceholder} />
 									<button type="submit" aria-label="Industry" className="btn btn-yellow border-0 bg-white dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-										<span className="text-dark">Country</span>
+										<span className="text-dark">{copy.country}</span>
 									</button>
 									<ul className="dropdown-menu dropdown-menu-end">
-										<li><Link className="dropdown-item text-capitalize" href="/courses">Germany</Link></li>
-										<li><Link className="dropdown-item text-capitalize" href="/courses">Austria</Link></li>
-										<li><Link className="dropdown-item text-capitalize" href="/courses">Switzerland</Link></li>
+										<li><Link className="dropdown-item text-capitalize" href={copy.germanyHref}>{copy.germany}</Link></li>
+										<li><Link className="dropdown-item text-capitalize" href={copy.austriaHref}>{copy.austria}</Link></li>
+										<li><Link className="dropdown-item text-capitalize" href={copy.switzerlandHref}>{copy.switzerland}</Link></li>
 										<li>
 											<hr className="dropdown-divider" />
 										</li>
-										<li><Link className="dropdown-item text-capitalize" href="/courses">English-taught</Link></li>
-										<li><Link className="dropdown-item text-capitalize" href="/courses">Master programs</Link></li>
+										<li><Link className="dropdown-item text-capitalize" href={copy.englishHref}>{copy.english}</Link></li>
+										<li><Link className="dropdown-item text-capitalize" href={copy.mastersHref}>{copy.masters}</Link></li>
 									</ul>
-									<button type="submit" aria-label="Search now" className="btn btn-white bg-green-3 rounded-end-4"><span className="text-dark">search
-										now</span></button>
+									<button type="submit" aria-label={copy.searchNow} className="btn btn-white bg-green-3 rounded-end-4"><span className="text-dark">{copy.searchNow}</span></button>
 								</div>
 							</form>
 						</div>

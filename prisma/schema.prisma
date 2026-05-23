@@ -154,7 +154,7 @@ model BlogPost {
   publishedAt     DateTime?
   status          String           @default("draft")
   type            String           @default("guide")
-  authorName      String?          @default("Study in DACH")
+  authorName      String?          @default("Yaroslav Vynnychuk")
   coverImageUrl   String?
   coverImageAlt   String?
   featured        Boolean          @default(false)

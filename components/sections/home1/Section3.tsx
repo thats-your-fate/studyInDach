@@ -1,6 +1,47 @@
+import type { PublicLocale } from '@/lib/i18n'
 import Link from 'next/link'
 
-export default function Section3() {
+const sectionCopy = {
+	en: {
+		eyebrow: 'study discovery',
+		headingStart: 'Search programs with normalized',
+		headingHighlight: 'metadata.',
+		students: 'International students',
+		items: [
+			['Filter by what matters', 'Narrow by country, degree level, study field, language, tuition, and study mode.'],
+			['Multilingual program pages', 'Explore localized summaries and search metadata for English, Spanish, and Portuguese users.'],
+			['Public-source data', 'Program details are collected from university pages and linked back to official sources.'],
+			['Fast comparison', 'Compare duration, language, admission restriction, tuition type, and location quickly.'],
+		],
+	},
+	'pt-br': {
+		eyebrow: 'descoberta de estudos',
+		headingStart: 'Busque programas com metadados',
+		headingHighlight: 'normalizados.',
+		students: 'Estudantes internacionais',
+		items: [
+			['Filtre pelo que importa', 'Refine por país, nível, área de estudo, idioma, mensalidade e formato.'],
+			['Páginas multilíngues', 'Veja resumos localizados e dados de busca para usuários em português, espanhol e inglês.'],
+			['Dados de fontes públicas', 'Os detalhes vêm de páginas universitárias e apontam de volta para as fontes oficiais.'],
+			['Comparação rápida', 'Compare duração, idioma, restrição de admissão, tipo de custo e localização rapidamente.'],
+		],
+	},
+	es: {
+		eyebrow: 'descubrimiento de estudios',
+		headingStart: 'Busca programas con metadatos',
+		headingHighlight: 'normalizados.',
+		students: 'Estudiantes internacionales',
+		items: [
+			['Filtra lo importante', 'Refina por país, nivel, área de estudio, idioma, matrícula y modalidad.'],
+			['Páginas multilingües', 'Explora resúmenes localizados y datos de búsqueda para usuarios en español, portugués e inglés.'],
+			['Datos de fuentes públicas', 'Los detalles se recopilan desde páginas universitarias y enlazan a fuentes oficiales.'],
+			['Comparación rápida', 'Compara duración, idioma, restricción de admisión, tipo de coste y ubicación con rapidez.'],
+		],
+	},
+} satisfies Record<PublicLocale, { eyebrow: string; headingStart: string; headingHighlight: string; students: string; items: Array<[string, string]> }>
+
+export default function Section3({ locale = 'en' }: { locale?: PublicLocale }) {
+	const copy = sectionCopy[locale]
 	return (
 		<>
 
@@ -10,12 +51,12 @@ export default function Section3() {
 						<div className="col-lg-4">
 							<span className="btn-text fw-bold text-primary">
 								<i className="ri-book-marked-fill opacity-25" />
-								&nbsp; study discovery
+								&nbsp; {copy.eyebrow}
 							</span>
 							<h2 className="pb-8 border-bottom text-anime-style-3">
-								Search programs with normalized
+								{copy.headingStart}{" "}
 								<span className="position-relative">
-									metadata.
+									{copy.headingHighlight}
 									<span className="position-absolute top-0 start-0 pt-5 z-0 d-none d-md-block">
 										<svg className="stroke-green-3" xmlns="http://www.w3.org/2000/svg" width={186} height={22} viewBox="0 0 186 22" fill="none">
 											<path d="M2 20C49.3597 12.6711 152.063 -1.06621 184 2.61526" stroke="#D5D52B" strokeWidth={3} strokeLinecap="round" />
@@ -36,7 +77,7 @@ export default function Section3() {
 										<i className="bi bi-star-fill text-yellow fs-7" />
 										<i className="bi bi-star-fill text-yellow fs-7" />
 									</div>
-									<h6 className="fs-7 text-uppercase">International students</h6>
+									<h6 className="fs-7 text-uppercase">{copy.students}</h6>
 								</div>
 							</div>
 						</div>
@@ -68,9 +109,9 @@ export default function Section3() {
 									</svg>
 								</Link>
 								<div className="content">
-									<h6>Filter by what matters</h6>
+									<h6>{copy.items[0][0]}</h6>
 									<p className="mb-0">
-										Narrow by country, degree level, study field, language, tuition, and study mode.
+										{copy.items[0][1]}
 									</p>
 								</div>
 							</div>
@@ -86,9 +127,9 @@ export default function Section3() {
 									</svg>
 								</Link>
 								<div className="content">
-									<h6>Multilingual program pages</h6>
+									<h6>{copy.items[1][0]}</h6>
 									<p className="mb-0">
-										Explore localized summaries and search metadata for English, Spanish, and Portuguese users.
+										{copy.items[1][1]}
 									</p>
 								</div>
 							</div>
@@ -102,9 +143,9 @@ export default function Section3() {
 									</svg>
 								</Link>
 								<div className="content">
-									<h6>Public-source data</h6>
+									<h6>{copy.items[2][0]}</h6>
 									<p className="mb-0">
-										Program details are collected from university pages and linked back to official sources.
+										{copy.items[2][1]}
 									</p>
 								</div>
 							</div>
@@ -119,9 +160,9 @@ export default function Section3() {
 									</svg>
 								</Link>
 								<div className="content">
-									<h6>Fast comparison</h6>
+									<h6>{copy.items[3][0]}</h6>
 									<p className="mb-0">
-										Compare duration, language, admission restriction, tuition type, and location quickly.
+										{copy.items[3][1]}
 									</p>
 								</div>
 							</div>

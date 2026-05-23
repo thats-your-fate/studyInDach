@@ -64,7 +64,7 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 		dateModified: translation.updatedAt.toISOString(),
 		author: {
 			"@type": "Organization",
-			name: post.authorName || "Study in DACH",
+			name: post.authorName || "Yaroslav Vynnychuk",
 		},
 		publisher: organizationJsonLd(),
 		mainEntityOfPage: {
@@ -176,7 +176,7 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 
 							<div className="border-top mt-6 pt-5 d-flex flex-wrap align-items-center justify-content-between gap-3">
 								<p className="mb-0 fs-7 text-uppercase">
-									{post.authorName || "Study in DACH"}
+									{post.authorName || "Yaroslav Vynnychuk"}
 								</p>
 								<Link href={blogIndexPath(locale)} className="btn btn-outline-secondary">{backLabel}</Link>
 							</div>
