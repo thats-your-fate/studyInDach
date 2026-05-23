@@ -1,5 +1,5 @@
 import Layout from "@/components/layout/Layout"
-import { AdminHeader, BlogCreateForm, Panel, TaxonomyForms } from "@/app/admin/blog/admin-blog-ui"
+import { AdminHeader, BlogCreateForm, BlogJsonImportForm, Panel, TaxonomyForms } from "@/app/admin/blog/admin-blog-ui"
 import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
@@ -16,6 +16,11 @@ export default async function NewBlogPostPage() {
 				<div className="container">
 					<AdminHeader title="New blog post" />
 					<div className="row g-4">
+						<div className="col-12">
+							<Panel eyebrow="Import" title="One-click JSON import">
+								<BlogJsonImportForm />
+							</Panel>
+						</div>
 						<div className="col-12">
 							<Panel eyebrow="Create" title="New blog post">
 								<BlogCreateForm categories={categories} tags={tags} />

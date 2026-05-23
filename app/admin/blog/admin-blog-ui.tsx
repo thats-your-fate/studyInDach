@@ -87,6 +87,78 @@ async function createBlogPost(formData: FormData) {
 	redirect(`/admin/blog/${post.id}`)
 }
 
+async function importSingleLocaleBlogPost(formData: FormData) {
+	"use server"
+
+	const importJson = field(formData, "importJson")
+	if (!importJson) return
+
+	const payload = parseImportPayload(importJson)
+	if (!payload) return
+
+	const locale = blogLocale(payload.locale)
+	const title = String(payload.title || "").trim()
+	const contentMd = String(payload.contentMd || "").trim()
+	if (!title || !contentMd) return
+
+	const status = normalizeStatus(String(payload.status || "draft"))
+	const slug = await uniqueBlogSlug(String(payload.slug || title), locale)
+	const translationKey = await uniqueTranslationKey(slugKey(String(payload.translationKey || slug || title)) || randomUUID())
+	const categoryId = await upsertImportedCategory(payload.category, locale)
+	const tagIds = await upsertImportedTags(payload.tags, locale)
+	const coverImageUrl = nullableImportString(payload.coverImageUrl) || randomStudyCoverImage()
+	const post = await prisma.blogPost.create({
+		data: {
+			status,
+			type: normalizeType(String(payload.type || "guide")),
+			publishedAt: status === "published" ? new Date() : null,
+			authorName: nullableImportString(payload.authorName) || DEFAULT_BLOG_AUTHOR,
+			coverImageUrl,
+			coverImageAlt: nullableImportString(payload.coverImageAlt),
+			featured: Boolean(payload.featured),
+			noindex: Boolean(payload.noindex),
+			translationKey,
+			categoryId,
+			translations: {
+				create: {
+					locale,
+					slug,
+					title,
+					excerpt: nullableImportString(payload.excerpt),
+					contentMd,
+					contentHtml: markdownToHtml(contentMd),
+					seoTitle: nullableImportString(payload.seoTitle),
+					seoDescription: nullableImportString(payload.seoDescription),
+					seoKeywords: nullableImportString(payload.seoKeywords),
+					ogTitle: nullableImportString(payload.ogTitle),
+					ogDescription: nullableImportString(payload.ogDescription),
+					ogImageUrl: nullableImportString(payload.ogImageUrl) || coverImageUrl,
+					readingMinutes: readingMinutes(contentMd),
+					tableOfContents: stringifyOptionalJson(payload.tableOfContents),
+				},
+			},
+			tags: {
+				create: tagIds.map((tagId) => ({ tagId })),
+			},
+			filterBlocks: {
+				create: importedFilterBlocks(payload.filterBlocks, locale),
+			},
+			faqs: {
+				create: importedFaqs(payload.faqs, locale),
+			},
+			programLinks: {
+				create: importedProgramLinks(payload.programLinks),
+			},
+			universityLinks: {
+				create: importedUniversityLinks(payload.universityLinks),
+			},
+		},
+	})
+
+	revalidateBlog(slug)
+	redirect(`/admin/blog/${post.id}`)
+}
+
 async function updateBlogPostSettings(formData: FormData) {
 	"use server"
 
@@ -323,6 +395,123 @@ function normalizeType(value: string) {
 	return postTypes.includes(value) ? value as any : "guide"
 }
 
+function parseImportPayload(value: string): any | null {
+	try {
+		const parsed = JSON.parse(value)
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null
+	} catch {
+		return null
+	}
+}
+
+function nullableImportString(value: unknown) {
+	return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
+function stringifyOptionalJson(value: unknown) {
+	if (!value) return null
+	return typeof value === "string" ? value : JSON.stringify(value)
+}
+
+async function upsertImportedCategory(category: any, locale: PublicLocale) {
+	if (!category || typeof category !== "object") return null
+	const key = slugKey(String(category.key || category.categoryKey || category.name || ""))
+	const name = String(category.name || "").trim()
+	if (!key || !name) return null
+	const categoryRecord = await prisma.blogCategory.upsert({
+		where: { key },
+		create: { key, sortOrder: Number(category.sortOrder) || 0 },
+		update: {},
+	})
+	await prisma.blogCategoryTranslation.upsert({
+		where: { categoryId_locale: { categoryId: categoryRecord.id, locale } },
+		create: {
+			categoryId: categoryRecord.id,
+			locale,
+			name,
+			slug: slugKey(String(category.slug || name)),
+			description: nullableImportString(category.description),
+		},
+		update: {
+			name,
+			description: nullableImportString(category.description),
+		},
+	})
+	return categoryRecord.id
+}
+
+async function upsertImportedTags(tags: any, locale: PublicLocale) {
+	if (!Array.isArray(tags)) return []
+	const ids: number[] = []
+	for (const tag of tags) {
+		if (!tag || typeof tag !== "object") continue
+		const key = slugKey(String(tag.key || tag.name || ""))
+		const name = String(tag.name || "").trim()
+		if (!key || !name) continue
+		const tagRecord = await prisma.blogTag.upsert({ where: { key }, create: { key }, update: {} })
+		await prisma.blogTagTranslation.upsert({
+			where: { tagId_locale: { tagId: tagRecord.id, locale } },
+			create: { tagId: tagRecord.id, locale, name, slug: slugKey(String(tag.slug || name)) },
+			update: { name },
+		})
+		ids.push(tagRecord.id)
+	}
+	return ids
+}
+
+function importedFilterBlocks(blocks: any, locale: PublicLocale) {
+	if (!Array.isArray(blocks)) return []
+	return blocks
+		.filter((block) => block && typeof block === "object" && block.title && block.filterJson)
+		.map((block, index) => ({
+			key: nullableImportString(block.key),
+			locale: nullableImportString(block.locale) || locale,
+			title: String(block.title).trim(),
+			description: nullableImportString(block.description),
+			filterJson: typeof block.filterJson === "string" ? block.filterJson : JSON.stringify(block.filterJson),
+			limit: Number(block.limit) || 8,
+			sortOrder: Number(block.sortOrder) || index + 1,
+			ctaLabel: nullableImportString(block.ctaLabel),
+			ctaHref: nullableImportString(block.ctaHref),
+			displayMode: nullableImportString(block.displayMode) || "cards",
+			enabled: block.enabled !== false,
+		}))
+}
+
+function importedFaqs(faqs: any, locale: PublicLocale) {
+	if (!Array.isArray(faqs)) return []
+	return faqs
+		.filter((faq) => faq && typeof faq === "object" && faq.question && faq.answer)
+		.map((faq, index) => ({
+			locale: nullableImportString(faq.locale) || locale,
+			question: String(faq.question).trim(),
+			answer: String(faq.answer).trim(),
+			sortOrder: Number(faq.sortOrder) || index + 1,
+		}))
+}
+
+function importedProgramLinks(links: any) {
+	if (!Array.isArray(links)) return []
+	return links
+		.map((link, index) => ({
+			programId: Number(typeof link === "object" ? link.programId : link),
+			label: typeof link === "object" ? nullableImportString(link.label) : null,
+			sortOrder: Number(typeof link === "object" ? link.sortOrder : 0) || index + 1,
+		}))
+		.filter((link) => Number.isFinite(link.programId) && link.programId > 0)
+}
+
+function importedUniversityLinks(links: any) {
+	if (!Array.isArray(links)) return []
+	return links
+		.map((link, index) => ({
+			universityId: String(typeof link === "object" ? link.universityId : link || "").trim(),
+			label: typeof link === "object" ? nullableImportString(link.label) : null,
+			sortOrder: Number(typeof link === "object" ? link.sortOrder : 0) || index + 1,
+		}))
+		.filter((link) => link.universityId)
+}
+
 function slugKey(value: string) {
 	return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
 }
@@ -505,6 +694,81 @@ export function BlogCreateForm({ categories, tags }: { categories: any[]; tags: 
 		</form>
 	)
 }
+
+export function BlogJsonImportForm() {
+	return (
+		<form action={importSingleLocaleBlogPost} className="row g-3">
+			<div className="col-12">
+				<p className="mb-3">
+					Paste one JSON object for one language variant. It creates the post, translation, category, tags, FAQs, related links, and SSR filter blocks in one click.
+				</p>
+			</div>
+			<TextArea label="Single-language blog JSON" name="importJson" value={singleLocaleBlogImportExample} className="col-12" rows={28} required />
+			<div className="col-12"><button className="btn btn-primary">Import blog post</button></div>
+		</form>
+	)
+}
+
+const singleLocaleBlogImportExample = `{
+  "translationKey": "find-english-taught-masters-germany",
+  "locale": "pt-br",
+  "slug": "como-encontrar-mestrado-na-alemanha-em-ingles",
+  "title": "Como encontrar mestrado na Alemanha em inglês",
+  "authorName": "Yaroslav Vynnychuk",
+  "status": "draft",
+  "type": "guide",
+  "featured": true,
+  "noindex": false,
+  "coverImageUrl": "",
+  "coverImageAlt": "Estudante pesquisando programas de mestrado em inglês na Alemanha",
+  "seoTitle": "Como encontrar mestrado na Alemanha em inglês",
+  "seoDescription": "Aprenda a filtrar mestrados em inglês na Alemanha por idioma, custo, requisitos, universidade e prazo para montar uma shortlist realista.",
+  "seoKeywords": "mestrado na Alemanha, mestrado em inglês, universidades alemãs",
+  "ogTitle": "Como encontrar mestrado na Alemanha em inglês",
+  "ogDescription": "Um guia prático para brasileiros que querem encontrar mestrados em inglês na Alemanha e comparar opções realistas.",
+  "ogImageUrl": "",
+  "excerpt": "Um guia prático para brasileiros que querem encontrar mestrados em inglês na Alemanha sem se perder em rankings, listas enormes e promessas vagas de estudo gratuito.",
+  "contentMd": "## 1. Comece definindo o tipo de mestrado que você procura\\n\\nEscreva o artigo em Markdown aqui.\\n\\n- Use listas\\n- Use links internos\\n- Use subtítulos",
+  "category": {
+    "key": "study-guides",
+    "name": "Guias de estudo",
+    "slug": "guias-de-estudo",
+    "description": "Guias práticos sobre cursos, universidades, candidatura, custos e planejamento para estudar na Alemanha, Áustria e Suíça."
+  },
+  "tags": [
+    { "key": "germany", "name": "Alemanha", "slug": "alemanha" },
+    { "key": "masters", "name": "Mestrado", "slug": "mestrado" },
+    { "key": "english-taught", "name": "Programas em inglês", "slug": "programas-em-ingles" }
+  ],
+  "filterBlocks": [
+    {
+      "key": "masters-english-germany",
+      "locale": "pt-br",
+      "sortOrder": 1,
+      "title": "Mestrados em inglês na Alemanha",
+      "description": "Veja programas de mestrado na Alemanha ministrados em inglês e compare opções por área, universidade, cidade e custo.",
+      "filterJson": {
+        "country": ["Germany"],
+        "degreeLevel": ["Master"],
+        "languageOfInstruction": ["English"]
+      },
+      "limit": 6,
+      "ctaLabel": "Ver todos os mestrados em inglês na Alemanha",
+      "ctaHref": "/pt-br/cursos?country=Germany&degreeLevel=Master&languageOfInstruction=English",
+      "displayMode": "cards",
+      "enabled": true
+    }
+  ],
+  "faqs": [
+    {
+      "question": "É possível fazer mestrado na Alemanha em inglês?",
+      "answer": "Sim. Muitas universidades alemãs oferecem programas de mestrado totalmente ou parcialmente em inglês.",
+      "sortOrder": 1
+    }
+  ],
+  "programLinks": [],
+  "universityLinks": []
+}`
 
 function TranslationForm({ postId, locale, translation }: { postId: number; locale: PublicLocale; translation?: any }) {
 	return (
