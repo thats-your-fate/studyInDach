@@ -107,8 +107,90 @@ export function paragraphsFromContent(content: string) {
 }
 
 export function markdownToHtml(markdown: string) {
-	const blocks = markdown.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean)
-	return blocks.map(renderMarkdownBlock).join("\n")
+	const lines = markdown.replace(/\r\n/g, "\n").split("\n")
+	const html: string[] = []
+	let paragraph: string[] = []
+	let unorderedList: string[] = []
+	let orderedList: string[] = []
+	let quote: string[] = []
+
+	const flushParagraph = () => {
+		if (!paragraph.length) return
+		html.push(`<p>${renderInlineMarkdown(paragraph.join("\n")).replace(/\n/g, "<br />")}</p>`)
+		paragraph = []
+	}
+	const flushUnorderedList = () => {
+		if (!unorderedList.length) return
+		html.push(`<ul>${unorderedList.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join("")}</ul>`)
+		unorderedList = []
+	}
+	const flushOrderedList = () => {
+		if (!orderedList.length) return
+		html.push(`<ol>${orderedList.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join("")}</ol>`)
+		orderedList = []
+	}
+	const flushQuote = () => {
+		if (!quote.length) return
+		html.push(`<blockquote>${renderInlineMarkdown(quote.join("\n")).replace(/\n/g, "<br />")}</blockquote>`)
+		quote = []
+	}
+	const flushAll = () => {
+		flushParagraph()
+		flushUnorderedList()
+		flushOrderedList()
+		flushQuote()
+	}
+
+	for (const rawLine of lines) {
+		const line = rawLine.trimEnd()
+		if (!line.trim()) {
+			flushAll()
+			continue
+		}
+
+		const heading = line.match(/^\s{0,3}(#{1,6})\s+(.+)$/)
+		if (heading) {
+			flushAll()
+			const level = Math.min(6, heading[1].length)
+			html.push(`<h${level}>${renderInlineMarkdown(heading[2].trim())}</h${level}>`)
+			continue
+		}
+
+		const unordered = line.match(/^\s*[-*]\s+(.+)$/)
+		if (unordered) {
+			flushParagraph()
+			flushOrderedList()
+			flushQuote()
+			unorderedList.push(unordered[1].trim())
+			continue
+		}
+
+		const ordered = line.match(/^\s*\d+\.\s+(.+)$/)
+		if (ordered) {
+			flushParagraph()
+			flushUnorderedList()
+			flushQuote()
+			orderedList.push(ordered[1].trim())
+			continue
+		}
+
+		const quoted = line.match(/^\s*>\s?(.+)$/)
+		if (quoted) {
+			flushParagraph()
+			flushUnorderedList()
+			flushOrderedList()
+			quote.push(quoted[1].trim())
+			continue
+		}
+
+		flushUnorderedList()
+		flushOrderedList()
+		flushQuote()
+		paragraph.push(line.trim())
+	}
+
+	flushAll()
+	return html.join("\n")
 }
 
 export function readingMinutes(content: string) {
@@ -127,24 +209,6 @@ function escapeHtml(value: string) {
 		.replace(/>/g, "&gt;")
 		.replace(/"/g, "&quot;")
 		.replace(/'/g, "&#039;")
-}
-
-function renderMarkdownBlock(block: string) {
-	if (/^#{1,4}\s/.test(block)) {
-		const level = Math.min(4, block.match(/^#+/)?.[0].length || 2)
-		return `<h${level}>${renderInlineMarkdown(block.replace(/^#{1,4}\s+/, ""))}</h${level}>`
-	}
-	if (block.split("\n").every((line) => /^\s*[-*]\s+/.test(line))) {
-		return `<ul>${block.split("\n").map((line) => `<li>${renderInlineMarkdown(line.replace(/^\s*[-*]\s+/, ""))}</li>`).join("")}</ul>`
-	}
-	if (block.split("\n").every((line) => /^\s*\d+\.\s+/.test(line))) {
-		return `<ol>${block.split("\n").map((line) => `<li>${renderInlineMarkdown(line.replace(/^\s*\d+\.\s+/, ""))}</li>`).join("")}</ol>`
-	}
-	if (block.split("\n").every((line) => /^\s*>\s?/.test(line))) {
-		const quote = block.split("\n").map((line) => line.replace(/^\s*>\s?/, "")).join("\n")
-		return `<blockquote>${renderInlineMarkdown(quote).replace(/\n/g, "<br />")}</blockquote>`
-	}
-	return `<p>${renderInlineMarkdown(block).replace(/\n/g, "<br />")}</p>`
 }
 
 function renderInlineMarkdown(value: string) {
