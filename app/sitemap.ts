@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
-import { publishedBlogWhere } from "@/lib/blog-posts"
+import { blogPostPath, publishedBlogWhere } from "@/lib/blog-posts"
 import { getLocalizedProgramUrl, getLocalizedUniversityUrl } from "@/lib/localized-urls"
 import { getProgramUrl, getUniversityUrl, publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
 import type { MetadataRoute } from "next"
@@ -13,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			orderBy: { id: "asc" },
 		}),
 		prisma.university.findMany({ where: publicUniversityWhere, orderBy: { name: "asc" } }),
-		prisma.blogPost.findMany({ where: publishedBlogWhere, orderBy: { publishedAt: "desc" } }),
+		prisma.blogPost.findMany({ where: { ...publishedBlogWhere, noindex: false }, include: { translations: true }, orderBy: { publishedAt: "desc" } }),
 	])
 	const now = new Date()
 	const main = [
@@ -28,6 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/pt-br/cursos",
 		"/pt-br/universidades",
 		"/pt-br/guia-de-estudos",
+		"/pt-br/guias",
 		"/pt-br/sobre",
 		"/pt-br/privacidade",
 		"/pt-br/estudar-na-alemanha",
@@ -49,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/es/programas",
 		"/es/universidades",
 		"/es/guia-para-estudiar",
+		"/es/guias",
 		"/es/sobre",
 		"/es/privacidad",
 		"/es/estudiar-en-alemania",
@@ -86,10 +88,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/es/programas?languageOfInstruction=English",
 		"/es/programas?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only",
 	].map((path) => ({ url: absoluteUrl(path), lastModified: now }))
-	const blogUrls = blogPosts.map((post) => ({
-		url: absoluteUrl(`/blog/${post.slug}`),
-		lastModified: post.updatedAt,
-	}))
+	const blogUrls = blogPosts.flatMap((post) => post.translations.map((translation) => ({
+		url: absoluteUrl(blogPostPath(translation.slug, translation.locale === "pt-br" || translation.locale === "es" ? translation.locale : "en")),
+		lastModified: translation.updatedAt,
+	})))
 	const universityAlternateGroups = await Promise.all(universities.map(async (university) => {
 		const en = absoluteUrl(await getLocalizedUniversityUrl(university.id, "en") || getUniversityUrl(university, "en"))
 		const pt = absoluteUrl(await getLocalizedUniversityUrl(university.id, "pt-br") || getUniversityUrl(university, "pt-br"))

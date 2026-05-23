@@ -5,6 +5,7 @@ export const localizedStaticRoutes = {
 	courses: { en: "/courses", "pt-br": "/pt-br/cursos", es: "/es/programas" },
 	universities: { en: "/universities", "pt-br": "/pt-br/universidades", es: "/es/universidades" },
 	studyGuide: { en: "/study-guide", "pt-br": "/pt-br/guia-de-estudos", es: "/es/guia-para-estudiar" },
+	blog: { en: "/blog", "pt-br": "/pt-br/guias", es: "/es/guias" },
 	about: { en: "/about", "pt-br": "/pt-br/sobre", es: "/es/sobre" },
 	contact: { en: "/contact", "pt-br": "/pt-br/contato", es: "/es/contacto" },
 	privacy: { en: "/privacy", "pt-br": "/pt-br/privacidade", es: "/es/privacidad" },

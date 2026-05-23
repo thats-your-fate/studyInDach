@@ -181,6 +181,7 @@ function buildLanguageLinks(pathname: string, query: string) {
 function dynamicIndexRouteKey(pathname: string): LocalizedStaticRouteKey | null {
 	if (/^\/(pt-br\/cursos|es\/programas|courses)\//.test(pathname)) return 'courses'
 	if (/^\/(pt-br\/universidades|es\/universidades|universities)\//.test(pathname)) return 'universities'
+	if (/^\/(pt-br\/guias|es\/guias|blog)\//.test(pathname)) return 'blog'
 	return null
 }
 

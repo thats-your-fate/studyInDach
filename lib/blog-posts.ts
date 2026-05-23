@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import type { PublicLocale } from "@/lib/i18n"
 import fs from "fs"
 import path from "path"
 
@@ -6,8 +7,40 @@ const BLOG_IMAGE_DIR = path.join(process.cwd(), "public", "assets", "imgs", "stu
 const BLOG_IMAGE_PUBLIC_DIR = "/assets/imgs/study-dach-pics"
 
 export const publishedBlogWhere = {
-	status: "published",
+	status: "published" as const,
 	publishedAt: { not: null },
+}
+
+export function blogIndexPath(locale: PublicLocale = "en") {
+	if (locale === "pt-br") return "/pt-br/guias"
+	if (locale === "es") return "/es/guias"
+	return "/blog"
+}
+
+export function blogPostPath(slug: string, locale: PublicLocale = "en") {
+	return `${blogIndexPath(locale)}/${slug}`
+}
+
+export function blogHrefLang(locale: string) {
+	if (locale === "pt-br") return "pt-BR"
+	if (locale === "es") return "es"
+	return "en"
+}
+
+export function blogSchemaLanguage(locale: string) {
+	if (locale === "pt-br") return "pt-BR"
+	if (locale === "es") return "es"
+	return "en"
+}
+
+export function blogPostLanguageAlternates(translations: Array<{ locale: string; slug: string }>) {
+	const alternates: Record<string, string> = {}
+	translations.forEach((translation) => {
+		const locale = blogLocale(translation.locale)
+		alternates[blogHrefLang(locale)] = blogPostPath(translation.slug, locale)
+	})
+	if (alternates.en) alternates["x-default"] = alternates.en
+	return alternates
 }
 
 export function slugifyBlogTitle(title: string) {
@@ -23,15 +56,16 @@ export function slugifyBlogTitle(title: string) {
 	return slug || "blog-post"
 }
 
-export async function uniqueBlogSlug(title: string, currentPostId?: number) {
+export async function uniqueBlogSlug(title: string, locale: string, currentTranslationId?: number) {
 	const baseSlug = slugifyBlogTitle(title)
 	let slug = baseSlug
 	let suffix = 2
 
-	while (await prisma.blogPost.findFirst({
+	while (await prisma.blogPostTranslation.findFirst({
 		where: {
+			locale,
 			slug,
-			...(currentPostId ? { id: { not: currentPostId } } : {}),
+			...(currentTranslationId ? { id: { not: currentTranslationId } } : {}),
 		},
 		select: { id: true },
 	})) {
@@ -66,4 +100,34 @@ export function paragraphsFromContent(content: string) {
 		.split(/\n{2,}/)
 		.map((paragraph) => paragraph.trim())
 		.filter(Boolean)
+}
+
+export function markdownToHtml(markdown: string) {
+	return paragraphsFromContent(markdown)
+		.map((paragraph) => {
+			if (/^#{1,3}\s/.test(paragraph)) {
+				const level = Math.min(3, paragraph.match(/^#+/)?.[0].length || 2)
+				return `<h${level}>${escapeHtml(paragraph.replace(/^#{1,3}\s+/, ""))}</h${level}>`
+			}
+			return `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`
+		})
+		.join("\n")
+}
+
+export function readingMinutes(content: string) {
+	const words = content.trim().split(/\s+/).filter(Boolean).length
+	return Math.max(1, Math.ceil(words / 220))
+}
+
+export function blogLocale(value: string | null | undefined): PublicLocale {
+	return value === "pt-br" || value === "es" ? value : "en"
+}
+
+function escapeHtml(value: string) {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#039;")
 }

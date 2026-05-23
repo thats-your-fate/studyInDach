@@ -17,6 +17,7 @@ model University {
   canonicalUniversityId String?
   duplicateNotes        String?
   programs              DegreeProgram[]
+  blogPostLinks         BlogPostUniversityLink[]
 
   @@index([name])
   @@index([duplicateStatus])
@@ -66,6 +67,7 @@ model DegreeProgram {
   universityId            String
   university              University                 @relation(fields: [universityId], references: [id], onDelete: Cascade)
   translations            DegreeProgramTranslation[]
+  blogPostLinks           BlogPostProgramLink[]
 
   @@index([degreeLevel])
   @@index([studyField])
@@ -146,23 +148,145 @@ model Inquiry {
 }
 
 model BlogPost {
-  id             Int       @id @default(autoincrement())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  publishedAt    DateTime?
-  title          String
-  slug           String    @unique
-  excerpt        String?
-  content        String
-  coverImage     String?
-  status         String    @default("draft")
-  authorName     String?
-  seoTitle       String?
-  seoDescription String?
-  locale         String    @default("en")
+  id              Int              @id @default(autoincrement())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  publishedAt     DateTime?
+  status          String           @default("draft")
+  type            String           @default("guide")
+  authorName      String?          @default("Study in DACH")
+  coverImageUrl   String?
+  coverImageAlt   String?
+  featured        Boolean          @default(false)
+  noindex         Boolean          @default(false)
+  translationKey  String           @unique
+  canonicalPostId Int?
+  canonicalPost   BlogPost?        @relation("CanonicalBlogPost", fields: [canonicalPostId], references: [id])
+  duplicates      BlogPost[]       @relation("CanonicalBlogPost")
+  categoryId      Int?
+  category        BlogCategory?    @relation(fields: [categoryId], references: [id])
+  translations    BlogPostTranslation[]
+  tags            BlogPostTag[]
+  programLinks    BlogPostProgramLink[]
+  universityLinks BlogPostUniversityLink[]
+  filterBlocks    BlogPostFilterBlock[]
 
-  @@index([slug])
-  @@index([status])
-  @@index([publishedAt])
+  @@index([status, publishedAt])
+  @@index([type])
+  @@index([categoryId])
+}
+
+model BlogPostTranslation {
+  id              Int       @id @default(autoincrement())
+  postId          Int
+  post            BlogPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  locale          String
+  slug            String
+  title           String
+  excerpt         String?
+  contentMd       String
+  contentHtml     String?
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  ogTitle         String?
+  ogDescription   String?
+  ogImageUrl      String?
+  readingMinutes  Int?
+  tableOfContents String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([locale, slug])
+  @@unique([postId, locale])
   @@index([locale])
+}
+
+model BlogCategory {
+  id           Int                       @id @default(autoincrement())
+  key          String                    @unique
+  sortOrder    Int                       @default(0)
+  posts        BlogPost[]
+  translations BlogCategoryTranslation[]
+}
+
+model BlogCategoryTranslation {
+  id          Int          @id @default(autoincrement())
+  categoryId  Int
+  category    BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale      String
+  name        String
+  slug        String
+  description String?
+
+  @@unique([locale, slug])
+  @@unique([categoryId, locale])
+}
+
+model BlogTag {
+  id           Int                  @id @default(autoincrement())
+  key          String               @unique
+  translations BlogTagTranslation[]
+  posts        BlogPostTag[]
+}
+
+model BlogTagTranslation {
+  id       Int     @id @default(autoincrement())
+  tagId    Int
+  tag      BlogTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  locale   String
+  name     String
+  slug     String
+
+  @@unique([locale, slug])
+  @@unique([tagId, locale])
+}
+
+model BlogPostTag {
+  postId Int
+  tagId  Int
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model BlogPostProgramLink {
+  id        Int           @id @default(autoincrement())
+  postId    Int
+  programId Int
+  sortOrder Int           @default(0)
+  label     String?
+  post      BlogPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  program   DegreeProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([programId])
+}
+
+model BlogPostUniversityLink {
+  id           Int        @id @default(autoincrement())
+  postId       Int
+  universityId String
+  sortOrder    Int        @default(0)
+  label        String?
+  post         BlogPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([universityId])
+}
+
+model BlogPostFilterBlock {
+  id          Int      @id @default(autoincrement())
+  postId      Int
+  post        BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  locale      String?
+  title       String
+  description String?
+  filterJson  String
+  limit       Int      @default(8)
+  sortOrder   Int      @default(0)
+
+  @@index([postId])
 }

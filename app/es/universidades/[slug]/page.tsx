@@ -24,10 +24,10 @@ type Params = {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
 	const university = await prisma.university.findUnique({ where: { id: params.slug } })
 	if (!university) return {}
-	const canonicalPath = getUniversityUrl(university, "es")
 	const enPath = await getLocalizedUniversityUrl(university.id, "en")
 	const ptPath = await getLocalizedUniversityUrl(university.id, "pt-br")
 	const esPath = await getLocalizedUniversityUrl(university.id, "es")
+	const canonicalPath = esPath || getUniversityUrl(university, "es")
 	return {
 		title: `${university.name} - programas de estudio | Study in DACH`,
 		description: `Explora programas de estudio de ${university.name}.`,

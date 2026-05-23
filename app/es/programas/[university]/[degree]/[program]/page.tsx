@@ -24,6 +24,7 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 	const englishPath = await getLocalizedProgramUrl(program.id, "en")
 	const ptPath = await getLocalizedProgramUrl(program.id, "pt-br")
 	const esPath = await getLocalizedProgramUrl(program.id, "es")
+	const localizedCanonicalPath = esPath || canonicalPath
 	const languages: Record<string, string> = {
 		en: absoluteUrl(englishPath),
 		"pt-BR": absoluteUrl(ptPath),
@@ -36,13 +37,13 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 		description,
 		robots: program.isPublished && program.isLikelyDegreeProgram && program.duplicateStatus === "unique" && !program.canonicalProgramId ? undefined : { index: false, follow: true },
 		alternates: {
-			canonical: absoluteUrl(canonicalPath),
+			canonical: absoluteUrl(localizedCanonicalPath),
 			languages,
 		},
 		openGraph: {
 			title,
 			description,
-			url: absoluteUrl(canonicalPath),
+			url: absoluteUrl(localizedCanonicalPath),
 			type: "website",
 			images: program.heroImageUrl ? [{ url: program.heroImageUrl }] : undefined,
 		},

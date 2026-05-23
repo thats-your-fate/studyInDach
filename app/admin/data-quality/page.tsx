@@ -231,7 +231,11 @@ export default async function AdminDataQualityPage() {
 	})
 	const duplicateSourcePaths = duplicateGroups(
 		programs.filter((program) => useful(program.programUrl)),
-		(program) => `${program.universityId}|${normalizeSourcePath(program.programUrl || "")}`,
+		(program) => [
+			program.universityId,
+			normalizeName(program.degreeLevel || ""),
+			normalizeSourcePath(program.programUrl || ""),
+		].join("|"),
 	).filter((group) => group.items.length > 1)
 	const duplicateUniversityWebsites = duplicateGroups(
 		universities.filter((university) => useful(university.websiteUrl)),
@@ -295,7 +299,7 @@ export default async function AdminDataQualityPage() {
 						</div>
 
 						<div className="col-12">
-							<DuplicateProgramTable title="Same source URL path across language variants" groups={duplicateSourcePaths} />
+							<DuplicateProgramTable title="Same university + same degree level + same source path after locale removal" groups={duplicateSourcePaths} />
 						</div>
 
 						<div className="col-12">

@@ -14,7 +14,8 @@ export default function Footer() {
 			courses: '/pt-br/cursos',
 			universities: '/pt-br/universidades',
 			studyGuide: '/pt-br/guia-de-estudos',
-			blog: '/blog',
+			blog: '/pt-br/guias',
+			blogLabel: 'Guias',
 			about: '/pt-br/sobre',
 			privacy: '/pt-br/privacidade',
 			english: '/pt-br/mestrado-na-alemanha-em-ingles',
@@ -28,7 +29,8 @@ export default function Footer() {
 				courses: '/es/programas',
 				universities: '/es/universidades',
 				studyGuide: '/es/guia-para-estudiar',
-				blog: '/blog',
+				blog: '/es/guias',
+				blogLabel: 'Guías',
 				about: '/es/sobre',
 				privacy: '/es/privacidad',
 				english: '/es/programas-en-ingles',
@@ -42,6 +44,7 @@ export default function Footer() {
 			universities: '/universities',
 			studyGuide: '/study-guide',
 			blog: '/blog',
+			blogLabel: 'Blog',
 			about: '/about',
 			privacy: '/privacy',
 			english: '/courses?languageOfInstruction=English',
@@ -66,7 +69,7 @@ export default function Footer() {
 											<Link href={links.courses}><p className="hover-effect-1 opacity-75 text-white">{ui.courses}</p></Link>
 											<Link href={links.universities}><p className="hover-effect-1 opacity-75 text-white">{ui.universities}</p></Link>
 											<Link href={links.studyGuide}><p className="hover-effect-1 opacity-75 text-white">{ui.studyGuide}</p></Link>
-											<Link href={links.blog}><p className="hover-effect-1 opacity-75 text-white">Blog</p></Link>
+											<Link href={links.blog}><p className="hover-effect-1 opacity-75 text-white">{links.blogLabel}</p></Link>
 											<Link href={links.about}><p className="hover-effect-1 opacity-75 text-white">{ui.about}</p></Link>
 											<Link href="/impressum"><p className="hover-effect-1 opacity-75 text-white">Impressum</p></Link>
 											<Link href={links.privacy}><p className="hover-effect-1 opacity-75 text-white">{ui.privacy}</p></Link>

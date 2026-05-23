@@ -641,6 +641,9 @@ function parseMultiParam(value: string | string[] | undefined) {
 }
 
 export function normalizeCourseFilterParam(key: CourseFilterKey, value: string) {
+	if (!String(value || "").trim()) {
+		return ""
+	}
 	if (key === "language") {
 		return normalizePublicLanguageParam(value)
 	}
