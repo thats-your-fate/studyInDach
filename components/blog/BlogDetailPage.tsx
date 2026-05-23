@@ -158,26 +158,12 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 								</div>
 							)}
 							{translation.excerpt && <p className="lead text-primary fw-bold mb-5">{translation.excerpt}</p>}
-							<div className="blog-content">
-								<div dangerouslySetInnerHTML={{ __html: markdownToHtml(translation.contentMd) }} />
-							</div>
-
-							{faqs.length > 0 && (
-								<div className="program-detail-section mt-6">
-									<div className="section-heading">
-										<p>{faqEyebrow(locale)}</p>
-										<h2>{faqTitle(locale)}</h2>
-									</div>
-									<div className="accordion" id="blog-faqs">
-										{faqs.map((faq, index) => (
-											<div className="border-bottom py-3" key={faq.id}>
-												<h3 className="fs-4 text-primary mb-2">{faq.question}</h3>
-												<p className="mb-0">{faq.answer}</p>
-											</div>
-										))}
-									</div>
-								</div>
-							)}
+							<ArticleContent
+								contentMd={translation.contentMd}
+								filterBlocks={filterBlocks}
+								faqs={faqs}
+								locale={locale}
+							/>
 
 							{post.programLinks.length > 0 && (
 								<RelatedPanel title="Related programs">
@@ -201,27 +187,6 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 								</RelatedPanel>
 							)}
 
-							{filterBlocks.map(({ block, programs }) => (
-								<div className="program-detail-section mt-6" key={block.id}>
-									<div className="section-heading">
-										<p>{block.description || "Program preview"}</p>
-										<h2>{block.title}</h2>
-									</div>
-									<div className="row g-4">
-										{programs.map((program) => (
-											<div className="col-md-6" key={program.id}>
-												<CourseCard course={program} locale={locale} variant="compact" />
-											</div>
-										))}
-									</div>
-									{block.ctaHref && (
-										<Link href={block.ctaHref} className="btn btn-outline-secondary mt-4">
-											{block.ctaLabel || "View all programs"}
-										</Link>
-									)}
-								</div>
-							))}
-
 							<div className="border-top mt-6 pt-5 d-flex flex-wrap align-items-center justify-content-between gap-3">
 								<p className="mb-0 fs-7 text-uppercase">
 									{post.authorName || "Yaroslav Vynnychuk"}
@@ -233,6 +198,95 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 				</div>
 			</section>
 		</Layout>
+	)
+}
+
+function ArticleContent({ contentMd, filterBlocks, faqs, locale }: { contentMd: string; filterBlocks: BlogFilterBlock[]; faqs: BlogFaq[]; locale: PublicLocale }) {
+	const markerPattern = /<!--\s*(program-filter-block:\s*([a-zA-Z0-9_-]+)|faq-block)\s*-->/g
+	const nodes: ReactNode[] = []
+	const renderedFilterBlockIds = new Set<number>()
+	let renderedFaq = false
+	let cursor = 0
+	let match: RegExpExecArray | null
+
+	while ((match = markerPattern.exec(contentMd)) !== null) {
+		pushMarkdownChunk(nodes, contentMd.slice(cursor, match.index))
+		if (match[1].startsWith("program-filter-block")) {
+			const key = match[2]
+			const block = filterBlocks.find((item) => item.block.key === key) || filterBlocks.find((item) => !renderedFilterBlockIds.has(item.block.id))
+			if (block) {
+				renderedFilterBlockIds.add(block.block.id)
+				nodes.push(<FilterBlockSection item={block} locale={locale} key={`filter-${block.block.id}`} />)
+			}
+		} else if (faqs.length > 0) {
+			renderedFaq = true
+			nodes.push(<FaqSection faqs={faqs} locale={locale} compact key="faq-block" />)
+		}
+		cursor = markerPattern.lastIndex
+	}
+
+	pushMarkdownChunk(nodes, contentMd.slice(cursor))
+
+	filterBlocks
+		.filter((item) => !renderedFilterBlockIds.has(item.block.id))
+		.forEach((item) => nodes.push(<FilterBlockSection item={item} locale={locale} key={`filter-${item.block.id}`} />))
+
+	if (!renderedFaq && faqs.length > 0) {
+		nodes.push(<FaqSection faqs={faqs} locale={locale} key="faq-fallback" />)
+	}
+
+	return <>{nodes}</>
+}
+
+function pushMarkdownChunk(nodes: ReactNode[], chunk: string) {
+	if (!chunk.trim()) return
+	nodes.push(
+		<div className="blog-content" dangerouslySetInnerHTML={{ __html: markdownToHtml(chunk) }} key={`markdown-${nodes.length}`} />
+	)
+}
+
+function FilterBlockSection({ item, locale }: { item: BlogFilterBlock; locale: PublicLocale }) {
+	const { block, programs } = item
+	return (
+		<div className="program-detail-section mt-6">
+			<div className="section-heading">
+				<p>{block.description || "Program preview"}</p>
+				<h2>{block.title}</h2>
+			</div>
+			<div className="row g-4">
+				{programs.map((program) => (
+					<div className="col-md-6" key={program.id}>
+						<CourseCard course={program} locale={locale} variant="compact" />
+					</div>
+				))}
+			</div>
+			{block.ctaHref && (
+				<Link href={block.ctaHref} className="btn btn-outline-secondary mt-4">
+					{block.ctaLabel || "View all programs"}
+				</Link>
+			)}
+		</div>
+	)
+}
+
+function FaqSection({ faqs, locale, compact = false }: { faqs: BlogFaq[]; locale: PublicLocale; compact?: boolean }) {
+	return (
+		<div className={compact ? "program-detail-section mt-4" : "program-detail-section mt-6"}>
+			{!compact && (
+				<div className="section-heading">
+					<p>{faqEyebrow(locale)}</p>
+					<h2>{faqTitle(locale)}</h2>
+				</div>
+			)}
+			<div className="accordion" id="blog-faqs">
+				{faqs.map((faq) => (
+					<div className="border-bottom py-3" key={faq.id}>
+						<h3 className="fs-4 text-primary mb-2">{faq.question}</h3>
+						<p className="mb-0">{faq.answer}</p>
+					</div>
+				))}
+			</div>
+		</div>
 	)
 }
 
@@ -274,6 +328,24 @@ function faqTitle(locale: PublicLocale) {
 	if (locale === "pt-br") return "Perguntas sobre este guia"
 	if (locale === "es") return "Preguntas sobre esta guía"
 	return "Questions about this guide"
+}
+
+type BlogFilterBlock = {
+	block: {
+		id: number
+		key: string | null
+		title: string
+		description: string | null
+		ctaHref: string | null
+		ctaLabel: string | null
+	}
+	programs: any[]
+}
+
+type BlogFaq = {
+	id: number
+	question: string
+	answer: string
 }
 
 export function localizedBlogPostUrl(slug: string, locale: PublicLocale) {
