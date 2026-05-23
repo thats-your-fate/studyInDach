@@ -1,8 +1,9 @@
 import Layout from "@/components/layout/Layout"
 import Section1 from "@/components/sections/courses/Section1"
 import Section2 from "@/components/sections/courses/Section2"
+import { optionLabel } from "@/lib/i18n"
 import { absoluteUrl } from "@/lib/seo"
-import { getCoursesPageData } from "@/lib/study-programs"
+import { getCoursesPageData, normalizeCourseFilterParam } from "@/lib/study-programs"
 import type { Metadata } from "next"
 
 export const dynamic = "force-dynamic"
@@ -58,8 +59,8 @@ export default async function Programas({ searchParams }: { searchParams?: Cours
 function coursePageTitleEs(searchParams?: CoursePageSearchParams) {
 	const degreeLevel = firstParam(searchParams?.degreeLevel)
 	const country = firstParam(searchParams?.country)
-	const language = firstParam(searchParams?.languageOfInstruction) || firstParam(searchParams?.language)
-	const field = firstParam(searchParams?.studyField)
+	const language = normalizeCourseFilterParam("language", firstParam(searchParams?.languageOfInstruction) || firstParam(searchParams?.language))
+	const field = normalizeCourseFilterParam("studyField", firstParam(searchParams?.studyField))
 	const degreeLabel = degreeLevel === "Master"
 		? "Programas de maestría"
 		: degreeLevel === "Bachelor"
@@ -69,8 +70,8 @@ function coursePageTitleEs(searchParams?: CoursePageSearchParams) {
 				: language === "English"
 					? "Programas en inglés"
 					: "Programas de estudio"
-	const fieldPart = field ? ` en ${field}` : ""
-	const languagePart = language && language !== "English" ? ` en ${language}` : ""
+	const fieldPart = field ? ` en ${optionLabel(field, "es")}` : ""
+	const languagePart = language && language !== "English" ? ` en ${optionLabel(language, "es")}` : ""
 	const region = country ? translateCountry(country) : "Alemania, Austria y Suiza"
 	return `${degreeLabel}${fieldPart}${languagePart} en ${region} | Study in DACH`
 }
@@ -92,12 +93,16 @@ function courseCanonicalPath(searchParams: CoursePageSearchParams | undefined, p
 	allowed.forEach((key) => {
 		const value = searchParams?.[key]
 		const values = Array.isArray(value) ? value : value ? [value] : []
-		values.filter(Boolean).forEach((item) => params.append(key, item))
+		values.map((item) => normalizeCanonicalParam(key, item)).filter(Boolean).forEach((item) => params.append(key, item))
 	})
 	const language = searchParams?.languageOfInstruction || searchParams?.language
 	const languages = Array.isArray(language) ? language : language ? [language] : []
-	languages.filter(Boolean).forEach((item) => params.append("languageOfInstruction", item))
+	languages.map((item) => normalizeCourseFilterParam("language", item)).filter(Boolean).forEach((item) => params.append("languageOfInstruction", item))
 	return params.toString() ? `${pathname}?${params.toString()}` : pathname
+}
+
+function normalizeCanonicalParam(key: string, value: string) {
+	return key === "studyField" ? normalizeCourseFilterParam("studyField", value) : value
 }
 
 function itemListJsonLd(programs: Array<{ title: string; detailPath: string; universityName: string }>, searchParams?: CoursePageSearchParams) {

@@ -125,9 +125,9 @@ export type ProgramDetail = ProgramCard & {
 }
 
 const filterKeys = Object.keys(emptyCourseFilters) as CourseFilterKey[]
-const publicLanguageOptions = ["English", "German", "English + German", "French", "Italian", "Spanish", "Other"]
+export const publicLanguageOptions = ["English", "German", "English + German", "French", "Italian", "Spanish", "Other"]
 const publicStartTermOptions = ["Winter", "Summer", "Winter / Summer", "Rolling", "Other"]
-const publicStudyFieldBuckets = [
+export const publicStudyFieldBuckets = [
 	"Computer Science & Data",
 	"Engineering & Technology",
 	"Business & Economics",
@@ -149,14 +149,14 @@ const defaultFilterOptionLimits: Partial<Record<CourseFilterKey, number>> = {
 	duration: 60,
 	ects: 60,
 }
-const publicProgramWhere = {
+export const publicProgramWhere = {
 	isPublished: true,
 	isLikelyDegreeProgram: true,
-	duplicateStatus: { not: "duplicate" },
+	duplicateStatus: "unique",
 	canonicalProgramId: null,
 }
 export const publicUniversityWhere = {
-	duplicateStatus: { not: "duplicate" },
+	duplicateStatus: "unique",
 	canonicalUniversityId: null,
 }
 
@@ -640,7 +640,7 @@ function parseMultiParam(value: string | string[] | undefined) {
 	return uniqueSorted(values.flatMap((item) => item.split(",")).map((item) => item.trim()).filter(Boolean))
 }
 
-function normalizeCourseFilterParam(key: CourseFilterKey, value: string) {
+export function normalizeCourseFilterParam(key: CourseFilterKey, value: string) {
 	if (key === "language") {
 		return normalizePublicLanguageParam(value)
 	}
@@ -688,10 +688,12 @@ function normalizePublicLanguageParam(value: string) {
 	const normalized = normalize(value)
 	if (normalized.includes("english") && normalized.includes("german")) return "English + German"
 	const language = normalizeLanguage(value)
-	return publicLanguageOptions.includes(language) ? language : "Other"
+	if (publicLanguageOptions.includes(language)) return language
+	const buckets = normalizeLanguageBuckets(value)
+	return buckets[0] || "Other"
 }
 
-function normalizeLanguageBuckets(value: string) {
+export function normalizeLanguageBuckets(value: string | null | undefined) {
 	const raw = String(value || "")
 	const normalized = normalize(raw)
 	if (!normalized) return []
@@ -765,11 +767,11 @@ function normalizeStartTermBuckets(value: string) {
 	return buckets.length ? buckets : []
 }
 
-function normalizeStudyFields(values: Array<string | null | undefined>) {
+export function normalizeStudyFields(values: Array<string | null | undefined>) {
 	return uniqueInOrder(values.map((value) => normalizeStudyField(value || "")).filter(Boolean))
 }
 
-function normalizeStudyField(value: string) {
+export function normalizeStudyField(value: string) {
 	const raw = String(value || "").trim()
 	if (!raw) return ""
 	if (publicStudyFieldBuckets.includes(raw)) return raw

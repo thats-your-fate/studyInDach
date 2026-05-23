@@ -21,13 +21,8 @@ const guideItems = [
 	["Estudiar en Alemania", "Compara universidades, tipos de programa, idiomas de enseñanza y costos antes de elegir una postulación.", "/es/estudiar-en-alemania"],
 	["Estudiar en Austria", "Revisa plazos, tasas, idioma y diferencias entre instituciones austríacas.", "/es/estudiar-en-austria"],
 	["Estudiar en Suiza", "Evalúa costo de vida, idioma local, estructura académica y requisitos oficiales de cada universidad.", "/es/estudiar-en-suiza"],
-	["Licenciatura, maestría y doctorado", "Entiende las diferencias entre niveles académicos y filtra programas compatibles con tu perfil.", "/es/guia-para-estudiar/licenciatura-maestria-doctorado"],
-	["Programas en inglés", "Encuentra programas impartidos en inglés y verifica posibles requisitos adicionales de idioma.", "/es/programas-en-ingles"],
-	["Universidades públicas", "Descubre opciones públicas, pero confirma tasas y reglas de admisión en el sitio oficial.", "/es/guia-para-estudiar/universidades-publicas"],
-	["Costos, tasas y comprobación financiera", "Compara matrícula, tasas semestrales, vivienda, seguro y posibles comprobantes financieros.", "/es/guia-para-estudiar/costos-tasas-comprobacion-financiera"],
-	["Requisitos de idioma", "Interpreta requisitos como B2, C1, inglés académico y reglas específicas para internacionales.", "/es/guia-para-estudiar/requisitos-de-idioma"],
-	["Plazos de postulación", "Organiza la verificación de plazos por país, universidad, programa y perfil del candidato.", "/es/guia-para-estudiar/plazos-de-postulacion"],
-	["Cómo comparar programas", "Compara área, idioma, formato, duración, costos y requisitos antes de crear tu lista corta.", "/es/guia-para-estudiar/como-comparar-programas"],
+	["Programas en inglés", "Encuentra programas impartidos en inglés y verifica posibles requisitos adicionales de idioma.", "/es/programas?languageOfInstruction=English"],
+	["Programas sin matrícula", "Compara programas clasificados como sin matrícula o solo con tasa semestral y confirma costos oficiales.", "/es/programas?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only"],
 ]
 
 export default function StudyGuideEs() {
@@ -62,7 +57,7 @@ export default function StudyGuideEs() {
 					<div className="program-detail-section">
 						<div className="section-heading"><p>Atajos de búsqueda</p><h2>Empieza con filtros útiles</h2></div>
 						<div className="program-summary-grid">
-							<Link href="/es/programas?degreeLevel=Master" className="program-summary-card hover-up"><h3>Maestrías</h3><p>Explora programas de maestría y refina por área, país, idioma y formato.</p></Link>
+							<Link href="/es/estudiar-en-alemania" className="program-summary-card hover-up"><h3>Alemania</h3><p>Compara programas, universidades, costos e idiomas de enseñanza en Alemania.</p></Link>
 							<Link href="/es/programas?languageOfInstruction=English" className="program-summary-card hover-up"><h3>Programas en inglés</h3><p>Consulta programas marcados con inglés como idioma de enseñanza.</p></Link>
 							<Link href="/es/programas?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only" className="program-summary-card hover-up"><h3>Sin matrícula</h3><p>Encuentra programas clasificados como sin matrícula o solo con tasa semestral.</p></Link>
 						</div>

@@ -1,9 +1,11 @@
 import Layout from "@/components/layout/Layout"
+import CourseCard from "@/components/sections/courses/CourseCard"
 import { optionLabel } from "@/lib/i18n"
-import { cleanDisplayValue, cleanProgramTitleForLocale, displayAcademicDegree, displayLanguageCombination, joinMetaSegments } from "@/lib/program-display"
+import { cleanDisplayValue, cleanProgramTitleForLocale, displayLanguageCombination } from "@/lib/program-display"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
-import { getUniversityUrl, programDetailPath } from "@/lib/study-programs"
+import { getLocalizedUniversityUrl } from "@/lib/localized-urls"
+import { getUniversityUrl, normalizeCourseFilterParam, normalizeLanguageBuckets, normalizeStudyFields, programDetailPath, publicProgramWhere, type ProgramCard } from "@/lib/study-programs"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -23,16 +25,19 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 	const university = await prisma.university.findUnique({ where: { id: params.slug } })
 	if (!university) return {}
 	const canonicalPath = getUniversityUrl(university, "es")
+	const enPath = await getLocalizedUniversityUrl(university.id, "en")
+	const ptPath = await getLocalizedUniversityUrl(university.id, "pt-br")
+	const esPath = await getLocalizedUniversityUrl(university.id, "es")
 	return {
 		title: `${university.name} - programas de estudio | Study in DACH`,
 		description: `Explora programas de estudio de ${university.name}.`,
 		alternates: {
 			canonical: absoluteUrl(canonicalPath),
 			languages: {
-				en: absoluteUrl(getUniversityUrl(university, "en")),
-				es: absoluteUrl(canonicalPath),
-				"pt-BR": absoluteUrl(getUniversityUrl(university, "pt-br")),
-				"x-default": absoluteUrl(getUniversityUrl(university, "en")),
+				en: absoluteUrl(enPath),
+				es: absoluteUrl(esPath),
+				"pt-BR": absoluteUrl(ptPath),
+				"x-default": absoluteUrl(enPath),
 			},
 		},
 	}
@@ -43,7 +48,7 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 		where: { id: params.slug },
 		include: {
 			programs: {
-				where: { isPublished: true, isLikelyDegreeProgram: true, duplicateStatus: { not: "duplicate" }, canonicalProgramId: null },
+				where: publicProgramWhere,
 				include: { translations: { where: { locale: "es" }, take: 1 } },
 				orderBy: [{ degreeLevel: "asc" }, { programName: "asc" }],
 			},
@@ -53,15 +58,15 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 
 	const location = [optionLabel(university.location || "", "es"), optionLabel(university.state || "", "es")].filter(Boolean).join(", ")
 	const selectedDegree = cleanDisplayValue(searchParams?.degreeLevel)
-	const selectedLanguage = cleanDisplayValue(searchParams?.languageOfInstruction)
-	const selectedStudyField = cleanDisplayValue(searchParams?.studyField)
+	const selectedLanguage = normalizeCourseFilterParam("language", cleanDisplayValue(searchParams?.languageOfInstruction))
+	const selectedStudyField = normalizeCourseFilterParam("studyField", cleanDisplayValue(searchParams?.studyField))
 	const degreeOptions = uniqueOptions(university.programs.map((program) => program.degreeLevel))
-	const languageOptions = uniqueOptions(university.programs.flatMap((program) => splitOptionValues(program.languageOfInstruction)))
-	const studyFieldOptions = uniqueOptions(university.programs.map((program) => program.studyField || program.subjectArea))
+	const languageOptions = uniqueOptions(university.programs.flatMap((program) => normalizeLanguageBuckets(program.languageOfInstruction)))
+	const studyFieldOptions = uniqueOptions(university.programs.flatMap((program) => normalizeStudyFields([program.studyField, program.secondaryStudyField, program.subjectArea])))
 	const filteredPrograms = university.programs
 		.filter((program) => !selectedDegree || program.degreeLevel === selectedDegree)
-		.filter((program) => !selectedLanguage || splitOptionValues(program.languageOfInstruction).includes(selectedLanguage))
-		.filter((program) => !selectedStudyField || (program.studyField || program.subjectArea) === selectedStudyField)
+		.filter((program) => !selectedLanguage || normalizeLanguageBuckets(program.languageOfInstruction).includes(selectedLanguage))
+		.filter((program) => !selectedStudyField || normalizeStudyFields([program.studyField, program.secondaryStudyField, program.subjectArea]).includes(selectedStudyField))
 		.slice(0, 30)
 
 	return (
@@ -88,32 +93,14 @@ export default async function UniversityEsPage({ params, searchParams }: Params)
 						selectedLanguage={selectedLanguage}
 						selectedStudyField={selectedStudyField}
 					/>
-					<ul className="related-program-grid list-unstyled p-0 m-0">
-						{filteredPrograms.map((program) => {
-							const title = cleanUniversityTitle(cleanProgramTitleForLocale(program.translations[0]?.localizedProgramName || program.programName, "es"), university.name)
-							const detailPath = programDetailPath({
-								id: program.id,
-								title,
-								originalTitle: program.programName,
-								degreeLevel: program.degreeLevel || "Degree program",
-								universityName: university.name,
-							}, "es")
-							const degree = optionLabel(program.degreeLevel || "Program", "es")
-							const field = optionLabel(program.studyField || program.subjectArea || "Study program", "es")
-							const language = displayLanguageCombination(program.translations[0]?.languageOfInstruction || program.languageOfInstruction, "es", " / ")
-							const meta = joinMetaSegments([degree, displayAcademicDegree(program.academicDegree), field, language])
-							return (
-								<li key={program.id}>
-									<article className="related-program-card h-100">
-										<h3><Link href={detailPath}>{title}</Link></h3>
-										{meta && <div className="related-program-meta">{meta}</div>}
-										<Link href={detailPath} className="related-program-action">Ver programa</Link>
-									</article>
-								</li>
-							)
-						})}
-						{filteredPrograms.length === 0 && <li>Ningún programa coincide con estos filtros.</li>}
-					</ul>
+					<div className="row g-4">
+						{filteredPrograms.map((program) => (
+							<div className="col-12 col-md-6 col-xl-4" key={program.id}>
+								<CourseCard course={toUniversityProgramCard(program, university.name)} locale="es" variant="compact" />
+							</div>
+						))}
+						{filteredPrograms.length === 0 && <div className="col-12">Ningún programa coincide con estos filtros.</div>}
+					</div>
 				</div>
 			</section>
 		</Layout>
@@ -170,14 +157,63 @@ function uniqueOptions(values: Array<string | null | undefined>) {
 	return Array.from(new Set(values.map((value) => cleanDisplayValue(value)).filter(Boolean))).sort((a, b) => a.localeCompare(b))
 }
 
-function splitOptionValues(value: string | null | undefined) {
-	return cleanDisplayValue(value).split(/[;,/|+]+/).map((part) => cleanDisplayValue(part)).filter(Boolean)
-}
-
 function cleanUniversityTitle(title: string, universityName: string) {
 	return cleanDisplayValue(title)
 		.replace(new RegExp(`\\s+(at|en|de)\\s+${escapeRegExp(universityName)}\\s*$`, "i"), "")
 		.replace(new RegExp(`\\s+[-|–—]\\s+${escapeRegExp(universityName)}\\s*$`, "i"), "")
+}
+
+function toUniversityProgramCard(program: any, universityName: string): ProgramCard {
+	const translation = program.translations[0]
+	const title = cleanUniversityTitle(cleanProgramTitleForLocale(translation?.localizedProgramName || program.programName, "es"), universityName)
+	return {
+		id: program.id,
+		detailPath: programDetailPath({
+			id: program.id,
+			title,
+			originalTitle: program.programName,
+			degreeLevel: program.degreeLevel || "Degree program",
+			universityName,
+		}, "es"),
+		title,
+		originalTitle: program.programName || "",
+		degreeLevel: program.degreeLevel || "",
+		academicDegree: program.academicDegree || "",
+		subjectArea: translation?.subjectArea || program.subjectArea || "",
+		duration: translation?.duration || program.duration || "",
+		ects: program.ects || "",
+		languageOfInstruction: translation?.languageOfInstruction || program.languageOfInstruction || "",
+		country: "",
+		universityId: program.universityId || "",
+		universityName,
+		location: "",
+		state: "",
+		img: "",
+		heroImageUrl: program.heroImageUrl || "",
+		fallbackImageUrl: "",
+		authorImg: "",
+		campusLocation: translation?.campusLocation || program.campusLocation || "",
+		startTerms: translation?.startTerms || program.startTerms || "",
+		tuitionOrFees: translation?.tuitionOrFees || program.tuitionOrFees || "",
+		studyMode: translation?.studyMode || program.studyMode || "",
+		restrictedAdmission: translation?.restrictedAdmission || program.restrictedAdmission || "",
+		summary: "",
+		studyField: program.studyField || "",
+		secondaryStudyField: program.secondaryStudyField || "",
+		internationalStudentFit: program.internationalStudentFit || "",
+		onlineOrOnCampus: program.onlineOrOnCampus || "",
+		fullTimeOrPartTime: program.fullTimeOrPartTime || "",
+		applicationDifficulty: program.applicationDifficulty || "",
+		tuitionType: program.tuitionType || "",
+		workExperienceRequired: program.workExperienceRequired || "",
+		metadataConfidence: program.metadataConfidence || "",
+		reviewStatus: program.reviewStatus || "pending",
+		isPublished: program.isPublished ?? true,
+		isLikelyDegreeProgram: program.isLikelyDegreeProgram ?? true,
+		qualityFlags: program.qualityFlags || "",
+		duplicateStatus: program.duplicateStatus || "unique",
+		canonicalProgramId: program.canonicalProgramId || null,
+	}
 }
 
 function escapeRegExp(value: string) {

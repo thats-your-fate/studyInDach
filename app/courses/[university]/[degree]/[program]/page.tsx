@@ -1,7 +1,8 @@
 import Layout from "@/components/layout/Layout"
 import Section1 from "@/components/sections/single-courses/Section1"
 import Section2 from "@/components/sections/single-courses/Section2"
-import { getProgramDetailBySlugs, getProgramPathByLocale, getProgramUrl, type ProgramDetail } from "@/lib/study-programs"
+import { getLocalizedProgramUrl } from "@/lib/localized-urls"
+import { getProgramDetailBySlugs, type ProgramDetail } from "@/lib/study-programs"
 import { absoluteUrl } from "@/lib/seo"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
@@ -22,9 +23,9 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 	const { program, canonicalPath } = result
 	const title = program.seoTitle || `${program.title} at ${program.universityName}`
 	const description = program.seoDescription || program.summary || `Discover ${program.title} at ${program.universityName}.`
-	const englishPath = await getProgramPathByLocale(program.id, "en") || getProgramUrl(program, "en")
-	const ptPath = await getProgramPathByLocale(program.id, "pt-br") || getProgramUrl(program, "pt-br")
-	const esPath = await getProgramPathByLocale(program.id, "es") || getProgramUrl(program, "es")
+	const englishPath = await getLocalizedProgramUrl(program.id, "en")
+	const ptPath = await getLocalizedProgramUrl(program.id, "pt-br")
+	const esPath = await getLocalizedProgramUrl(program.id, "es")
 	const languages: Record<string, string> = {
 		en: absoluteUrl(englishPath),
 		"pt-BR": absoluteUrl(ptPath),
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 	return {
 		title,
 		description,
-		robots: program.isPublished && program.isLikelyDegreeProgram && program.duplicateStatus !== "duplicate" && !program.canonicalProgramId ? undefined : { index: false, follow: true },
+		robots: program.isPublished && program.isLikelyDegreeProgram && program.duplicateStatus === "unique" && !program.canonicalProgramId ? undefined : { index: false, follow: true },
 		alternates: {
 			canonical: absoluteUrl(canonicalPath),
 			languages,

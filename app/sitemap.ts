@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
-import { getProgramUrl, getUniversityUrl, publicUniversityWhere } from "@/lib/study-programs"
+import { getLocalizedProgramUrl, getLocalizedUniversityUrl } from "@/lib/localized-urls"
+import { getProgramUrl, getUniversityUrl, publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
 import type { MetadataRoute } from "next"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const [programs, universities] = await Promise.all([
 		prisma.degreeProgram.findMany({
-			where: { isPublished: true, isLikelyDegreeProgram: true, duplicateStatus: { not: "duplicate" }, canonicalProgramId: null },
+			where: publicProgramWhere,
 			include: { university: true, translations: true },
 			orderBy: { id: "asc" },
 		}),
@@ -82,33 +83,57 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/es/programas?languageOfInstruction=English",
 		"/es/programas?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only",
 	].map((path) => ({ url: absoluteUrl(path), lastModified: now }))
-	const universityUrls = universities.map((university) => ({
-		url: absoluteUrl(getUniversityUrl(university, "en")),
-		lastModified: now,
+	const universityAlternateGroups = await Promise.all(universities.map(async (university) => {
+		const en = absoluteUrl(await getLocalizedUniversityUrl(university.id, "en") || getUniversityUrl(university, "en"))
+		const pt = absoluteUrl(await getLocalizedUniversityUrl(university.id, "pt-br") || getUniversityUrl(university, "pt-br"))
+		const es = absoluteUrl(await getLocalizedUniversityUrl(university.id, "es") || getUniversityUrl(university, "es"))
+		return { en, "pt-BR": pt, es, "x-default": en }
 	}))
-	const translatedUniversityUrls = universities.map((university) => ({
-		url: absoluteUrl(getUniversityUrl(university, "pt-br")),
+	const universityUrls = universities.map((university, index) => ({
+		url: universityAlternateGroups[index].en,
 		lastModified: now,
+		alternates: { languages: universityAlternateGroups[index] },
 	}))
-	const spanishUniversityUrls = universities.map((university) => ({
-		url: absoluteUrl(getUniversityUrl(university, "es")),
+	const translatedUniversityUrls = universities.map((university, index) => ({
+		url: universityAlternateGroups[index]["pt-BR"],
 		lastModified: now,
+		alternates: { languages: universityAlternateGroups[index] },
 	}))
-	const programUrls = programs.map((program) => ({
-		url: absoluteUrl(getProgramUrl(program, "en")),
+	const spanishUniversityUrls = universities.map((university, index) => ({
+		url: universityAlternateGroups[index].es,
 		lastModified: now,
+		alternates: { languages: universityAlternateGroups[index] },
+	}))
+	const programAlternateGroups = await Promise.all(programs.map(async (program) => {
+		const en = absoluteUrl(await getLocalizedProgramUrl(program.id, "en") || getProgramUrl(program, "en"))
+		const pt = absoluteUrl(await getLocalizedProgramUrl(program.id, "pt-br") || getProgramUrl(program, "pt-br"))
+		const es = absoluteUrl(await getLocalizedProgramUrl(program.id, "es") || getProgramUrl(program, "es"))
+		return { en, "pt-BR": pt, es, "x-default": en }
+	}))
+	const programUrls = programs.map((program, index) => ({
+		url: programAlternateGroups[index].en,
+		lastModified: now,
+		alternates: { languages: programAlternateGroups[index] },
 	}))
 	const translatedProgramUrls = programs
 		.filter((program) => program.translations.some((translation) => translation.locale === "pt"))
-		.map((program) => ({
-			url: absoluteUrl(getProgramUrl(program, "pt-br")),
-			lastModified: now,
-		}))
+		.map((program) => {
+			const index = programs.findIndex((item) => item.id === program.id)
+			return {
+				url: programAlternateGroups[index]["pt-BR"],
+				lastModified: now,
+				alternates: { languages: programAlternateGroups[index] },
+			}
+		})
 	const spanishProgramUrls = programs
 		.filter((program) => program.translations.some((translation) => translation.locale === "es"))
-		.map((program) => ({
-			url: absoluteUrl(getProgramUrl(program, "es")),
-			lastModified: now,
-		}))
+		.map((program) => {
+			const index = programs.findIndex((item) => item.id === program.id)
+			return {
+				url: programAlternateGroups[index].es,
+				lastModified: now,
+				alternates: { languages: programAlternateGroups[index] },
+			}
+		})
 	return [...main, ...filters, ...universityUrls, ...translatedUniversityUrls, ...spanishUniversityUrls, ...programUrls, ...translatedProgramUrls, ...spanishProgramUrls]
 }

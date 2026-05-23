@@ -1,4 +1,5 @@
 import { optionLabel, type PublicLocale } from "@/lib/i18n"
+import { normalizeLanguageBuckets } from "@/lib/filter-buckets"
 
 export function joinMetaSegments(values: Array<string | null | undefined>) {
 	return values
@@ -11,7 +12,8 @@ export function displayLanguageCombination(value: string | null | undefined, loc
 	const raw = cleanDisplayValue(value)
 	if (!raw) return ""
 	const separator = raw.includes("/") ? " / " : raw.includes("+") ? " + " : fallbackSeparator
-	const languages = uniqueInOrder(splitValues(raw).map(normalizeLanguage).filter(Boolean))
+	const languages = normalizeLanguageBuckets(raw)
+	if (languages.includes("English + German")) return optionLabel("English + German", locale)
 	return languages.map((language) => optionLabel(language, locale)).join(separator)
 }
 
@@ -56,47 +58,6 @@ export function cleanDisplayValue(value: string | null | undefined) {
 	const normalized = normalize(raw)
 	if (!normalized || ["unknown", "n a", "na", "null", "undefined"].includes(normalized)) return ""
 	return raw
-}
-
-function splitValues(value: string) {
-	return value
-		.split(/[;,/|+]+/)
-		.map((item) => item.replace(/\s*\(.*?\)\s*/g, "").trim())
-		.filter(Boolean)
-}
-
-function normalizeLanguage(value: string) {
-	const normalized = normalize(value).replace("oe", "o")
-	const aliases: Record<string, string> = {
-		deutsch: "German",
-		allemand: "German",
-		german: "German",
-		alemao: "German",
-		aleman: "German",
-		englisch: "English",
-		anglais: "English",
-		english: "English",
-		ingles: "English",
-		franzosisch: "French",
-		franzoesisch: "French",
-		french: "French",
-		francais: "French",
-		italian: "Italian",
-		italiano: "Italian",
-		spanish: "Spanish",
-		spanisch: "Spanish",
-	}
-	return aliases[normalized] || value
-}
-
-function uniqueInOrder(values: string[]) {
-	const seen = new Set<string>()
-	return values.filter((value) => {
-		const key = normalize(value)
-		if (!key || seen.has(key)) return false
-		seen.add(key)
-		return true
-	})
 }
 
 function normalize(value: string) {

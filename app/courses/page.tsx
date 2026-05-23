@@ -1,4 +1,4 @@
-import { getCoursesPageData } from '@/lib/study-programs'
+import { getCoursesPageData, normalizeCourseFilterParam } from '@/lib/study-programs'
 import Section2 from '@/components/sections/courses/Section2'
 import Layout from "@/components/layout/Layout"
 import Section1 from '@/components/sections/courses/Section1'
@@ -66,8 +66,8 @@ export default async function Courses({
 function coursePageTitle(searchParams?: CoursePageSearchParams) {
 	const degreeLevel = firstParam(searchParams?.degreeLevel)
 	const country = firstParam(searchParams?.country)
-	const language = firstParam(searchParams?.languageOfInstruction) || firstParam(searchParams?.language)
-	const field = firstParam(searchParams?.studyField)
+	const language = normalizeCourseFilterParam("language", firstParam(searchParams?.languageOfInstruction) || firstParam(searchParams?.language))
+	const field = normalizeCourseFilterParam("studyField", firstParam(searchParams?.studyField))
 
 	const languagePrefix = language === "English" && !degreeLevel ? "English-taught " : ""
 	const prefix = [
@@ -90,7 +90,7 @@ function courseCanonicalPath(searchParams?: CoursePageSearchParams) {
 	allowed.forEach((key) => {
 		const value = searchParams?.[key]
 		const values = Array.isArray(value) ? value : value ? [value] : []
-		values.filter(Boolean).forEach((item) => params.append(key, item))
+		values.map((item) => normalizeCanonicalParam(key, item)).filter(Boolean).forEach((item) => params.append(key, item))
 	})
 	appendLanguageParam(params, searchParams)
 	return params.toString() ? `/courses?${params.toString()}` : "/courses"
@@ -102,7 +102,7 @@ function courseCanonicalPathPt(searchParams?: CoursePageSearchParams) {
 	allowed.forEach((key) => {
 		const value = searchParams?.[key]
 		const values = Array.isArray(value) ? value : value ? [value] : []
-		values.filter(Boolean).forEach((item) => params.append(key, item))
+		values.map((item) => normalizeCanonicalParam(key, item)).filter(Boolean).forEach((item) => params.append(key, item))
 	})
 	appendLanguageParam(params, searchParams)
 	return params.toString() ? `/pt-br/cursos?${params.toString()}` : "/pt-br/cursos"
@@ -114,16 +114,20 @@ function courseCanonicalPathEs(searchParams?: CoursePageSearchParams) {
 	allowed.forEach((key) => {
 		const value = searchParams?.[key]
 		const values = Array.isArray(value) ? value : value ? [value] : []
-		values.filter(Boolean).forEach((item) => params.append(key, item))
+		values.map((item) => normalizeCanonicalParam(key, item)).filter(Boolean).forEach((item) => params.append(key, item))
 	})
 	appendLanguageParam(params, searchParams)
 	return params.toString() ? `/es/programas?${params.toString()}` : "/es/programas"
 }
 
+function normalizeCanonicalParam(key: string, value: string) {
+	return key === "studyField" ? normalizeCourseFilterParam("studyField", value) : value
+}
+
 function appendLanguageParam(params: URLSearchParams, searchParams?: CoursePageSearchParams) {
 	const value = searchParams?.languageOfInstruction || searchParams?.language
 	const values = Array.isArray(value) ? value : value ? [value] : []
-	values.filter(Boolean).forEach((item) => params.append("languageOfInstruction", item))
+	values.map((item) => normalizeCourseFilterParam("language", item)).filter(Boolean).forEach((item) => params.append("languageOfInstruction", item))
 }
 
 function itemListJsonLd(programs: Array<{ title: string; detailPath: string; universityName: string }>, searchParams?: CoursePageSearchParams) {

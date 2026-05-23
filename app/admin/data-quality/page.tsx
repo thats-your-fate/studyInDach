@@ -184,8 +184,15 @@ export default async function AdminDataQualityPage() {
 	).filter((group) => group.items.length > 1)
 	const duplicateProgramNames = duplicateGroups(
 		programs,
-		(program) => `${program.universityId}|${normalizeName(program.programName)}`,
-	).filter((group) => group.items.length > 1)
+		(program) => [
+			program.universityId,
+			normalizeName(program.degreeLevel || ""),
+			normalizeProgramTitleForDuplicate(program.programName),
+		].join("|"),
+	).filter((group) => {
+		const [, degreeLevel, title] = group.key.split("|")
+		return Boolean(degreeLevel && title && group.items.length > 1)
+	})
 	const similarProgramNames = duplicateGroups(
 		programs,
 		(program) => `${program.universityId}|${normalizeName(program.degreeLevel || "")}|${similarTitleKey(program.programName)}`,
@@ -268,7 +275,7 @@ export default async function AdminDataQualityPage() {
 						</div>
 
 						<div className="col-12">
-							<DuplicateProgramTable title="Same university + same normalized program name" groups={duplicateProgramNames} />
+							<DuplicateProgramTable title="Same university + same degree level + same normalized title" groups={duplicateProgramNames} />
 						</div>
 
 						<div className="col-12">

@@ -3,9 +3,8 @@ import { displayAcademicDegree, displayLanguageCombination, joinMetaSegments } f
 import type { ProgramCard } from "@/lib/study-programs"
 import Link from "next/link"
 
-export default function CourseCard({ course, locale }: { course: ProgramCard; locale: PublicLocale }) {
+export default function CourseCard({ course, locale, variant = "default" }: { course: ProgramCard; locale: PublicLocale; variant?: "default" | "compact" }) {
 	const ui = coursesUi[locale]
-	const imageSrc = cardImageSrc(course)
 	const tags = [course.studyField || course.subjectArea, course.secondaryStudyField, course.onlineOrOnCampus]
 		.filter(isUsefulValue)
 		.map((tag) => optionLabel(tag, locale))
@@ -21,6 +20,32 @@ export default function CourseCard({ course, locale }: { course: ProgramCard; lo
 	const cardMeta = joinMetaSegments([degreeLabel, displayLocation, displayLanguage, tuition, studyMode])
 	const summary = course.summary?.trim()
 	const fitLabel = isUsefulValue(course.internationalStudentFit) ? optionLabel(course.internationalStudentFit, locale) : ""
+
+	if (variant === "compact") {
+		const field = localizedUsefulValue(course.studyField || course.subjectArea, locale)
+		const compactMeta = joinMetaSegments([degreeLabel, field, displayLanguage])
+
+		return (
+			<div className="course-card-modern course-card-compact h-100">
+				<div className="course-card-body">
+					<div className="course-card-meta">
+						<span>{compactMeta || ui.degreeProgram}</span>
+					</div>
+					<h5>
+						<Link href={course.detailPath}>{course.title}</Link>
+					</h5>
+					<div className="course-facts">
+						{degreeLabel && <span><i className="ri-graduation-cap-line" /> {degreeLabel}</span>}
+						{field && <span><i className="ri-book-open-line" /> {field}</span>}
+						{usefulValue(displayLanguage) && <span><i className="ri-translate-2" /> {displayLanguage}</span>}
+					</div>
+					<Link href={course.detailPath} className="course-card-action">{ui.viewProgram}</Link>
+				</div>
+			</div>
+		)
+	}
+
+	const imageSrc = cardImageSrc(course)
 
 	return (
 		<div className="course-card-modern h-100">

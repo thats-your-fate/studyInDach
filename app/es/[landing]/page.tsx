@@ -1,5 +1,6 @@
 import Layout from "@/components/layout/Layout"
 import CourseCard from "@/components/sections/courses/CourseCard"
+import { localizedStaticAlternates, type LocalizedStaticRouteKey } from "@/lib/localized-static-urls"
 import { absoluteUrl } from "@/lib/seo"
 import { getCoursesPageData, type CourseSearchParams, type ProgramCard } from "@/lib/study-programs"
 import type { Metadata } from "next"
@@ -239,15 +240,31 @@ const landingPages: Record<string, LandingConfig> = {
 	},
 }
 
+const landingRouteKeys: Record<string, LocalizedStaticRouteKey> = {
+	"estudiar-en-alemania": "studyGermany",
+	"estudiar-en-austria": "studyAustria",
+	"estudiar-en-suiza": "studySwitzerland",
+	"programas-en-ingles": "englishPrograms",
+	"universidades-publicas-en-alemania": "publicGermany",
+	"estudiar-informatica-en-alemania": "computerScienceGermany",
+	"estudiar-ingenieria-en-alemania": "engineeringGermany",
+	"doctorado-en-alemania": "doctorateGermany",
+	"licenciatura-en-alemania": "bachelorGermany",
+}
+
 export function generateMetadata({ params }: { params: { landing: string } }): Metadata {
 	const page = landingPages[params.landing]
 	if (!page) return {}
+	const routeKey = landingRouteKeys[page.slug]
+	const languages = routeKey
+		? Object.fromEntries(Object.entries(localizedStaticAlternates(routeKey)).map(([locale, path]) => [locale, absoluteUrl(path)]))
+		: { es: absoluteUrl(`/es/${page.slug}`) }
 	return {
 		title: page.metaTitle,
 		description: page.description,
 		alternates: {
 			canonical: absoluteUrl(`/es/${page.slug}`),
-			languages: { es: absoluteUrl(`/es/${page.slug}`) },
+			languages,
 		},
 	}
 }

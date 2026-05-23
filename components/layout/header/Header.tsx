@@ -1,6 +1,7 @@
 'use client'
 
 import { navItemsByLocale } from '@/lib/i18n'
+import { getLocalizedStaticUrl, staticRouteKeyFromPath, type LocalizedStaticRouteKey } from '@/lib/localized-static-urls'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -163,53 +164,28 @@ const languages: Array<{ locale: 'en' | 'pt-br' | 'es'; hrefLang: string; flag: 
 ]
 
 function buildLanguageLinks(pathname: string, query: string) {
-	const suffix = query ? `?${query}` : ''
-	const localePairs: Record<string, string> = {
-		'/': '/pt-br',
-		'/courses': '/pt-br/cursos',
-		'/universities': '/pt-br/universidades',
-		'/study-guide': '/pt-br/guia-de-estudos',
-		'/about': '/pt-br/sobre',
-		'/contact': '/pt-br/contato',
-		'/privacy': '/pt-br/privacidade',
-	}
-	const esPairs: Record<string, string> = {
-		'/': '/es',
-		'/courses': '/es/programas',
-		'/universities': '/es/universidades',
-		'/study-guide': '/es/guia-para-estudiar',
-		'/about': '/es/sobre',
-		'/contact': '/es/contacto',
-		'/privacy': '/es/privacidad',
-	}
-	const reversePairs = Object.fromEntries(Object.entries(localePairs).map(([en, pt]) => [pt, en]))
-	const reverseEsPairs = Object.fromEntries(Object.entries(esPairs).map(([en, es]) => [es, en]))
-	const enPath = pathname.startsWith('/pt-br/cursos/')
-		? pathname.replace(/^\/pt-br\/cursos/, '/courses')
-		: pathname.startsWith('/es/programas/')
-			? pathname.replace(/^\/es\/programas/, '/courses')
-		: pathname.startsWith('/pt-br/universidades/')
-			? pathname.replace(/^\/pt-br\/universidades/, '/universities')
-		: pathname.startsWith('/es/universidades/')
-			? pathname.replace(/^\/es\/universidades/, '/universities')
-		: reversePairs[pathname] || reverseEsPairs[pathname] || pathname.replace(/^\/(pt-br|es)/, '') || '/'
-	const ptPath = pathname.startsWith('/courses/')
-		? pathname.replace(/^\/courses/, '/pt-br/cursos')
-		: pathname.startsWith('/universities/')
-			? pathname.replace(/^\/universities/, '/pt-br/universidades')
-		: localePairs[pathname] || (pathname.startsWith('/pt-br') ? pathname : pathname)
-	const esPath = pathname.startsWith('/courses/')
-		? pathname.replace(/^\/courses/, '/es/programas')
-		: pathname.startsWith('/universities/')
-			? pathname.replace(/^\/universities/, '/es/universidades')
-		: esPairs[enPath] || esPairs[pathname] || (pathname.startsWith('/es') ? pathname : enPath)
+	const routeKey = staticRouteKeyFromPath(pathname) || dynamicIndexRouteKey(pathname)
+	const enPath = routeKey ? withQuery(getLocalizedStaticUrl(routeKey, 'en'), query) : '/'
+	const ptPath = routeKey ? withQuery(getLocalizedStaticUrl(routeKey, 'pt-br'), query) : '/pt-br'
+	const esPath = routeKey ? withQuery(getLocalizedStaticUrl(routeKey, 'es'), query) : '/es'
 
 	return {
-		en: `${enPath}${suffix}`,
-		pt: `${ptPath}${suffix}`,
-		'pt-br': `${ptPath}${suffix}`,
-		es: `${esPath}${suffix}`,
+		en: enPath,
+		pt: ptPath,
+		'pt-br': ptPath,
+		es: esPath,
 	}
+}
+
+function dynamicIndexRouteKey(pathname: string): LocalizedStaticRouteKey | null {
+	if (/^\/(pt-br\/cursos|es\/programas|courses)\//.test(pathname)) return 'courses'
+	if (/^\/(pt-br\/universidades|es\/universidades|universities)\//.test(pathname)) return 'universities'
+	return null
+}
+
+function withQuery(pathname: string, query: string) {
+	if (!query || pathname.includes('?')) return pathname
+	return `${pathname}?${query}`
 }
 
 function readDocumentLanguageLinks<T extends Record<'en' | 'pt-br' | 'es', string>>(fallbackLinks: T, currentLocale: string): T {

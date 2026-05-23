@@ -1,5 +1,6 @@
 import Layout from "@/components/layout/Layout"
 import { prisma } from "@/lib/prisma"
+import { publicProgramWhere } from "@/lib/study-programs"
 import { revalidatePath } from "next/cache"
 import Link from "next/link"
 
@@ -59,6 +60,7 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 			: status === "noindex"
 				? { reviewStatus: "noindex" }
 				: {
+					reviewStatus: "pending",
 					OR: [
 						{ isLikelyDegreeProgram: false },
 						{ isPublished: false },
@@ -74,7 +76,7 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 			take: 250,
 		}),
 		prisma.degreeProgram.count({
-			where: { isPublished: true, isLikelyDegreeProgram: true, duplicateStatus: { not: "duplicate" }, canonicalProgramId: null },
+			where: publicProgramWhere,
 		}),
 		prisma.degreeProgram.count({
 			where: {
