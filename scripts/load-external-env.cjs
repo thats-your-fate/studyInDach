@@ -1,7 +1,12 @@
 const fs = require("node:fs")
 const path = require("node:path")
 
-const DEFAULT_ENV_FILE = "/home/yaro/project-env/studyInDach.env"
+const ENV_FILE_CANDIDATES = [
+	process.env.EXTERNAL_ENV_FILE,
+	process.env.STUDYINDACH_ENV_FILE,
+	"/var/www/vhosts/studyindach.cc/private/.env",
+	"/home/yaro/project-env/studyInDach.env",
+].filter(Boolean)
 
 function parseEnvLine(line) {
 	const trimmed = line.trim()
@@ -17,8 +22,9 @@ function parseEnvLine(line) {
 	return [key, value]
 }
 
-function loadExternalEnv(filePath = process.env.EXTERNAL_ENV_FILE || DEFAULT_ENV_FILE) {
-	const resolved = path.resolve(filePath)
+function loadExternalEnv(filePath) {
+	const resolved = resolveEnvFile(filePath)
+	if (!resolved) return false
 	if (!fs.existsSync(resolved)) return false
 	const content = fs.readFileSync(resolved, "utf8")
 	for (const line of content.split(/\r?\n/)) {
@@ -28,6 +34,15 @@ function loadExternalEnv(filePath = process.env.EXTERNAL_ENV_FILE || DEFAULT_ENV
 		if (!(key in process.env)) process.env[key] = value
 	}
 	return true
+}
+
+function resolveEnvFile(filePath) {
+	if (filePath) return path.resolve(filePath)
+	for (const candidate of ENV_FILE_CANDIDATES) {
+		const resolved = path.resolve(candidate)
+		if (fs.existsSync(resolved)) return resolved
+	}
+	return null
 }
 
 module.exports = { loadExternalEnv }

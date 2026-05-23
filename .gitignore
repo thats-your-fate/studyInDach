@@ -30,7 +30,7 @@ prisma/*.db-wal
 prisma/*.db-shm
 *.sqlite
 *.sqlite3
-
+PLESK.md
 # Python local tooling
 .venv/
 venv/

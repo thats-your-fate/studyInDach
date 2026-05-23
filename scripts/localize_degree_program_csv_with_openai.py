@@ -253,7 +253,8 @@ def make_openai_client() -> Any:
     except ImportError as error:
         raise RuntimeError("Missing dependency: run `python3 -m pip install -r scripts/requirements.txt`.") from error
 
-    load_dotenv(Path(os.environ.get("EXTERNAL_ENV_FILE", "/home/yaro/project-env/studyInDach.env")))
+    load_dotenv(Path(os.environ.get("EXTERNAL_ENV_FILE", os.environ.get("STUDYINDACH_ENV_FILE", "/var/www/vhosts/studyindach.cc/private/.env"))))
+    load_dotenv(Path("/home/yaro/project-env/studyInDach.env"))
     load_dotenv(PROJECT_ROOT / ".env")
     if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY is not set in the environment or project .env file.")
