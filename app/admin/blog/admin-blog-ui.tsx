@@ -102,11 +102,68 @@ async function importSingleLocaleBlogPost(formData: FormData) {
 	if (!title || !contentMd) return
 
 	const status = normalizeStatus(String(payload.status || "draft"))
-	const slug = await uniqueBlogSlug(String(payload.slug || title), locale)
-	const translationKey = await uniqueTranslationKey(slugKey(String(payload.translationKey || slug || title)) || randomUUID())
+	const requestedTranslationKey = slugKey(String(payload.translationKey || title))
+	const existingPost = requestedTranslationKey
+		? await prisma.blogPost.findUnique({
+			where: { translationKey: requestedTranslationKey },
+			include: { translations: true, tags: true },
+		})
+		: null
+	const existingTranslation = existingPost?.translations.find((translation) => translation.locale === locale)
+	const slug = await uniqueBlogSlug(String(payload.slug || title), locale, existingTranslation?.id)
+	const translationKey = existingPost?.translationKey || await uniqueTranslationKey(requestedTranslationKey || slugKey(slug) || randomUUID())
 	const categoryId = await upsertImportedCategory(payload.category, locale)
 	const tagIds = await upsertImportedTags(payload.tags, locale)
 	const coverImageUrl = nullableImportString(payload.coverImageUrl) || randomStudyCoverImage()
+	const translationPayload = {
+		locale,
+		slug,
+		title,
+		excerpt: nullableImportString(payload.excerpt),
+		contentMd,
+		contentHtml: markdownToHtml(contentMd),
+		seoTitle: nullableImportString(payload.seoTitle),
+		seoDescription: nullableImportString(payload.seoDescription),
+		seoKeywords: nullableImportString(payload.seoKeywords),
+		ogTitle: nullableImportString(payload.ogTitle),
+		ogDescription: nullableImportString(payload.ogDescription),
+		ogImageUrl: nullableImportString(payload.ogImageUrl) || coverImageUrl,
+		readingMinutes: readingMinutes(contentMd),
+		tableOfContents: stringifyOptionalJson(payload.tableOfContents),
+	}
+
+	if (existingPost) {
+		const existingTagIds = new Set(existingPost.tags.map((tag) => tag.tagId))
+		await prisma.blogPost.update({
+			where: { id: existingPost.id },
+			data: {
+				status,
+				type: normalizeType(String(payload.type || existingPost.type || "guide")),
+				publishedAt: status === "published" ? existingPost.publishedAt || new Date() : existingPost.publishedAt,
+				authorName: nullableImportString(payload.authorName) || existingPost.authorName || DEFAULT_BLOG_AUTHOR,
+				coverImageUrl: nullableImportString(payload.coverImageUrl) || existingPost.coverImageUrl || coverImageUrl,
+				coverImageAlt: nullableImportString(payload.coverImageAlt) || existingPost.coverImageAlt,
+				featured: Boolean(payload.featured),
+				noindex: Boolean(payload.noindex),
+				categoryId: categoryId || existingPost.categoryId,
+				translations: {
+					upsert: {
+						where: { postId_locale: { postId: existingPost.id, locale } },
+						create: translationPayload,
+						update: translationPayload,
+					},
+				},
+				tags: {
+					create: tagIds.filter((tagId) => !existingTagIds.has(tagId)).map((tagId) => ({ tagId })),
+				},
+			},
+		})
+		await replaceImportedLocaleBlocks(existingPost.id, payload, locale)
+		await attachImportedLinks(existingPost.id, payload)
+		revalidateBlog([slug, ...existingPost.translations.map((translation) => translation.slug)])
+		redirect(`/admin/blog/${existingPost.id}`)
+	}
+
 	const post = await prisma.blogPost.create({
 		data: {
 			status,
@@ -120,22 +177,7 @@ async function importSingleLocaleBlogPost(formData: FormData) {
 			translationKey,
 			categoryId,
 			translations: {
-				create: {
-					locale,
-					slug,
-					title,
-					excerpt: nullableImportString(payload.excerpt),
-					contentMd,
-					contentHtml: markdownToHtml(contentMd),
-					seoTitle: nullableImportString(payload.seoTitle),
-					seoDescription: nullableImportString(payload.seoDescription),
-					seoKeywords: nullableImportString(payload.seoKeywords),
-					ogTitle: nullableImportString(payload.ogTitle),
-					ogDescription: nullableImportString(payload.ogDescription),
-					ogImageUrl: nullableImportString(payload.ogImageUrl) || coverImageUrl,
-					readingMinutes: readingMinutes(contentMd),
-					tableOfContents: stringifyOptionalJson(payload.tableOfContents),
-				},
+				create: translationPayload,
 			},
 			tags: {
 				create: tagIds.map((tagId) => ({ tagId })),
@@ -510,6 +552,44 @@ function importedUniversityLinks(links: any) {
 			sortOrder: Number(typeof link === "object" ? link.sortOrder : 0) || index + 1,
 		}))
 		.filter((link) => link.universityId)
+}
+
+async function replaceImportedLocaleBlocks(postId: number, payload: any, locale: PublicLocale) {
+	await prisma.blogPostFilterBlock.deleteMany({ where: { postId, locale } })
+	await prisma.blogPostFaq.deleteMany({ where: { postId, locale } })
+	const filterBlocks = importedFilterBlocks(payload.filterBlocks, locale)
+	const faqs = importedFaqs(payload.faqs, locale)
+	if (filterBlocks.length) {
+		await prisma.blogPostFilterBlock.createMany({
+			data: filterBlocks.map((block) => ({ ...block, postId })),
+		})
+	}
+	if (faqs.length) {
+		await prisma.blogPostFaq.createMany({
+			data: faqs.map((faq) => ({ ...faq, postId })),
+		})
+	}
+}
+
+async function attachImportedLinks(postId: number, payload: any) {
+	const [existingProgramLinks, existingUniversityLinks] = await Promise.all([
+		prisma.blogPostProgramLink.findMany({ where: { postId }, select: { programId: true } }),
+		prisma.blogPostUniversityLink.findMany({ where: { postId }, select: { universityId: true } }),
+	])
+	const existingProgramIds = new Set(existingProgramLinks.map((link) => link.programId))
+	const existingUniversityIds = new Set(existingUniversityLinks.map((link) => link.universityId))
+	const programLinks = importedProgramLinks(payload.programLinks).filter((link) => !existingProgramIds.has(link.programId))
+	const universityLinks = importedUniversityLinks(payload.universityLinks).filter((link) => !existingUniversityIds.has(link.universityId))
+	if (programLinks.length) {
+		await prisma.blogPostProgramLink.createMany({
+			data: programLinks.map((link) => ({ ...link, postId })),
+		})
+	}
+	if (universityLinks.length) {
+		await prisma.blogPostUniversityLink.createMany({
+			data: universityLinks.map((link) => ({ ...link, postId })),
+		})
+	}
 }
 
 function slugKey(value: string) {
