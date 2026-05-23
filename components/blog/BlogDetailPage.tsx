@@ -34,7 +34,7 @@ export async function getPublishedBlogPost(slug: string, locale: PublicLocale) {
 						orderBy: { sortOrder: "asc" },
 					},
 					universityLinks: { include: { university: true }, orderBy: { sortOrder: "asc" } },
-					filterBlocks: { where: { OR: [{ locale }, { locale: null }] }, orderBy: { sortOrder: "asc" } },
+					filterBlocks: { where: { enabled: true, OR: [{ locale }, { locale: null }] }, orderBy: { sortOrder: "asc" } },
 					faqs: { where: { OR: [{ locale }, { locale: null }] }, orderBy: { sortOrder: "asc" } },
 				},
 			},
@@ -208,6 +208,11 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 											</div>
 										))}
 									</div>
+									{block.ctaHref && (
+										<Link href={block.ctaHref} className="btn btn-outline-secondary mt-4">
+											{block.ctaLabel || "View all programs"}
+										</Link>
+									)}
 								</div>
 							))}
 

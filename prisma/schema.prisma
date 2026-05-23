@@ -282,14 +282,21 @@ model BlogPostFilterBlock {
   id          Int      @id @default(autoincrement())
   postId      Int
   post        BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  key         String?
   locale      String?
   title       String
   description String?
   filterJson  String
   limit       Int      @default(8)
   sortOrder   Int      @default(0)
+  ctaLabel    String?
+  ctaHref     String?
+  displayMode String   @default("cards")
+  enabled     Boolean  @default(true)
 
   @@index([postId])
+  @@index([key])
+  @@index([enabled])
 }
 
 model BlogPostFaq {

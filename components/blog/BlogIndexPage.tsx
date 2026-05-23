@@ -33,8 +33,10 @@ export default async function BlogIndexPage({
 			translations: { where: { locale }, take: 1 },
 			category: { include: { translations: { where: { locale }, take: 1 } } },
 		},
-		orderBy: [{ publishedAt: "desc" }],
+		orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
 	})
+	const featuredPosts = posts.filter((post) => post.featured)
+	const regularPosts = posts.filter((post) => !post.featured)
 	const blogJsonLd = {
 		"@context": "https://schema.org",
 		"@type": "Blog",
@@ -88,27 +90,46 @@ export default async function BlogIndexPage({
 							<p>{emptyText}</p>
 						</div>
 					) : (
-						<div className="row g-4">
-							{posts.map((post) => (
-								<div className="col-md-6 col-lg-4" key={post.id}>
-									<Link href={blogPostPath(post.translations[0].slug, locale)} className="card-news d-block bg-secondary-2 rounded-3 h-100 overflow-hidden hover-up">
-										{post.coverImageUrl && (
-											<img src={post.coverImageUrl} alt={post.coverImageAlt || ""} className="w-100" style={{ height: 220, objectFit: "cover" }} />
-										)}
-										<div className="p-5">
-											<p className="fs-7 text-uppercase text-primary fw-bold mb-2">{formatBlogDate(post.publishedAt)}</p>
-											<h4 className="text-primary mb-3">{post.translations[0].title}</h4>
-											<p className="mb-4">{post.translations[0].excerpt || excerptFromContent(post.translations[0].contentMd)}</p>
-											<span className="btn-text text-primary">{readLabel}</span>
+						<>
+							{featuredPosts.length > 0 && (
+								<div className="row g-4 mb-6">
+									{featuredPosts.map((post) => (
+										<div className="col-12" key={post.id}>
+											<BlogCard post={post} locale={locale} readLabel={readLabel} featured />
 										</div>
-									</Link>
+									))}
 								</div>
-							))}
-						</div>
+							)}
+							<div className="row g-4">
+								{regularPosts.map((post) => (
+									<div className="col-md-6 col-lg-4" key={post.id}>
+										<BlogCard post={post} locale={locale} readLabel={readLabel} />
+									</div>
+								))}
+							</div>
+						</>
 					)}
 				</div>
 			</section>
 		</Layout>
+	)
+}
+
+function BlogCard({ post, locale, readLabel, featured = false }: { post: any; locale: PublicLocale; readLabel: string; featured?: boolean }) {
+	return (
+		<Link href={blogPostPath(post.translations[0].slug, locale)} className={`card-news d-block bg-secondary-2 rounded-3 h-100 overflow-hidden hover-up ${featured ? "row g-0 align-items-stretch" : ""}`}>
+			{post.coverImageUrl && (
+				<div className={featured ? "col-lg-5" : ""}>
+					<img src={post.coverImageUrl} alt={post.coverImageAlt || ""} className="w-100 h-100" style={{ minHeight: featured ? 320 : 220, maxHeight: featured ? 420 : 220, objectFit: "cover" }} />
+				</div>
+			)}
+			<div className={featured ? "col-lg-7 p-6" : "p-5"}>
+				<p className="fs-7 text-uppercase text-primary fw-bold mb-2">{featured ? "Featured · " : ""}{formatBlogDate(post.publishedAt)}</p>
+				<h4 className="text-primary mb-3">{post.translations[0].title}</h4>
+				<p className="mb-4">{post.translations[0].excerpt || excerptFromContent(post.translations[0].contentMd)}</p>
+				<span className="btn-text text-primary">{readLabel}</span>
+			</div>
+		</Link>
 	)
 }
 

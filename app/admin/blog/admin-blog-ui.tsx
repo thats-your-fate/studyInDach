@@ -29,18 +29,21 @@ async function createBlogPost(formData: FormData) {
 	if (!title || !contentMd) return
 
 	const status = normalizeStatus(field(formData, "status"))
-	const slug = await uniqueBlogSlug(title, locale)
+	const slug = await uniqueBlogSlug(field(formData, "slug") || title, locale)
+	const translationKey = await uniqueTranslationKey(slugKey(field(formData, "translationKey")) || slugKey(title) || randomUUID())
+	const filterBlockTitle = field(formData, "filterBlockTitle")
+	const filterBlockJson = field(formData, "filterBlockJson")
 	const post = await prisma.blogPost.create({
 		data: {
 			status,
 			type: normalizeType(field(formData, "type")),
 			publishedAt: status === "published" ? new Date() : null,
 			authorName: nullableField(formData, "authorName") || DEFAULT_BLOG_AUTHOR,
-			coverImageUrl: randomStudyCoverImage(),
+			coverImageUrl: nullableField(formData, "coverImageUrl") || randomStudyCoverImage(),
 			coverImageAlt: nullableField(formData, "coverImageAlt"),
 			featured: formData.get("featured") === "on",
 			noindex: formData.get("noindex") === "on",
-			translationKey: randomUUID(),
+			translationKey,
 			categoryId: numericField(formData, "categoryId"),
 			translations: {
 				create: {
@@ -52,12 +55,31 @@ async function createBlogPost(formData: FormData) {
 					contentHtml: markdownToHtml(contentMd),
 					seoTitle: nullableField(formData, "seoTitle"),
 					seoDescription: nullableField(formData, "seoDescription"),
+					seoKeywords: nullableField(formData, "seoKeywords"),
+					ogTitle: nullableField(formData, "ogTitle"),
+					ogDescription: nullableField(formData, "ogDescription"),
+					ogImageUrl: nullableField(formData, "ogImageUrl"),
 					readingMinutes: readingMinutes(contentMd),
 				},
 			},
 			tags: {
 				create: tagIds(formData).map((tagId) => ({ tagId })),
 			},
+			filterBlocks: filterBlockTitle && filterBlockJson ? {
+				create: {
+					key: nullableField(formData, "filterBlockKey"),
+					locale: nullableField(formData, "filterBlockLocale") || locale,
+					title: filterBlockTitle,
+					description: nullableField(formData, "filterBlockDescription"),
+					filterJson: filterBlockJson,
+					limit: numericField(formData, "filterBlockLimit") || 6,
+					sortOrder: numericField(formData, "filterBlockSortOrder") || 1,
+					ctaLabel: nullableField(formData, "filterBlockCtaLabel"),
+					ctaHref: nullableField(formData, "filterBlockCtaHref"),
+					displayMode: field(formData, "filterBlockDisplayMode") || "cards",
+					enabled: formData.get("filterBlockEnabled") === "on",
+				},
+			} : undefined,
 		},
 	})
 
@@ -192,12 +214,17 @@ async function addFilterBlock(formData: FormData) {
 	await prisma.blogPostFilterBlock.create({
 		data: {
 			postId,
+			key: nullableField(formData, "key"),
 			locale: nullableField(formData, "locale"),
 			title: field(formData, "title"),
 			description: nullableField(formData, "description"),
 			filterJson: field(formData, "filterJson") || "{}",
 			limit: numericField(formData, "limit") || 8,
 			sortOrder: numericField(formData, "sortOrder") || 0,
+			ctaLabel: nullableField(formData, "ctaLabel"),
+			ctaHref: nullableField(formData, "ctaHref"),
+			displayMode: field(formData, "displayMode") || "cards",
+			enabled: formData.get("enabled") === "on",
 		},
 	})
 	revalidateBlog()
@@ -318,6 +345,16 @@ async function uniqueTagSlug(name: string, locale: string) {
 	return slug
 }
 
+async function uniqueTranslationKey(baseValue: string) {
+	const baseKey = slugKey(baseValue) || randomUUID()
+	let key = baseKey
+	let suffix = 2
+	while (await prisma.blogPost.findUnique({ where: { translationKey: key }, select: { id: true } })) {
+		key = `${baseKey}-${suffix++}`
+	}
+	return key
+}
+
 export async function AdminBlogPage({ searchParams }: { searchParams?: BlogAdminSearchParams }) {
 	const status = searchParams?.status || ""
 	const selectedPostId = Number(searchParams?.post)
@@ -395,6 +432,7 @@ export function PostEditor({ post, categories, tags }: { post: any; categories: 
 			</div>
 			<form action={updateBlogPostSettings} className="row g-3 border rounded-3 p-4">
 				<input type="hidden" name="id" value={post.id} />
+				<TextInput label="Translation key" name="translationKeyDisplay" value={post.translationKey} className="col-12" />
 				<SelectInput label="Status" name="status" value={post.status} options={postStatuses} className="col-md-3" />
 				<SelectInput label="Type" name="type" value={post.type} options={postTypes} className="col-md-3" />
 				<SelectCategory categories={categories} value={post.categoryId} className="col-md-6" />
@@ -422,22 +460,45 @@ export function PostEditor({ post, categories, tags }: { post: any; categories: 
 export function BlogCreateForm({ categories, tags }: { categories: any[]; tags: any[] }) {
 	return (
 		<form action={createBlogPost} className="row g-3">
-			<TextInput label="Title" name="title" className="col-12" required />
+			<TextInput label="Translation key" name="translationKey" value="find-english-taught-masters-germany" className="col-md-6" />
+			<SelectInput label="Locale" name="locale" value="pt-br" options={locales} className="col-md-3" />
+			<SelectInput label="Status" name="status" value="draft" options={postStatuses} className="col-md-3" />
+			<TextInput label="Slug" name="slug" value="como-encontrar-mestrado-na-alemanha-em-ingles" className="col-12" />
+			<TextInput label="Title" name="title" value="Como encontrar mestrado na Alemanha em inglês" className="col-12" required />
 			<TextArea label="Excerpt" name="excerpt" className="col-12" rows={3} />
 			<TextArea label="Content markdown" name="contentMd" className="col-12" rows={8} required />
-			<TextInput label="Author" name="authorName" value={DEFAULT_BLOG_AUTHOR} className="col-md-6" />
-			<SelectInput label="Locale" name="locale" value="en" options={locales} className="col-md-6" />
-			<SelectInput label="Status" name="status" value="draft" options={postStatuses} className="col-md-6" />
+			<TextInput label="Author" name="authorName" value={DEFAULT_BLOG_AUTHOR} className="col-md-4" />
 			<SelectInput label="Type" name="type" value="guide" options={postTypes} className="col-md-6" />
-			<SelectCategory categories={categories} className="col-12" />
-			<TextInput label="Cover alt" name="coverImageAlt" className="col-12" />
+			<SelectCategory categories={categories} className="col-md-6" />
+			<TextInput label="Cover image URL" name="coverImageUrl" value="/images/blog/masters-germany-english.webp" className="col-md-6" />
+			<TextInput label="Cover alt" name="coverImageAlt" value="Estudante pesquisando programas de mestrado em inglês na Alemanha" className="col-md-6" />
 			<div className="col-12 d-flex gap-4">
-				<Checkbox label="Featured" name="featured" />
+				<Checkbox label="Featured" name="featured" checked />
 				<Checkbox label="Noindex" name="noindex" />
 			</div>
 			<TagCheckboxes tags={tags} selectedTagIds={new Set<number>()} />
 			<TextInput label="SEO title" name="seoTitle" className="col-12" />
 			<TextArea label="SEO description" name="seoDescription" className="col-12" rows={3} />
+			<TextInput label="SEO keywords" name="seoKeywords" className="col-12" />
+			<TextInput label="OG title" name="ogTitle" className="col-md-6" />
+			<TextInput label="OG image URL" name="ogImageUrl" className="col-md-6" />
+			<TextArea label="OG description" name="ogDescription" className="col-12" rows={3} />
+			<div className="col-12 pt-4 border-top">
+				<h5 className="text-primary mb-0">Initial featured/filter block</h5>
+			</div>
+			<TextInput label="Block key" name="filterBlockKey" value="masters-english-germany" className="col-md-4" />
+			<SelectInput label="Block locale" name="filterBlockLocale" value="pt-br" options={["", ...locales]} className="col-md-2" />
+			<TextInput label="Block order" name="filterBlockSortOrder" value="1" className="col-md-2" />
+			<TextInput label="Block limit" name="filterBlockLimit" value="6" className="col-md-2" />
+			<SelectInput label="Display mode" name="filterBlockDisplayMode" value="cards" options={["cards", "list"]} className="col-md-2" />
+			<TextInput label="Block title" name="filterBlockTitle" value="Mestrados em inglês na Alemanha" className="col-12" />
+			<TextInput label="Block description" name="filterBlockDescription" value="Veja programas de mestrado na Alemanha ministrados em inglês e compare opções por área, universidade, cidade e custo." className="col-12" />
+			<TextArea label="Filter JSON" name="filterBlockJson" value='{"country":["Germany"],"degreeLevel":["Master"],"languageOfInstruction":["English"]}' className="col-12" rows={3} />
+			<TextInput label="CTA label" name="filterBlockCtaLabel" value="Ver todos os mestrados em inglês na Alemanha" className="col-md-6" />
+			<TextInput label="CTA href" name="filterBlockCtaHref" value="/pt-br/cursos?country=Germany&degreeLevel=Master&languageOfInstruction=English" className="col-md-6" />
+			<div className="col-12 d-flex gap-4">
+				<Checkbox label="Filter block enabled" name="filterBlockEnabled" checked />
+			</div>
 			<div className="col-12"><button className="btn btn-primary">Create post</button></div>
 		</form>
 	)
@@ -500,12 +561,19 @@ function RelationForms({ post }: { post: any }) {
 					{post.filterBlocks.map((block: any) => <RelationRow key={block.id} postId={post.id} id={block.id} type="filter" label={`${block.title}: ${block.filterJson}`} />)}
 					<form action={addFilterBlock} className="row g-2 mt-3">
 						<input type="hidden" name="postId" value={post.id} />
+						<TextInput label="Key" name="key" className="col-md-4" />
 						<SelectInput label="Locale" name="locale" value="" options={["", ...locales]} className="col-md-2" />
-						<TextInput label="Title" name="title" className="col-md-4" required />
-						<TextInput label="Description" name="description" className="col-md-6" />
+						<TextInput label="Order" name="sortOrder" value="0" className="col-md-2" />
+						<TextInput label="Limit" name="limit" value="8" className="col-md-2" />
+						<SelectInput label="Display" name="displayMode" value="cards" options={["cards", "list"]} className="col-md-2" />
+						<TextInput label="Title" name="title" className="col-md-5" required />
+						<TextInput label="Description" name="description" className="col-md-7" />
 						<TextArea label="Filter JSON" name="filterJson" value='{"degreeLevel":"Master","country":"Germany"}' className="col-12" rows={3} />
-						<TextInput label="Limit" name="limit" value="8" className="col-md-3" />
-						<TextInput label="Order" name="sortOrder" value="0" className="col-md-3" />
+						<TextInput label="CTA label" name="ctaLabel" className="col-md-6" />
+						<TextInput label="CTA href" name="ctaHref" className="col-md-6" />
+						<div className="col-12 d-flex gap-4">
+							<Checkbox label="Enabled" name="enabled" checked />
+						</div>
 						<div className="col-12"><button className="btn btn-outline-secondary">Add filter block</button></div>
 					</form>
 				</Panel>
