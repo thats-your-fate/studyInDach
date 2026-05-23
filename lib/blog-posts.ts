@@ -77,16 +77,20 @@ export async function uniqueBlogSlug(title: string, locale: string, currentTrans
 }
 
 export function randomStudyCoverImage() {
+	const images = studyCoverImages()
+	if (!images.length) return null
+	return images[Math.floor(Math.random() * images.length)]
+}
+
+export function studyCoverImages() {
 	try {
 		const files = fs.readdirSync(BLOG_IMAGE_DIR)
 			.filter((file) => /\.(avif|webp|jpg|jpeg|png)$/i.test(file))
 			.sort()
 
-		if (!files.length) return null
-		const file = files[Math.floor(Math.random() * files.length)]
-		return `${BLOG_IMAGE_PUBLIC_DIR}/${file}`
+		return files.map((file) => `${BLOG_IMAGE_PUBLIC_DIR}/${file}`)
 	} catch {
-		return null
+		return []
 	}
 }
 
@@ -103,15 +107,8 @@ export function paragraphsFromContent(content: string) {
 }
 
 export function markdownToHtml(markdown: string) {
-	return paragraphsFromContent(markdown)
-		.map((paragraph) => {
-			if (/^#{1,3}\s/.test(paragraph)) {
-				const level = Math.min(3, paragraph.match(/^#+/)?.[0].length || 2)
-				return `<h${level}>${escapeHtml(paragraph.replace(/^#{1,3}\s+/, ""))}</h${level}>`
-			}
-			return `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`
-		})
-		.join("\n")
+	const blocks = markdown.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean)
+	return blocks.map(renderMarkdownBlock).join("\n")
 }
 
 export function readingMinutes(content: string) {
@@ -130,4 +127,33 @@ function escapeHtml(value: string) {
 		.replace(/>/g, "&gt;")
 		.replace(/"/g, "&quot;")
 		.replace(/'/g, "&#039;")
+}
+
+function renderMarkdownBlock(block: string) {
+	if (/^#{1,4}\s/.test(block)) {
+		const level = Math.min(4, block.match(/^#+/)?.[0].length || 2)
+		return `<h${level}>${renderInlineMarkdown(block.replace(/^#{1,4}\s+/, ""))}</h${level}>`
+	}
+	if (block.split("\n").every((line) => /^\s*[-*]\s+/.test(line))) {
+		return `<ul>${block.split("\n").map((line) => `<li>${renderInlineMarkdown(line.replace(/^\s*[-*]\s+/, ""))}</li>`).join("")}</ul>`
+	}
+	if (block.split("\n").every((line) => /^\s*\d+\.\s+/.test(line))) {
+		return `<ol>${block.split("\n").map((line) => `<li>${renderInlineMarkdown(line.replace(/^\s*\d+\.\s+/, ""))}</li>`).join("")}</ol>`
+	}
+	if (block.split("\n").every((line) => /^\s*>\s?/.test(line))) {
+		const quote = block.split("\n").map((line) => line.replace(/^\s*>\s?/, "")).join("\n")
+		return `<blockquote>${renderInlineMarkdown(quote).replace(/\n/g, "<br />")}</blockquote>`
+	}
+	return `<p>${renderInlineMarkdown(block).replace(/\n/g, "<br />")}</p>`
+}
+
+function renderInlineMarkdown(value: string) {
+	let html = escapeHtml(value)
+	html = html.replace(/`([^`]+)`/g, "<code>$1</code>")
+	html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g, '<a href="$2">$1</a>')
+	html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+	html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>")
+	html = html.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
+	html = html.replace(/(^|[^_])_([^_]+)_/g, "$1<em>$2</em>")
+	return html
 }

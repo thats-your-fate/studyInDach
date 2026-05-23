@@ -32,6 +32,7 @@ export default async function BlogIndexPage({
 		include: {
 			translations: { where: { locale }, take: 1 },
 			category: { include: { translations: { where: { locale }, take: 1 } } },
+			tags: { include: { tag: { include: { translations: { where: { locale }, take: 1 } } } } },
 		},
 		orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
 	})
@@ -124,6 +125,12 @@ function BlogCard({ post, locale, readLabel, featured = false }: { post: any; lo
 				</div>
 			)}
 			<div className={featured ? "col-lg-7 p-6" : "p-5"}>
+				<div className="d-flex flex-wrap gap-2 mb-3">
+					{post.category?.translations[0]?.name && <span className="blog-chip blog-chip-primary">{post.category.translations[0].name}</span>}
+					{post.tags?.slice(0, featured ? 6 : 3).map((item: any) => (
+						<span className="blog-chip" key={item.tagId}>{item.tag.translations[0]?.name || item.tag.key}</span>
+					))}
+				</div>
 				<p className="fs-7 text-uppercase text-primary fw-bold mb-2">{featured ? "Featured · " : ""}{formatBlogDate(post.publishedAt)}</p>
 				<h4 className="text-primary mb-3">{post.translations[0].title}</h4>
 				<p className="mb-4">{post.translations[0].excerpt || excerptFromContent(post.translations[0].contentMd)}</p>

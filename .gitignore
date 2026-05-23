@@ -21,10 +21,8 @@ report.*.json
 .env.*
 !.env.example
 
-# Version the current dev SQLite DB for fast local test resets.
-!prisma/dev.db
-
 # Ignore volatile SQLite sidecar files
+prisma/*.db
 prisma/*.db-journal
 prisma/*.db-wal
 prisma/*.db-shm

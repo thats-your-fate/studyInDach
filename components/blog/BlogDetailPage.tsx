@@ -1,6 +1,6 @@
 import Layout from "@/components/layout/Layout"
 import CourseCard from "@/components/sections/courses/CourseCard"
-import { blogIndexPath, blogPostPath, blogSchemaLanguage, formatBlogDate, paragraphsFromContent, publishedBlogWhere } from "@/lib/blog-posts"
+import { blogIndexPath, blogPostPath, blogSchemaLanguage, formatBlogDate, markdownToHtml, publishedBlogWhere } from "@/lib/blog-posts"
 import type { PublicLocale } from "@/lib/i18n"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl, organizationJsonLd } from "@/lib/seo"
@@ -56,6 +56,8 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 	const pageUrl = absoluteUrl(blogPostPath(translation.slug, locale))
 	const image = translation.ogImageUrl || post.coverImageUrl || undefined
 	const faqs = post.faqs.filter((faq) => faq.question && faq.answer)
+	const categoryName = post.category?.translations[0]?.name || null
+	const tags = post.tags.map((item) => item.tag.translations[0]?.name || item.tag.key).filter(Boolean)
 	const blogPostingJsonLd = {
 		"@context": "https://schema.org",
 		"@type": "BlogPosting",
@@ -73,6 +75,8 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 			"@type": "WebPage",
 			"@id": pageUrl,
 		},
+		articleSection: categoryName || undefined,
+		keywords: translation.seoKeywords || tags.join(", ") || undefined,
 		inLanguage: blogSchemaLanguage(locale),
 	}
 	const breadcrumbJsonLd = {
@@ -147,13 +151,15 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 							{post.coverImageUrl && (
 								<img src={post.coverImageUrl} alt={post.coverImageAlt || ""} className="w-100 rounded-3 mb-5" style={{ maxHeight: 520, objectFit: "cover" }} />
 							)}
+							{(categoryName || tags.length > 0) && (
+								<div className="d-flex flex-wrap align-items-center gap-2 mb-4">
+									{categoryName && <span className="blog-chip blog-chip-primary">{categoryName}</span>}
+									{tags.map((tag) => <span className="blog-chip" key={tag}>{tag}</span>)}
+								</div>
+							)}
 							{translation.excerpt && <p className="lead text-primary fw-bold mb-5">{translation.excerpt}</p>}
 							<div className="blog-content">
-								{translation.contentHtml ? (
-									<div dangerouslySetInnerHTML={{ __html: translation.contentHtml }} />
-								) : paragraphsFromContent(translation.contentMd).map((paragraph) => (
-									<p key={paragraph}>{paragraph}</p>
-								))}
+								<div dangerouslySetInnerHTML={{ __html: markdownToHtml(translation.contentMd) }} />
 							</div>
 
 							{faqs.length > 0 && (

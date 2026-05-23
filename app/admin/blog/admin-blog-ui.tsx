@@ -1,5 +1,5 @@
 import Layout from "@/components/layout/Layout"
-import { blogLocale, blogPostPath, formatBlogDate, markdownToHtml, randomStudyCoverImage, readingMinutes, uniqueBlogSlug } from "@/lib/blog-posts"
+import { blogLocale, blogPostPath, formatBlogDate, markdownToHtml, randomStudyCoverImage, readingMinutes, studyCoverImages, uniqueBlogSlug } from "@/lib/blog-posts"
 import type { PublicLocale } from "@/lib/i18n"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
@@ -416,6 +416,7 @@ export async function AdminBlogPage({ searchParams }: { searchParams?: BlogAdmin
 export function PostEditor({ post, categories, tags }: { post: any; categories: any[]; tags: any[] }) {
 	const primaryTranslation = post.translations[0]
 	const selectedTagIds = new Set<number>(post.tags.map((tag: any) => Number(tag.tagId)))
+	const coverImages = studyCoverImages()
 	return (
 		<div className="d-grid gap-5">
 			<div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -437,7 +438,7 @@ export function PostEditor({ post, categories, tags }: { post: any; categories: 
 				<SelectInput label="Type" name="type" value={post.type} options={postTypes} className="col-md-3" />
 				<SelectCategory categories={categories} value={post.categoryId} className="col-md-6" />
 				<TextInput label="Author" name="authorName" value={post.authorName} className="col-md-6" />
-				<TextInput label="Cover image URL" name="coverImageUrl" value={post.coverImageUrl} className="col-md-6" />
+				<SelectCoverImage images={coverImages} value={post.coverImageUrl} className="col-md-6" />
 				<TextInput label="Cover alt" name="coverImageAlt" value={post.coverImageAlt} className="col-12" />
 				<div className="col-12 d-flex gap-4">
 					<Checkbox label="Featured" name="featured" checked={post.featured} />
@@ -458,6 +459,7 @@ export function PostEditor({ post, categories, tags }: { post: any; categories: 
 }
 
 export function BlogCreateForm({ categories, tags }: { categories: any[]; tags: any[] }) {
+	const coverImages = studyCoverImages()
 	return (
 		<form action={createBlogPost} className="row g-3">
 			<TextInput label="Translation key" name="translationKey" value="find-english-taught-masters-germany" className="col-md-6" />
@@ -470,7 +472,7 @@ export function BlogCreateForm({ categories, tags }: { categories: any[]; tags: 
 			<TextInput label="Author" name="authorName" value={DEFAULT_BLOG_AUTHOR} className="col-md-4" />
 			<SelectInput label="Type" name="type" value="guide" options={postTypes} className="col-md-6" />
 			<SelectCategory categories={categories} className="col-md-6" />
-			<TextInput label="Cover image URL" name="coverImageUrl" value="/images/blog/masters-germany-english.webp" className="col-md-6" />
+			<SelectCoverImage images={coverImages} value={coverImages[0] || "/images/blog/masters-germany-english.webp"} className="col-md-6" />
 			<TextInput label="Cover alt" name="coverImageAlt" value="Estudante pesquisando programas de mestrado em inglês na Alemanha" className="col-md-6" />
 			<div className="col-12 d-flex gap-4">
 				<Checkbox label="Featured" name="featured" checked />
@@ -705,6 +707,20 @@ function SelectCategory({ categories, value, className }: { categories: any[]; v
 				<option value="">No category</option>
 				{categories.map((category) => <option key={category.id} value={category.id}>{category.translations[0]?.name || category.key}</option>)}
 			</select>
+		</label>
+	)
+}
+
+function SelectCoverImage({ images, value, className }: { images: string[]; value?: string | null; className?: string }) {
+	return (
+		<label className={className}>
+			<span className="fs-7 text-uppercase text-primary fw-bold">Featured image</span>
+			<select className="form-control mt-1" name="coverImageUrl" defaultValue={value || ""}>
+				<option value="">Random library image</option>
+				{value && !images.includes(value) && <option value={value}>{value}</option>}
+				{images.map((image) => <option value={image} key={image}>{image.split("/").pop()}</option>)}
+			</select>
+			{value && <img src={value} alt="" className="w-100 mt-3 rounded-3" style={{ maxHeight: 180, objectFit: "cover" }} />}
 		</label>
 	)
 }
