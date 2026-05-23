@@ -170,6 +170,7 @@ model BlogPost {
   programLinks    BlogPostProgramLink[]
   universityLinks BlogPostUniversityLink[]
   filterBlocks    BlogPostFilterBlock[]
+  faqs            BlogPostFaq[]
 
   @@index([status, publishedAt])
   @@index([type])
@@ -289,4 +290,19 @@ model BlogPostFilterBlock {
   sortOrder   Int      @default(0)
 
   @@index([postId])
+}
+
+model BlogPostFaq {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  locale    String?
+  question  String
+  answer    String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([locale])
 }

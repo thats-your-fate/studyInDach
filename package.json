@@ -7,20 +7,20 @@
     "npm": "10.x"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
-    "start": "node server.js",
-    "start:passenger": "NODE_ENV=production node server.js",
-    "plesk:build": "prisma db push && prisma generate && next build",
+    "dev": "node scripts/with-env.cjs -- \"next dev\"",
+    "build": "node scripts/with-env.cjs -- \"prisma generate && next build\"",
+    "start": "node scripts/with-env.cjs -- \"node server.js\"",
+    "start:passenger": "NODE_ENV=production node scripts/with-env.cjs -- \"node server.js\"",
+    "plesk:build": "node scripts/with-env.cjs -- \"prisma db push && prisma generate && next build\"",
     "lint": "next lint",
-    "seo:check": "node scripts/seo-check.mjs",
-    "localized-url:check": "node scripts/check-localized-url-regressions.cjs",
-    "quality:flag": "node scripts/flag-non-degree-programs.cjs",
-    "quality:flag:dry": "node scripts/flag-non-degree-programs.cjs --dry-run",
-    "db:push": "prisma db push",
-    "db:seed": "prisma db seed",
-    "db:seed:dach": "node prisma/seed.cjs --dataset dach",
-    "postinstall": "prisma generate"
+    "seo:check": "node scripts/with-env.cjs -- \"node scripts/seo-check.mjs\"",
+    "localized-url:check": "node scripts/with-env.cjs -- \"node scripts/check-localized-url-regressions.cjs\"",
+    "quality:flag": "node scripts/with-env.cjs -- \"node scripts/flag-non-degree-programs.cjs\"",
+    "quality:flag:dry": "node scripts/with-env.cjs -- \"node scripts/flag-non-degree-programs.cjs --dry-run\"",
+    "db:push": "node scripts/with-env.cjs -- \"prisma db push\"",
+    "db:seed": "node scripts/with-env.cjs -- \"prisma db seed\"",
+    "db:seed:dach": "node scripts/with-env.cjs -- \"node prisma/seed.cjs --dataset dach\"",
+    "postinstall": "node scripts/with-env.cjs -- \"prisma generate\""
   },
   "prisma": {
     "seed": "node prisma/seed.cjs"

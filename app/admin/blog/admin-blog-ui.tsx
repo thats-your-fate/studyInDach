@@ -204,6 +204,25 @@ async function addFilterBlock(formData: FormData) {
 	redirect(`/admin/blog/${postId}`)
 }
 
+async function addFaq(formData: FormData) {
+	"use server"
+	const postId = numericField(formData, "postId")
+	const question = field(formData, "question")
+	const answer = field(formData, "answer")
+	if (!postId || !question || !answer) return
+	await prisma.blogPostFaq.create({
+		data: {
+			postId,
+			locale: nullableField(formData, "locale"),
+			question,
+			answer,
+			sortOrder: numericField(formData, "sortOrder") || 0,
+		},
+	})
+	revalidateBlog()
+	redirect(`/admin/blog/${postId}`)
+}
+
 async function deleteBlogRelation(formData: FormData) {
 	"use server"
 	const postId = numericField(formData, "postId")
@@ -213,6 +232,7 @@ async function deleteBlogRelation(formData: FormData) {
 	if (type === "program") await prisma.blogPostProgramLink.delete({ where: { id } })
 	if (type === "university") await prisma.blogPostUniversityLink.delete({ where: { id } })
 	if (type === "filter") await prisma.blogPostFilterBlock.delete({ where: { id } })
+	if (type === "faq") await prisma.blogPostFaq.delete({ where: { id } })
 	revalidateBlog()
 	redirect(`/admin/blog/${postId}`)
 }
@@ -318,6 +338,7 @@ export async function AdminBlogPage({ searchParams }: { searchParams?: BlogAdmin
 					programLinks: { include: { program: { include: { university: true } } }, orderBy: { sortOrder: "asc" } },
 					universityLinks: { include: { university: true }, orderBy: { sortOrder: "asc" } },
 					filterBlocks: { orderBy: { sortOrder: "asc" } },
+					faqs: { orderBy: { sortOrder: "asc" } },
 				},
 			})
 			: null,
@@ -486,6 +507,19 @@ function RelationForms({ post }: { post: any }) {
 						<TextInput label="Limit" name="limit" value="8" className="col-md-3" />
 						<TextInput label="Order" name="sortOrder" value="0" className="col-md-3" />
 						<div className="col-12"><button className="btn btn-outline-secondary">Add filter block</button></div>
+					</form>
+				</Panel>
+			</div>
+			<div className="col-12">
+				<Panel eyebrow="FAQ" title="Blog post FAQs">
+					{post.faqs?.map((faq: any) => <RelationRow key={faq.id} postId={post.id} id={faq.id} type="faq" label={`${faq.locale || "all"}: ${faq.question}`} />)}
+					<form action={addFaq} className="row g-2 mt-3">
+						<input type="hidden" name="postId" value={post.id} />
+						<SelectInput label="Locale" name="locale" value="" options={["", ...locales]} className="col-md-2" />
+						<TextInput label="Order" name="sortOrder" value="0" className="col-md-2" />
+						<TextInput label="Question" name="question" className="col-md-8" required />
+						<TextArea label="Answer" name="answer" className="col-12" rows={4} required />
+						<div className="col-12"><button className="btn btn-outline-secondary">Add FAQ</button></div>
 					</form>
 				</Panel>
 			</div>

@@ -34,7 +34,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT = PROJECT_ROOT / "unisDE.csv"
 DEFAULT_OUTPUT = PROJECT_ROOT / "unisDE.enriched.csv"
 DEFAULT_CHECKPOINT = PROJECT_ROOT / "scripts" / ".university_url_enrichment_checkpoint.json"
-ENV_PATH = PROJECT_ROOT / ".env"
+ENV_PATH = Path(os.environ.get("EXTERNAL_ENV_FILE", "/home/yaro/project-env/studyInDach.env"))
 
 WEBSITE_COLUMN = "Website URL"
 SITEMAP_COLUMN = "Sitemap URL"

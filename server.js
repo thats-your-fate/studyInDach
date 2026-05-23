@@ -1,4 +1,5 @@
 const { createServer } = require("node:http");
+require("./scripts/load-external-env.cjs").loadExternalEnv();
 const next = require("next");
 
 const hostname = "0.0.0.0";

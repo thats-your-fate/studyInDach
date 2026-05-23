@@ -19,6 +19,7 @@ export default async function EditBlogPostPage({ params }: { params: { postId: s
 				programLinks: { include: { program: { include: { university: true } } }, orderBy: { sortOrder: "asc" } },
 				universityLinks: { include: { university: true }, orderBy: { sortOrder: "asc" } },
 				filterBlocks: { orderBy: { sortOrder: "asc" } },
+				faqs: { orderBy: { sortOrder: "asc" } },
 			},
 		}),
 		prisma.blogCategory.findMany({ include: { translations: true }, orderBy: [{ sortOrder: "asc" }, { key: "asc" }] }),

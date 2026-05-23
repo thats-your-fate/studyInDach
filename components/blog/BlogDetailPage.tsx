@@ -35,6 +35,7 @@ export async function getPublishedBlogPost(slug: string, locale: PublicLocale) {
 					},
 					universityLinks: { include: { university: true }, orderBy: { sortOrder: "asc" } },
 					filterBlocks: { where: { OR: [{ locale }, { locale: null }] }, orderBy: { sortOrder: "asc" } },
+					faqs: { where: { OR: [{ locale }, { locale: null }] }, orderBy: { sortOrder: "asc" } },
 				},
 			},
 		},
@@ -54,6 +55,7 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 	}))
 	const pageUrl = absoluteUrl(blogPostPath(translation.slug, locale))
 	const image = translation.ogImageUrl || post.coverImageUrl || undefined
+	const faqs = post.faqs.filter((faq) => faq.question && faq.answer)
 	const blogPostingJsonLd = {
 		"@context": "https://schema.org",
 		"@type": "BlogPosting",
@@ -93,6 +95,18 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 			name: link.label || link.program.translations[0]?.localizedProgramName || link.program.programName,
 		})),
 	} : null
+	const faqJsonLd = faqs.length ? {
+		"@context": "https://schema.org",
+		"@type": "FAQPage",
+		mainEntity: faqs.map((faq) => ({
+			"@type": "Question",
+			name: faq.question,
+			acceptedAnswer: {
+				"@type": "Answer",
+				text: faq.answer,
+			},
+		})),
+	} : null
 
 	return (
 		<Layout>
@@ -108,6 +122,12 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 				<script
 					type="application/ld+json"
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(relatedProgramsJsonLd) }}
+				/>
+			)}
+			{faqJsonLd && (
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
 				/>
 			)}
 			<section className="elearning-about-section-1 position-relative pt-250-keep pb-120 pb-lg-150 bg-primary rounded-bottom-4 overflow-hidden">
@@ -135,6 +155,23 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 									<p key={paragraph}>{paragraph}</p>
 								))}
 							</div>
+
+							{faqs.length > 0 && (
+								<div className="program-detail-section mt-6">
+									<div className="section-heading">
+										<p>{faqEyebrow(locale)}</p>
+										<h2>{faqTitle(locale)}</h2>
+									</div>
+									<div className="accordion" id="blog-faqs">
+										{faqs.map((faq, index) => (
+											<div className="border-bottom py-3" key={faq.id}>
+												<h3 className="fs-4 text-primary mb-2">{faq.question}</h3>
+												<p className="mb-0">{faq.answer}</p>
+											</div>
+										))}
+									</div>
+								</div>
+							)}
 
 							{post.programLinks.length > 0 && (
 								<RelatedPanel title="Related programs">
@@ -214,6 +251,18 @@ function blogHubName(locale: PublicLocale) {
 	if (locale === "pt-br") return "Guias"
 	if (locale === "es") return "Guías"
 	return "Blog"
+}
+
+function faqEyebrow(locale: PublicLocale) {
+	if (locale === "pt-br") return "Perguntas frequentes"
+	if (locale === "es") return "Preguntas frecuentes"
+	return "FAQ"
+}
+
+function faqTitle(locale: PublicLocale) {
+	if (locale === "pt-br") return "Perguntas sobre este guia"
+	if (locale === "es") return "Preguntas sobre esta guía"
+	return "Questions about this guide"
 }
 
 export function localizedBlogPostUrl(slug: string, locale: PublicLocale) {
