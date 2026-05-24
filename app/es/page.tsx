@@ -2,6 +2,7 @@ import Layout from "@/components/layout/Layout"
 import Section1 from "@/components/sections/home1/Section1"
 import Section2 from "@/components/sections/home1/Section2"
 import Section3 from "@/components/sections/home1/Section3"
+import SectionLatestGuides from "@/components/sections/home1/SectionLatestGuides"
 import SectionVisualBlocks from "@/components/sections/home1/SectionVisualBlocks"
 import { localizedStaticAlternates } from "@/lib/localized-static-urls"
 import { absoluteUrl } from "@/lib/seo"
@@ -25,6 +26,7 @@ export default function EsHome() {
 			<Section2 locale="es" />
 			<Section3 locale="es" />
 			<SectionVisualBlocks locale="es" />
+			<SectionLatestGuides locale="es" />
 		</Layout>
 	)
 }

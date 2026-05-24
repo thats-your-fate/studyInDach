@@ -298,12 +298,13 @@ function InfoCard({ label, value, icon }: { label: string; value: string; icon: 
 
 function RelatedProgramCard({ program, locale }: { program: ProgramCard; locale: PublicLocale }) {
 	const ui = coursesUi[locale]
-	const degreeLabel = joinMetaSegments(uniqueInOrder([program.degreeLevel, displayAcademicDegree(program.academicDegree)]
+	const degreeSegments = uniqueInOrder([program.degreeLevel, displayAcademicDegree(program.academicDegree)]
 		.filter(isUsefulValue)
 		.map((item) => optionLabel(item, locale))
-		.filter((item) => !titleStartsWithDegree(program.title, item))))
+		.filter((item) => !titleStartsWithDegree(program.title, item)))
 	const fieldLabel = optionalLocalizedValue(program.studyField || program.subjectArea, locale)
 	const languageLabel = displayLanguageCombination(program.languageOfInstruction, locale, " / ")
+	const metadata = joinMetaSegments([...degreeSegments, fieldLabel, languageLabel].filter(isUsefulValue))
 
 	return (
 		<article className="related-program-card">
@@ -311,11 +312,7 @@ function RelatedProgramCard({ program, locale }: { program: ProgramCard; locale:
 				<Link href={program.detailPath}>{program.title}</Link>
 			</h3>
 			<p>{program.universityName}</p>
-			<div className="related-program-facts">
-				{degreeLabel && <span><i className="ri-graduation-cap-line" /> {degreeLabel}</span>}
-				{fieldLabel && <span><i className="ri-book-open-line" /> {fieldLabel}</span>}
-				{languageLabel && <span><i className="ri-translate-2" /> {languageLabel}</span>}
-			</div>
+			{metadata && <div className="related-program-facts">{metadata}</div>}
 			<Link href={program.detailPath} className="course-card-action related-program-action">{ui.viewProgram}</Link>
 		</article>
 	)

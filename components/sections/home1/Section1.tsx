@@ -5,6 +5,7 @@ const heroCopy = {
 	en: {
 		eyebrow: 'degree discovery platform',
 		titleStart: 'Find your degree',
+		titleConnector: 'in',
 		titleHighlight: 'DACH',
 		searchAria: 'Search degree programs',
 		searchPlaceholder: 'Search AI masters in Germany taught in English',
@@ -25,6 +26,7 @@ const heroCopy = {
 	'pt-br': {
 		eyebrow: 'plataforma de descoberta de cursos',
 		titleStart: 'Encontre seu curso',
+		titleConnector: 'na região',
 		titleHighlight: 'DACH',
 		searchAria: 'Buscar programas de estudo',
 		searchPlaceholder: 'Busque mestrados de IA na Alemanha em inglês',
@@ -45,6 +47,7 @@ const heroCopy = {
 	es: {
 		eyebrow: 'plataforma para descubrir programas',
 		titleStart: 'Encuentra tu programa',
+		titleConnector: 'en la región',
 		titleHighlight: 'DACH',
 		searchAria: 'Buscar programas de estudio',
 		searchPlaceholder: 'Busca másteres de IA en Alemania en inglés',
@@ -89,7 +92,7 @@ export default function Section1({ locale = 'en' }: { locale?: PublicLocale }) {
 								&nbsp; {copy.eyebrow}
 							</span>
 							<h1 className="text-white ds-1 lh-sm mb-5 text-anime-style-3">
-								{copy.titleStart} <br /> in 
+								{copy.titleStart} <br /> {copy.titleConnector} 
 								<span className="text-green-3 position-relative   ps-3">
 									 {copy.titleHighlight}
 									<span className="position-absolute top-0 start-0 pt-5 z-0 d-none d-md-block">
