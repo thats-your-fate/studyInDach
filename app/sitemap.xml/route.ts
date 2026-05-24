@@ -1,11 +1,30 @@
-import { prisma } from "@/lib/prisma"
-import { absoluteUrl } from "@/lib/seo"
 import { blogPostPath, publishedBlogWhere } from "@/lib/blog-posts"
 import { getLocalizedProgramUrl, getLocalizedUniversityUrl, localizedBlogPostAlternates } from "@/lib/localized-urls"
+import { prisma } from "@/lib/prisma"
+import { absoluteUrl } from "@/lib/seo"
 import { getProgramUrl, getUniversityUrl, publicUniversityWhere, sitemapProgramWhere } from "@/lib/study-programs"
-import type { MetadataRoute } from "next"
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+type SitemapEntry = {
+	url: string
+	lastModified?: Date
+	alternates?: Record<string, string>
+}
+
+export const dynamic = "force-dynamic"
+
+export async function GET() {
+	const entries = await sitemapEntries()
+	return new Response(renderSitemap(entries), {
+		status: 200,
+		headers: {
+			"Content-Type": "application/xml; charset=utf-8",
+			"Cache-Control": "public, max-age=3600, s-maxage=3600",
+			"X-Content-Type-Options": "nosniff",
+		},
+	})
+}
+
+async function sitemapEntries(): Promise<SitemapEntry[]> {
 	const [programs, universities, blogPosts] = await Promise.all([
 		prisma.degreeProgram.findMany({
 			where: sitemapProgramWhere,
@@ -90,14 +109,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	].map((path) => ({ url: absoluteUrl(path), lastModified: now }))
 	const blogAlternateGroups = await Promise.all(blogPosts.map(async (post) => {
 		const alternates = await localizedBlogPostAlternates(post.translationKey)
-		return Object.fromEntries(Object.entries(alternates).map(([key, value]) => [key, absoluteUrl(value)]))
+		return absoluteAlternates(alternates)
 	}))
 	const blogUrls = blogPosts.flatMap((post, index) => post.translations.map((translation) => {
 		const locale = translation.locale === "pt-br" || translation.locale === "es" ? translation.locale : "en"
 		return {
 			url: absoluteUrl(blogPostPath(translation.slug, locale)),
 			lastModified: translation.updatedAt,
-			alternates: { languages: blogAlternateGroups[index] },
+			alternates: blogAlternateGroups[index],
 		}
 	}))
 	const universityAlternateGroups = await Promise.all(universities.map(async (university) => {
@@ -109,17 +128,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const universityUrls = universities.map((university, index) => ({
 		url: universityAlternateGroups[index].en,
 		lastModified: now,
-		alternates: { languages: universityAlternateGroups[index] },
+		alternates: universityAlternateGroups[index],
 	}))
 	const translatedUniversityUrls = universities.map((university, index) => ({
 		url: universityAlternateGroups[index]["pt-BR"],
 		lastModified: now,
-		alternates: { languages: universityAlternateGroups[index] },
+		alternates: universityAlternateGroups[index],
 	}))
 	const spanishUniversityUrls = universities.map((university, index) => ({
 		url: universityAlternateGroups[index].es,
 		lastModified: now,
-		alternates: { languages: universityAlternateGroups[index] },
+		alternates: universityAlternateGroups[index],
 	}))
 	const programAlternateGroups = await Promise.all(programs.map(async (program) => {
 		const en = absoluteUrl(await getLocalizedProgramUrl(program.id, "en") || getProgramUrl(program, "en"))
@@ -130,7 +149,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const programUrls = programs.map((program, index) => ({
 		url: programAlternateGroups[index].en,
 		lastModified: now,
-		alternates: { languages: programAlternateGroups[index] },
+		alternates: programAlternateGroups[index],
 	}))
 	const translatedProgramUrls = programs
 		.filter((program) => program.translations.some((translation) => translation.locale === "pt"))
@@ -139,7 +158,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			return {
 				url: programAlternateGroups[index]["pt-BR"],
 				lastModified: now,
-				alternates: { languages: programAlternateGroups[index] },
+				alternates: programAlternateGroups[index],
 			}
 		})
 	const spanishProgramUrls = programs
@@ -149,8 +168,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			return {
 				url: programAlternateGroups[index].es,
 				lastModified: now,
-				alternates: { languages: programAlternateGroups[index] },
+				alternates: programAlternateGroups[index],
 			}
 		})
+
 	return [...main, ...filters, ...blogUrls, ...universityUrls, ...translatedUniversityUrls, ...spanishUniversityUrls, ...programUrls, ...translatedProgramUrls, ...spanishProgramUrls]
+}
+
+function absoluteAlternates(alternates: Record<string, string>) {
+	return Object.fromEntries(Object.entries(alternates).map(([key, value]) => [key, absoluteUrl(value)]))
+}
+
+function renderSitemap(entries: SitemapEntry[]) {
+	return [
+		'<?xml version="1.0" encoding="UTF-8"?>',
+		'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+		...entries.map(renderUrl),
+		"</urlset>",
+	].join("\n")
+}
+
+function renderUrl(entry: SitemapEntry) {
+	const alternates = Object.entries(entry.alternates || {})
+		.map(([hrefLang, href]) => `  <xhtml:link rel="alternate" hreflang="${escapeXml(hrefLang)}" href="${escapeXml(href)}" />`)
+	const lastModified = entry.lastModified ? [`  <lastmod>${entry.lastModified.toISOString()}</lastmod>`] : []
+	return [
+		"<url>",
+		`  <loc>${escapeXml(entry.url)}</loc>`,
+		...lastModified,
+		...alternates,
+		"</url>",
+	].join("\n")
+}
+
+function escapeXml(value: string) {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&apos;")
 }
