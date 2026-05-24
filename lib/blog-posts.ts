@@ -94,9 +94,10 @@ export function studyCoverImages() {
 	}
 }
 
-export function formatBlogDate(value: Date | null) {
+export function formatBlogDate(value: Date | null, locale: PublicLocale = "en") {
 	if (!value) return "Draft"
-	return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(value)
+	const formatterLocale = locale === "pt-br" ? "pt-BR" : locale === "es" ? "es" : "en"
+	return new Intl.DateTimeFormat(formatterLocale, { dateStyle: "long" }).format(value)
 }
 
 export function paragraphsFromContent(content: string) {

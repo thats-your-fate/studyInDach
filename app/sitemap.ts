@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import { blogPostPath, publishedBlogWhere } from "@/lib/blog-posts"
-import { getLocalizedProgramUrl, getLocalizedUniversityUrl } from "@/lib/localized-urls"
+import { getLocalizedProgramUrl, getLocalizedUniversityUrl, localizedBlogPostAlternates } from "@/lib/localized-urls"
 import { getProgramUrl, getUniversityUrl, publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
 import type { MetadataRoute } from "next"
 
@@ -88,10 +88,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		"/es/programas?languageOfInstruction=English",
 		"/es/programas?tuitionType=No%20Tuition%20%2F%20Semester%20Fee%20Only",
 	].map((path) => ({ url: absoluteUrl(path), lastModified: now }))
-	const blogUrls = blogPosts.flatMap((post) => post.translations.map((translation) => ({
-		url: absoluteUrl(blogPostPath(translation.slug, translation.locale === "pt-br" || translation.locale === "es" ? translation.locale : "en")),
-		lastModified: translation.updatedAt,
-	})))
+	const blogAlternateGroups = await Promise.all(blogPosts.map(async (post) => {
+		const alternates = await localizedBlogPostAlternates(post.translationKey)
+		return Object.fromEntries(Object.entries(alternates).map(([key, value]) => [key, absoluteUrl(value)]))
+	}))
+	const blogUrls = blogPosts.flatMap((post, index) => post.translations.map((translation) => {
+		const locale = translation.locale === "pt-br" || translation.locale === "es" ? translation.locale : "en"
+		return {
+			url: absoluteUrl(blogPostPath(translation.slug, locale)),
+			lastModified: translation.updatedAt,
+			alternates: { languages: blogAlternateGroups[index] },
+		}
+	}))
 	const universityAlternateGroups = await Promise.all(universities.map(async (university) => {
 		const en = absoluteUrl(await getLocalizedUniversityUrl(university.id, "en") || getUniversityUrl(university, "en"))
 		const pt = absoluteUrl(await getLocalizedUniversityUrl(university.id, "pt-br") || getUniversityUrl(university, "pt-br"))

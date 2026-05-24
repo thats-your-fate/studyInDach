@@ -58,9 +58,21 @@ export default async function BlogIndexPage({
 			name: post.translations[0].title,
 		})),
 	}
+	const breadcrumbJsonLd = {
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: [
+			{ "@type": "ListItem", position: 1, name: "Study in DACH", item: absoluteUrl(locale === "en" ? "/" : `/${locale}`) },
+			{ "@type": "ListItem", position: 2, name: title, item: absoluteUrl(blogIndexPath(locale)) },
+		],
+	}
 
 	return (
 		<Layout>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+			/>
 			<script
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }}
@@ -68,6 +80,10 @@ export default async function BlogIndexPage({
 			<script
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
 			/>
 			<section className="elearning-about-section-1 position-relative pt-250-keep pb-120 pb-lg-150 bg-primary rounded-bottom-4 overflow-hidden">
 				<div className="container position-relative pt-8 text-center">
@@ -117,27 +133,86 @@ export default async function BlogIndexPage({
 }
 
 function BlogCard({ post, locale, readLabel, featured = false }: { post: any; locale: PublicLocale; readLabel: string; featured?: boolean }) {
+	const href = blogPostPath(post.translations[0].slug, locale)
+	const categoryName = localizedCategoryName(post, locale)
+	const tags = localizedTagNames(post, locale).slice(0, featured ? 6 : 3)
+	const dateLabel = featured ? `${featuredLabel(locale)} · ${formatBlogDate(post.publishedAt, locale)}` : formatBlogDate(post.publishedAt, locale)
+
 	return (
-		<Link href={blogPostPath(post.translations[0].slug, locale)} className={`card-news d-block bg-secondary-2 rounded-3 h-100 overflow-hidden hover-up ${featured ? "row g-0 align-items-stretch" : ""}`}>
+		<article className={`card-news d-block bg-secondary-2 rounded-3 h-100 overflow-hidden hover-up ${featured ? "row g-0 align-items-stretch" : ""}`}>
 			{post.coverImageUrl && (
 				<div className={featured ? "col-lg-5" : ""}>
 					<img src={post.coverImageUrl} alt={post.coverImageAlt || ""} className="w-100 h-100" style={{ minHeight: featured ? 320 : 220, maxHeight: featured ? 420 : 220, objectFit: "cover" }} />
 				</div>
 			)}
 			<div className={featured ? "col-lg-7 p-6" : "p-5"}>
-				<div className="d-flex flex-wrap gap-2 mb-3">
-					{post.category?.translations[0]?.name && <span className="blog-chip blog-chip-primary">{post.category.translations[0].name}</span>}
-					{post.tags?.slice(0, featured ? 6 : 3).map((item: any) => (
-						<span className="blog-chip" key={item.tagId}>{item.tag.translations[0]?.name || item.tag.key}</span>
-					))}
-				</div>
-				<p className="fs-7 text-uppercase text-primary fw-bold mb-2">{featured ? "Featured · " : ""}{formatBlogDate(post.publishedAt)}</p>
-				<h4 className="text-primary mb-3">{post.translations[0].title}</h4>
+				{(categoryName || tags.length > 0) && (
+					<div className="d-flex flex-wrap gap-2 mb-3" aria-label={tagListLabel(locale)}>
+						{categoryName && <span className="blog-chip blog-chip-primary">{categoryName}</span>}
+						{tags.map((tag: string) => <span className="blog-chip" key={tag}>{tag}</span>)}
+					</div>
+				)}
+				<p className="fs-7 text-uppercase text-primary fw-bold mb-2">{dateLabel}</p>
+				<h2 className="h4 text-primary mb-3">
+					<Link href={href}>{post.translations[0].title}</Link>
+				</h2>
 				<p className="mb-4">{post.translations[0].excerpt || excerptFromContent(post.translations[0].contentMd)}</p>
-				<span className="btn-text text-primary">{readLabel}</span>
+				<Link href={href} className="btn-text text-primary" aria-label={`${readLabel}: ${post.translations[0].title}`}>{readLabel}</Link>
 			</div>
-		</Link>
+		</article>
 	)
+}
+
+function localizedCategoryName(post: any, locale: PublicLocale) {
+	return post.category?.translations[0]?.name || fallbackCategoryName(post.category?.key, locale)
+}
+
+function localizedTagNames(post: any, locale: PublicLocale) {
+	return (post.tags || [])
+		.map((item: any) => item.tag.translations[0]?.name || fallbackTagName(item.tag.key, locale))
+		.filter(Boolean)
+}
+
+function fallbackCategoryName(key: string | undefined, locale: PublicLocale) {
+	if (!key) return ""
+	if (key === "study-guides") {
+		if (locale === "pt-br") return "Guias de estudo"
+		if (locale === "es") return "Guías de estudio"
+		return "Study guides"
+	}
+	return humanizeKey(key)
+}
+
+function fallbackTagName(key: string | undefined, locale: PublicLocale) {
+	if (!key) return ""
+	const labels: Record<string, Record<PublicLocale, string>> = {
+		"brazilian-students": { en: "Brazilian students", "pt-br": "Estudantes brasileiros", es: "Estudiantes brasileños" },
+		"latin-american-students": { en: "Latin American students", "pt-br": "Estudantes latino-americanos", es: "Estudiantes latinoamericanos" },
+		"english-taught": { en: "English-taught programs", "pt-br": "Programas em inglês", es: "Programas en inglés" },
+		"english-taught-programs": { en: "English-taught programs", "pt-br": "Programas em inglês", es: "Programas en inglés" },
+		"international-students": { en: "International students", "pt-br": "Estudantes internacionais", es: "Estudiantes internacionales" },
+		"public-universities": { en: "Public universities", "pt-br": "Universidades públicas", es: "Universidades públicas" },
+		"tuition-free": { en: "Tuition-free", "pt-br": "Sem mensalidade", es: "Sin matrícula" },
+		"germany": { en: "Germany", "pt-br": "Alemanha", es: "Alemania" },
+		"masters": { en: "Master's", "pt-br": "Mestrado", es: "Maestría" },
+	}
+	return labels[key]?.[locale] || humanizeKey(key)
+}
+
+function humanizeKey(value: string) {
+	return value.split("-").filter(Boolean).map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join(" ")
+}
+
+function featuredLabel(locale: PublicLocale) {
+	if (locale === "pt-br") return "Destaque"
+	if (locale === "es") return "Destacado"
+	return "Featured"
+}
+
+function tagListLabel(locale: PublicLocale) {
+	if (locale === "pt-br") return "Categorias e tags"
+	if (locale === "es") return "Categorías y etiquetas"
+	return "Categories and tags"
 }
 
 function excerptFromContent(content: string) {

@@ -23,21 +23,20 @@ export default function CourseCard({ course, locale, variant = "default" }: { co
 
 	if (variant === "compact") {
 		const field = localizedUsefulValue(course.studyField || course.subjectArea, locale)
-		const compactMeta = joinMetaSegments([degreeLabel, field, displayLanguage])
+		const compactMeta = joinMetaSegments([
+			labeledMeta(ui.filterLabels.degreeLevel, degreeLabel),
+			labeledMeta(ui.filterLabels.studyField, field),
+			labeledMeta(ui.filterLabels.language, displayLanguage),
+		])
 
 		return (
 			<div className="course-card-modern course-card-compact h-100">
 				<div className="course-card-body">
-					<div className="course-card-meta">
-						<span>{compactMeta || ui.degreeProgram}</span>
-					</div>
 					<h5>
 						<Link href={course.detailPath}>{course.title}</Link>
 					</h5>
 					<div className="course-facts">
-						{degreeLabel && <span><i className="ri-graduation-cap-line" /> {degreeLabel}</span>}
-						{field && <span><i className="ri-book-open-line" /> {field}</span>}
-						{usefulValue(displayLanguage) && <span><i className="ri-translate-2" /> {displayLanguage}</span>}
+						<span><i className="ri-book-open-line" /> {compactMeta || ui.degreeProgram}</span>
 					</div>
 					<Link href={course.detailPath} className="course-card-action">{ui.viewProgram}</Link>
 				</div>
@@ -97,6 +96,10 @@ function usefulValue(value: string | null | undefined) {
 
 function localizedUsefulValue(value: string | null | undefined, locale: PublicLocale) {
 	return optionLabel(usefulValue(value), locale)
+}
+
+function labeledMeta(label: string, value: string) {
+	return value ? `${label}: ${value}` : ""
 }
 
 function uniqueInOrder(values: string[]) {

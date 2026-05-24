@@ -1,5 +1,5 @@
-import BlogDetailPage, { getPublishedBlogPost, localizedBlogPostUrl } from "@/components/blog/BlogDetailPage"
-import { blogPostLanguageAlternates } from "@/lib/blog-posts"
+import BlogDetailPage, { getPublishedBlogPost } from "@/components/blog/BlogDetailPage"
+import { getLocalizedBlogPostUrl, localizedBlogPostAlternates } from "@/lib/localized-urls"
 import { absoluteUrl } from "@/lib/seo"
 import type { Metadata } from "next"
 
@@ -10,26 +10,28 @@ type BlogDetailsProps = {
 export async function generateMetadata({ params }: BlogDetailsProps): Promise<Metadata> {
 	const post = await getPublishedBlogPost(params.slug, "pt-br")
 	if (!post) return {}
+	const canonicalPath = await getLocalizedBlogPostUrl(post.post.translationKey, "pt-br")
+	const languageAlternates = await absoluteLanguageAlternates(post.post.translationKey)
 
 	return {
 		title: post.seoTitle || `${post.title} | Study in DACH`,
 		description: post.seoDescription || post.excerpt || undefined,
 		robots: post.post.noindex ? { index: false, follow: true } : undefined,
 		alternates: {
-			canonical: absoluteUrl(localizedBlogPostUrl(post.slug, "pt-br")),
-			languages: absoluteLanguageAlternates(post.post.translations),
+			canonical: absoluteUrl(canonicalPath),
+			languages: languageAlternates,
 		},
 		openGraph: {
 			title: post.ogTitle || post.seoTitle || post.title,
 			description: post.ogDescription || post.seoDescription || post.excerpt || undefined,
-			url: absoluteUrl(localizedBlogPostUrl(post.slug, "pt-br")),
+			url: absoluteUrl(canonicalPath),
 			images: post.ogImageUrl ? [post.ogImageUrl] : post.post.coverImageUrl ? [post.post.coverImageUrl] : undefined,
 		},
 	}
 }
 
-function absoluteLanguageAlternates(translations: Array<{ locale: string; slug: string }>) {
-	const alternates = blogPostLanguageAlternates(translations)
+async function absoluteLanguageAlternates(translationKey: string) {
+	const alternates = await localizedBlogPostAlternates(translationKey)
 	return Object.fromEntries(Object.entries(alternates).map(([key, value]) => [key, absoluteUrl(value)]))
 }
 

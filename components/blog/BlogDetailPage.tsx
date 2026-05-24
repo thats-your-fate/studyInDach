@@ -2,6 +2,7 @@ import Layout from "@/components/layout/Layout"
 import CourseCard from "@/components/sections/courses/CourseCard"
 import { blogIndexPath, blogPostPath, blogSchemaLanguage, formatBlogDate, markdownToHtml, publishedBlogWhere } from "@/lib/blog-posts"
 import type { PublicLocale } from "@/lib/i18n"
+import { getLocalizedBlogPostUrl } from "@/lib/localized-urls"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl, organizationJsonLd } from "@/lib/seo"
 import { getCoursesPageData, getProgramUrl, getUniversityUrl, publicProgramWhere, type CourseSearchParams } from "@/lib/study-programs"
@@ -53,11 +54,12 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 		const data = await getCoursesPageData(filters, locale)
 		return { block, programs: data.programs.slice(0, block.limit) }
 	}))
-	const pageUrl = absoluteUrl(blogPostPath(translation.slug, locale))
+	const pageUrl = absoluteUrl(await getLocalizedBlogPostUrl(post.translationKey, locale) || blogPostPath(translation.slug, locale))
 	const image = translation.ogImageUrl || post.coverImageUrl || undefined
 	const faqs = post.faqs.filter((faq) => faq.question && faq.answer)
 	const categoryName = post.category?.translations[0]?.name || null
 	const tags = post.tags.map((item) => item.tag.translations[0]?.name || item.tag.key).filter(Boolean)
+	const relatedProgramItems = relatedProgramsForJsonLd(post.programLinks, filterBlocks, locale)
 	const blogPostingJsonLd = {
 		"@context": "https://schema.org",
 		"@type": "BlogPosting",
@@ -88,15 +90,23 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 			{ "@type": "ListItem", position: 3, name: translation.title, item: pageUrl },
 		],
 	}
-	const relatedProgramsJsonLd = post.programLinks.length ? {
+	const relatedProgramsJsonLd = relatedProgramItems.length ? {
 		"@context": "https://schema.org",
 		"@type": "ItemList",
 		name: `Related programs for ${translation.title}`,
-		itemListElement: post.programLinks.map((link, index) => ({
+		itemListElement: relatedProgramItems.map((program, index) => ({
 			"@type": "ListItem",
 			position: index + 1,
-			url: absoluteUrl(getProgramUrl(link.program, locale)),
-			name: link.label || link.program.translations[0]?.localizedProgramName || link.program.programName,
+			item: {
+				"@type": "Course",
+				name: program.name,
+				url: absoluteUrl(program.url),
+				description: program.description || undefined,
+				provider: {
+					"@type": "CollegeOrUniversity",
+					name: program.provider,
+				},
+			},
 		})),
 	} : null
 	const faqJsonLd = faqs.length ? {
@@ -138,7 +148,7 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 				<div className="container position-relative pt-8 text-center">
 					<span className="content-top btn-text fw-bold text-white">
 						<i className="ri-article-line text-green-3" />
-						&nbsp; {formatBlogDate(post.publishedAt)}
+						&nbsp; {formatBlogDate(post.publishedAt, locale)}
 					</span>
 					<h1 className="text-white ds-2 lh-sm mb-0 text-anime-style-2">{translation.title}</h1>
 				</div>
@@ -310,6 +320,31 @@ function parseFilterJson(value: string): CourseSearchParams {
 	} catch {
 		return {}
 	}
+}
+
+function relatedProgramsForJsonLd(programLinks: any[], filterBlocks: BlogFilterBlock[], locale: PublicLocale) {
+	const programs = [
+		...programLinks.map((link) => ({
+			id: link.program.id,
+			name: link.label || link.program.translations[0]?.localizedProgramName || link.program.programName,
+			url: getProgramUrl(link.program, locale),
+			provider: link.program.university.name,
+			description: link.program.translations[0]?.summary || link.program.summary || "",
+		})),
+		...filterBlocks.flatMap(({ programs }) => programs.map((program) => ({
+			id: program.id,
+			name: program.title,
+			url: program.detailPath,
+			provider: program.universityName,
+			description: program.summary || "",
+		}))),
+	]
+	const seen = new Set<number>()
+	return programs.filter((program) => {
+		if (seen.has(program.id)) return false
+		seen.add(program.id)
+		return true
+	})
 }
 
 function blogHubName(locale: PublicLocale) {

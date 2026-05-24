@@ -37,6 +37,15 @@ async function main() {
 			canonicalProgramId: { not: null },
 		},
 	})
+	const blogPosts = await prisma.blogPost.findMany({
+		where: {
+			status: "published",
+			publishedAt: { not: null },
+			noindex: false,
+		},
+		include: { translations: true },
+		orderBy: { id: "asc" },
+	})
 
 	const failures = []
 	for (const program of programs) {
@@ -122,6 +131,23 @@ async function main() {
 		if (group.length <= 1) continue
 		failures.push(`Public duplicate source-path group ${key}: ${group.map((program) => `${program.id} ${program.programName}`).join(" | ")}`)
 	}
+	for (const post of blogPosts) {
+		const enTranslation = post.translations.find((translation) => translation.locale === "en")
+		const ptTranslation = post.translations.find((translation) => translation.locale === "pt-br")
+		const esTranslation = post.translations.find((translation) => translation.locale === "es")
+		const en = enTranslation ? blogPostUrl(enTranslation, "en") : "/blog"
+		const pt = ptTranslation ? blogPostUrl(ptTranslation, "pt-br") : "/pt-br/guias"
+		const es = esTranslation ? blogPostUrl(esTranslation, "es") : "/es/guias"
+		if (ptTranslation && enTranslation && (!en.startsWith("/blog/") || en === "/blog")) {
+			failures.push(`PT-BR blog post English link does not point to equivalent post for ${post.translationKey}: ${en}`)
+		}
+		if (esTranslation && ptTranslation && (!pt.startsWith("/pt-br/guias/") || pt === "/pt-br/guias")) {
+			failures.push(`ES blog post Portuguese link does not point to equivalent post for ${post.translationKey}: ${pt}`)
+		}
+		if (enTranslation && esTranslation && en === es) {
+			failures.push(`Blog post English and Spanish hrefs are identical for ${post.translationKey}: ${en}`)
+		}
+	}
 
 	if (failures.length) {
 		console.error(`Localized URL regression check failed with ${failures.length} issue(s):`)
@@ -131,7 +157,7 @@ async function main() {
 	}
 
 	console.log(`Canonical public filter excludes ${publicDuplicateLeakCount} duplicate program row(s) with canonical assignments.`)
-	console.log(`Localized URL regression check passed for ${programs.length} public programs and ${universities.length} public universities.`)
+	console.log(`Localized URL regression check passed for ${programs.length} public programs, ${universities.length} public universities, and ${blogPosts.length} published blog post(s).`)
 }
 
 function programUrl(program, locale) {
@@ -153,6 +179,12 @@ function universityUrl(university, locale) {
 	if (locale === "pt-br") return `/pt-br/universidades/${university.id}`
 	if (locale === "es") return `/es/universidades/${university.id}`
 	return `/universities/${university.id}`
+}
+
+function blogPostUrl(translation, locale) {
+	if (locale === "pt-br") return `/pt-br/guias/${translation.slug}`
+	if (locale === "es") return `/es/guias/${translation.slug}`
+	return `/blog/${translation.slug}`
 }
 
 function slugify(value, fallback) {
