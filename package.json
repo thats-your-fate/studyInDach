@@ -17,6 +17,8 @@
     "localized-url:check": "node scripts/with-env.cjs -- \"node scripts/check-localized-url-regressions.cjs\"",
     "quality:flag": "node scripts/with-env.cjs -- \"node scripts/flag-non-degree-programs.cjs\"",
     "quality:flag:dry": "node scripts/with-env.cjs -- \"node scripts/flag-non-degree-programs.cjs --dry-run\"",
+    "db:migrate": "node scripts/with-env.cjs -- \"prisma migrate deploy\"",
+    "db:migrate:status": "node scripts/with-env.cjs -- \"prisma migrate status\"",
     "db:push": "node scripts/with-env.cjs -- \"prisma db push\"",
     "db:seed": "node scripts/with-env.cjs -- \"prisma db seed\"",
     "db:seed:dach": "node scripts/with-env.cjs -- \"node prisma/seed.cjs --dataset dach\"",
