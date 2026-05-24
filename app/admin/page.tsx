@@ -53,6 +53,10 @@ async function updateProgram(formData: FormData) {
 			heroImageUrl: nullableField(formData, "heroImageUrl"),
 			reviewStatus: nullableField(formData, "reviewStatus") || "pending",
 			qualityFlags: nullableField(formData, "qualityFlags"),
+			contentType: nullableField(formData, "contentType") || "degree_program",
+			isSitemapIncluded: nullableBooleanField(formData, "isSitemapIncluded"),
+			publicCatalogPriority: numberField(formData, "publicCatalogPriority"),
+			reviewNotes: nullableField(formData, "reviewNotes"),
 		},
 	})
 	revalidateAdmin()
@@ -61,7 +65,10 @@ async function updateProgram(formData: FormData) {
 function revalidateAdmin() {
 	revalidatePath("/admin")
 	revalidatePath("/courses")
+	revalidatePath("/pt-br/cursos")
+	revalidatePath("/es/programas")
 	revalidatePath("/single-courses")
+	revalidatePath("/sitemap.xml")
 }
 
 function field(formData: FormData, name: string) {
@@ -70,6 +77,18 @@ function field(formData: FormData, name: string) {
 
 function nullableField(formData: FormData, name: string) {
 	return field(formData, name) || null
+}
+
+function nullableBooleanField(formData: FormData, name: string) {
+	const value = field(formData, name)
+	if (value === "true") return true
+	if (value === "false") return false
+	return null
+}
+
+function numberField(formData: FormData, name: string) {
+	const value = Number(field(formData, name))
+	return Number.isFinite(value) ? value : 0
 }
 
 export default async function AdminPage({
@@ -186,6 +205,8 @@ export default async function AdminPage({
 															{program.academicDegree && (
 																<span className="fs-7 text-uppercase text-primary fw-bold">{program.academicDegree}</span>
 															)}
+															<span className="fs-8 text-uppercase text-primary">{program.contentType || "degree_program"}</span>
+															{program.isSitemapIncluded === false && <span className="fs-8 text-uppercase text-primary">No sitemap</span>}
 														</div>
 														<h6 className="mb-2 text-primary">{program.programName}</h6>
 														<p className="fs-7 text-uppercase mb-0">
@@ -242,7 +263,28 @@ function ProgramForm({ program }: { program: any }) {
 			<TextArea label="Tuition or Fees" name="tuitionOrFees" value={program.tuitionOrFees} className="col-lg-6" />
 			<TextArea label="Summary" name="summary" value={program.summary} className="col-12" />
 			<TextInput label="Review Status" name="reviewStatus" value={program.reviewStatus} className="col-lg-3" />
-			<TextInput label="Quality Flags" name="qualityFlags" value={program.qualityFlags} className="col-lg-9" />
+			<label className="col-lg-3">
+				<span className="fs-7 text-uppercase text-primary fw-bold">Content Type</span>
+				<select className="form-select mt-1" name="contentType" defaultValue={program.contentType || "degree_program"}>
+					<option value="degree_program">degree_program</option>
+					<option value="bridge_program">bridge_program</option>
+					<option value="preparatory_program">preparatory_program</option>
+					<option value="certificate_program">certificate_program</option>
+					<option value="module_or_project">module_or_project</option>
+					<option value="uncertain">uncertain</option>
+				</select>
+			</label>
+			<label className="col-lg-3">
+				<span className="fs-7 text-uppercase text-primary fw-bold">Sitemap</span>
+				<select className="form-select mt-1" name="isSitemapIncluded" defaultValue={program.isSitemapIncluded === true ? "true" : program.isSitemapIncluded === false ? "false" : ""}>
+					<option value="">Default rules</option>
+					<option value="true">Manual include</option>
+					<option value="false">Manual exclude</option>
+				</select>
+			</label>
+			<TextInput label="Catalog Priority" name="publicCatalogPriority" value={String(program.publicCatalogPriority || 0)} className="col-lg-3" />
+			<TextInput label="Quality Flags" name="qualityFlags" value={program.qualityFlags} className="col-lg-6" />
+			<TextArea label="Review Notes" name="reviewNotes" value={program.reviewNotes} className="col-lg-6" />
 			<div className="col-12">
 				<button className="btn btn-primary" type="submit">Save Studiengang</button>
 			</div>

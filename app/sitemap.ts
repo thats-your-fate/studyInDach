@@ -2,13 +2,13 @@ import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import { blogPostPath, publishedBlogWhere } from "@/lib/blog-posts"
 import { getLocalizedProgramUrl, getLocalizedUniversityUrl, localizedBlogPostAlternates } from "@/lib/localized-urls"
-import { getProgramUrl, getUniversityUrl, publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
+import { getProgramUrl, getUniversityUrl, publicUniversityWhere, sitemapProgramWhere } from "@/lib/study-programs"
 import type { MetadataRoute } from "next"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const [programs, universities, blogPosts] = await Promise.all([
 		prisma.degreeProgram.findMany({
-			where: publicProgramWhere,
+			where: sitemapProgramWhere,
 			include: { university: true, translations: true },
 			orderBy: { id: "asc" },
 		}),

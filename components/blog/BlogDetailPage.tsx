@@ -1,11 +1,11 @@
 import Layout from "@/components/layout/Layout"
 import CourseCard from "@/components/sections/courses/CourseCard"
-import { blogIndexPath, blogPostPath, blogSchemaLanguage, formatBlogDate, markdownToHtml, publishedBlogWhere } from "@/lib/blog-posts"
+import { blogIndexPath, blogPostPath, blogSchemaLanguage, formatBlogDate, localizedBlogCategoryName, localizedBlogTagNames, markdownToHtml, publishedBlogWhere } from "@/lib/blog-posts"
 import type { PublicLocale } from "@/lib/i18n"
 import { getLocalizedBlogPostUrl } from "@/lib/localized-urls"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl, organizationJsonLd } from "@/lib/seo"
-import { getCoursesPageData, getProgramUrl, getUniversityUrl, publicProgramWhere, type CourseSearchParams } from "@/lib/study-programs"
+import { getCoursesPageData, getProgramUrl, getUniversityUrl, relatedProgramWhere, type CourseSearchParams } from "@/lib/study-programs"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import type { ReactNode } from "react"
@@ -30,7 +30,7 @@ export async function getPublishedBlogPost(slug: string, locale: PublicLocale) {
 					category: { include: { translations: { where: { locale }, take: 1 } } },
 					tags: { include: { tag: { include: { translations: { where: { locale }, take: 1 } } } } },
 					programLinks: {
-						where: { program: publicProgramWhere },
+						where: { program: relatedProgramWhere },
 						include: { program: { include: { university: true, translations: { where: { locale: locale === "pt-br" ? "pt" : locale }, take: 1 } } } },
 						orderBy: { sortOrder: "asc" },
 					},
@@ -51,14 +51,15 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 	const post = translation.post
 	const filterBlocks = await Promise.all(post.filterBlocks.map(async (block) => {
 		const filters = parseFilterJson(block.filterJson)
-		const data = await getCoursesPageData(filters, locale)
+		const data = await getCoursesPageData(filters, locale, { programWhere: relatedProgramWhere })
 		return { block, programs: data.programs.slice(0, block.limit) }
 	}))
+	const languageLinks = await blogLanguageLinks(post.translationKey)
 	const pageUrl = absoluteUrl(await getLocalizedBlogPostUrl(post.translationKey, locale) || blogPostPath(translation.slug, locale))
 	const image = translation.ogImageUrl || post.coverImageUrl || undefined
 	const faqs = post.faqs.filter((faq) => faq.question && faq.answer)
-	const categoryName = post.category?.translations[0]?.name || null
-	const tags = post.tags.map((item) => item.tag.translations[0]?.name || item.tag.key).filter(Boolean)
+	const categoryName = localizedBlogCategoryName(post.category, locale)
+	const tags = localizedBlogTagNames(post.tags, locale)
 	const relatedProgramItems = relatedProgramsForJsonLd(post.programLinks, filterBlocks, locale)
 	const blogPostingJsonLd = {
 		"@context": "https://schema.org",
@@ -123,7 +124,7 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 	} : null
 
 	return (
-		<Layout>
+		<Layout languageLinks={languageLinks}>
 			<script
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingJsonLd) }}
@@ -209,6 +210,14 @@ export default async function BlogDetailPage({ slug, locale, backLabel }: BlogDe
 			</section>
 		</Layout>
 	)
+}
+
+async function blogLanguageLinks(translationKey: string) {
+	return {
+		en: await getLocalizedBlogPostUrl(translationKey, "en") || blogIndexPath("en"),
+		"pt-br": await getLocalizedBlogPostUrl(translationKey, "pt-br") || blogIndexPath("pt-br"),
+		es: await getLocalizedBlogPostUrl(translationKey, "es") || blogIndexPath("es"),
+	}
 }
 
 function ArticleContent({ contentMd, filterBlocks, faqs, locale }: { contentMd: string; filterBlocks: BlogFilterBlock[]; faqs: BlogFaq[]; locale: PublicLocale }) {

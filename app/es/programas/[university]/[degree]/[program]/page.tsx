@@ -4,7 +4,7 @@ import Section2 from "@/components/sections/single-courses/Section2"
 import { optionLabel } from "@/lib/i18n"
 import { getLocalizedProgramUrl } from "@/lib/localized-urls"
 import { absoluteUrl } from "@/lib/seo"
-import { getProgramDetailBySlugs, type ProgramDetail } from "@/lib/study-programs"
+import { getProgramDetailBySlugs, isProgramSeoIndexable, type ProgramDetail } from "@/lib/study-programs"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 	return {
 		title,
 		description,
-		robots: program.isPublished && program.isLikelyDegreeProgram && program.duplicateStatus === "unique" && !program.canonicalProgramId ? undefined : { index: false, follow: true },
+		robots: isProgramSeoIndexable(program) ? undefined : { index: false, follow: true },
 		alternates: {
 			canonical: absoluteUrl(localizedCanonicalPath),
 			languages,
@@ -54,9 +54,10 @@ export default async function ProgramSeoPage({ params }: ProgramSeoParams) {
 	const result = await getProgramDetailBySlugs(params.university, params.degree, params.program, "es")
 	if (!result) notFound()
 	if (!result.isCanonical) redirect(result.canonicalPath)
+	const languageLinks = await programLanguageLinks(result.program.id)
 
 	return (
-		<Layout>
+		<Layout languageLinks={languageLinks}>
 			<script
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{ __html: JSON.stringify(programJsonLd(result.program, result.canonicalPath)) }}
@@ -65,6 +66,14 @@ export default async function ProgramSeoPage({ params }: ProgramSeoParams) {
 			<Section2 program={result.program} locale="es" />
 		</Layout>
 	)
+}
+
+async function programLanguageLinks(programId: number) {
+	return {
+		en: await getLocalizedProgramUrl(programId, "en") || "/courses",
+		"pt-br": await getLocalizedProgramUrl(programId, "pt-br") || "/pt-br/cursos",
+		es: await getLocalizedProgramUrl(programId, "es") || "/es/programas",
+	}
 }
 
 function programJsonLd(program: ProgramDetail, canonicalPath: string) {

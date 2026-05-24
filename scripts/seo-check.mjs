@@ -23,6 +23,7 @@ const selectedFilterPaths = new Set([
 ])
 
 const warnings = []
+const passes = []
 const badLocalizedStrings = [
 	"English + German",
 	"Humanities",
@@ -31,7 +32,19 @@ const badLocalizedStrings = [
 	"Maestría Máster",
 	"Unknown",
 ]
+const badPublicStrings = [
+	"latin-american-students",
+	"brazilian-students",
+	"Unknown",
+	"Mestrado Mestrado",
+	"Maestría Máster",
+	"1 programas",
+	"Berlin, Berlin, Germany",
+	"Berlim, Berlim, Alemanha",
+	"Berlín, Berlín, Alemania",
+]
 const suspiciousPublicRowPattern = /\b(bachelor project|master project|project|projekt|module|modul|seminar|lecture|publication|presentation|performance|research training|adaptive minds research area|1st year|2nd year|3rd year|4th year|1\. jahr|2\. jahr|3\. jahr|4\. jahr)\b/gi
+const rawBlogTagSlugPattern = /\b(?:latin-american-students|brazilian-students|english-taught-programs)\b/i
 
 async function main() {
 	try {
@@ -48,6 +61,9 @@ async function main() {
 		const englishUniversityUrls = sitemapPaths.filter((path) => path.startsWith("/universities/"))
 		const ptUniversityUrls = sitemapPaths.filter((path) => path.startsWith("/pt-br/universidades/"))
 		const esUniversityUrls = sitemapPaths.filter((path) => path.startsWith("/es/universidades/"))
+		const englishBlogPostUrls = sitemapPaths.filter((path) => path.startsWith("/blog/"))
+		const ptBlogPostUrls = sitemapPaths.filter((path) => path.startsWith("/pt-br/guias/"))
+		const esBlogPostUrls = sitemapPaths.filter((path) => path.startsWith("/es/guias/"))
 		const englishUrls = sitemapPaths.filter((path) => !path.startsWith("/pt-br/") && !path.startsWith("/es/"))
 		const ptUrls = sitemapPaths.filter((path) => path.startsWith("/pt-br/"))
 		const esUrls = sitemapPaths.filter((path) => path.startsWith("/es/"))
@@ -83,17 +99,42 @@ async function main() {
 		requirePath(sitemapPaths, "/es/sobre")
 		requirePath(sitemapPaths, "/courses")
 
+		await checkRequestedRepresentativeUrls({
+			sitemapXml,
+			sitemapPaths,
+			englishProgramUrls,
+			ptProgramUrls,
+			esProgramUrls,
+			englishUniversityUrls,
+			ptUniversityUrls,
+			esUniversityUrls,
+			englishBlogPostUrls,
+			ptBlogPostUrls,
+			esBlogPostUrls,
+		})
 		await checkStaticPages()
 		await checkContactNoindex()
 		await checkProgramPages(englishProgramUrls, ptProgramUrls, esProgramUrls)
 		await checkRepresentativeRawHtml(englishProgramUrls, ptProgramUrls, esProgramUrls)
 		await checkLocalizedAlternateRoutes(ptProgramUrls, esProgramUrls, ptUniversityUrls, esUniversityUrls)
+		await checkRawLanguageSwitcherLinks(ptProgramUrls, englishBlogPostUrls, ptBlogPostUrls, esBlogPostUrls)
+		await checkBlogTagLocalization([
+			"/blog",
+			"/pt-br/guias",
+			"/es/guias",
+			...englishBlogPostUrls.slice(0, 3),
+			...ptBlogPostUrls.slice(0, 3),
+			...esBlogPostUrls.slice(0, 3),
+		])
 		await checkPtRegressionPages(ptProgramUrls)
 		await checkEsRegressionPages(esProgramUrls)
 		await checkOldRedirect(englishProgramUrls[0] || ptProgramUrls[0])
 		await checkSitemapProgramVisibility(sitemapPaths)
 
 		printHeader("Result")
+		if (passes.length) {
+			console.log(`SEO checks recorded ${passes.length} pass${passes.length === 1 ? "" : "es"}.`)
+		}
 		if (warnings.length) {
 			console.log(`SEO checks completed with ${warnings.length} warning${warnings.length === 1 ? "" : "s"}.`)
 			printHeader("Warnings")
@@ -104,6 +145,132 @@ async function main() {
 		console.log("CI mode: warning-only. This script does not fail the process yet.")
 	} finally {
 		await prisma.$disconnect()
+	}
+}
+
+async function checkRequestedRepresentativeUrls({
+	sitemapXml,
+	sitemapPaths,
+	englishProgramUrls,
+	ptProgramUrls,
+	esProgramUrls,
+	englishUniversityUrls,
+	ptUniversityUrls,
+	esUniversityUrls,
+	englishBlogPostUrls,
+	ptBlogPostUrls,
+	esBlogPostUrls,
+}) {
+	printHeader("Requested raw HTML representative checks")
+	const robotsTxt = await fetchText("/robots.txt")
+	printMetric("robots.txt fetched", robotsTxt.length ? "yes" : "no")
+	if (/sitemap:\s*\S+\/sitemap\.xml/i.test(robotsTxt)) pass("robots.txt advertises sitemap.xml")
+	else warn("robots.txt does not advertise sitemap.xml.")
+
+	printMetric("sitemap.xml fetched", sitemapXml.length ? "yes" : "no")
+	if (sitemapXml.includes("<urlset")) pass("sitemap.xml fetched and parsed")
+	else warn("sitemap.xml does not look like a URL set.")
+
+	const contactPaths = ["/contact", "/pt-br/contato", "/es/contacto"]
+	const sitemapContactPaths = sitemapPaths.filter((path) => contactPaths.includes(path))
+	printList("contact pages in sitemap", sitemapContactPaths)
+	if (sitemapContactPaths.length) warn(`Contact pages are present in sitemap: ${sitemapContactPaths.join(", ")}`)
+	else pass("Contact pages are excluded from sitemap")
+
+	const pages = [
+		{ path: "/courses", kind: "catalog", indexable: true, jsonLdAny: ["ItemList", "Course"] },
+		{ path: "/pt-br/cursos", kind: "catalog", indexable: true, jsonLdAny: ["ItemList", "Course"] },
+		{ path: "/es/programas", kind: "catalog", indexable: true, jsonLdAny: ["ItemList", "Course"] },
+		{ path: englishProgramUrls[0], kind: "pdp", indexable: true, jsonLdAny: ["Course", "EducationalOccupationalProgram"], switcher: "PDP" },
+		{ path: ptProgramUrls[0], kind: "pdp", indexable: true, jsonLdAny: ["Course", "EducationalOccupationalProgram"], switcher: "PDP" },
+		{ path: esProgramUrls[0], kind: "pdp", indexable: true, jsonLdAny: ["Course", "EducationalOccupationalProgram"], switcher: "PDP" },
+		{ path: "/blog", kind: "blog index", indexable: true, jsonLdAll: ["Blog", "ItemList"] },
+		{ path: "/pt-br/guias", kind: "blog index", indexable: true, jsonLdAll: ["Blog", "ItemList"] },
+		{ path: "/es/guias", kind: "blog index", indexable: true, jsonLdAll: ["Blog", "ItemList"] },
+		{ path: englishBlogPostUrls[0], kind: "blog post", indexable: true, jsonLdAny: ["BlogPosting", "Article"], switcher: "blog post" },
+		{ path: ptBlogPostUrls[0], kind: "blog post", indexable: true, jsonLdAny: ["BlogPosting", "Article"], switcher: "blog post" },
+		{ path: esBlogPostUrls[0], kind: "blog post", indexable: true, jsonLdAny: ["BlogPosting", "Article"], switcher: "blog post" },
+		{ path: englishUniversityUrls[0], kind: "university profile", indexable: true, switcher: "university profile" },
+		{ path: ptUniversityUrls[0], kind: "university profile", indexable: true, switcher: "university profile" },
+		{ path: esUniversityUrls[0], kind: "university profile", indexable: true, switcher: "university profile" },
+		{ path: "/contact", kind: "contact", indexable: false },
+		{ path: "/pt-br/contato", kind: "contact", indexable: false },
+		{ path: "/es/contacto", kind: "contact", indexable: false },
+	].filter((page) => page.path)
+
+	if (!englishBlogPostUrls[0]) warn("No EN blog post URL found in sitemap for representative blog post checks.")
+	if (!ptBlogPostUrls[0]) warn("No PT-BR blog post URL found in sitemap for representative blog post checks.")
+	if (!esBlogPostUrls[0]) warn("No ES blog post URL found in sitemap for representative blog post checks.")
+
+	for (const page of pages) {
+		const html = await fetchText(page.path)
+		const text = visibleText(bodyHtml(html))
+		const canonical = findLinkHref(html, "canonical")
+		const noindex = hasNoindex(html)
+		const types = jsonLdTypes(html)
+		printMetric(`${page.path} kind`, page.kind)
+		printMetric(`${page.path} canonical`, canonical || "-")
+		printMetric(`${page.path} JSON-LD types`, types.size ? Array.from(types).join(", ") : "none")
+
+		if (page.indexable) {
+			if (canonical) pass(`${page.path} has canonical`)
+			else warn(`${page.path} is indexable but missing canonical.`)
+			expectAvailableHreflang(html, page.path)
+		} else if (noindex) {
+			pass(`${page.path} has noindex`)
+		} else {
+			warn(`${page.path} should be noindex.`)
+		}
+
+		if (page.jsonLdAny) expectJsonLdAny(page.path, types, page.jsonLdAny)
+		if (page.jsonLdAll) expectJsonLdAll(page.path, types, page.jsonLdAll)
+		if (page.switcher) checkVisibleLanguageLinksMatchAlternates(html, page.path, page.switcher)
+		checkBadStrings(page.path, text)
+	}
+}
+
+async function checkBlogTagLocalization(blogPaths) {
+	printHeader("Blog tag localization")
+	for (const path of Array.from(new Set(blogPaths))) {
+		const html = await fetchText(path)
+		const text = visibleText(bodyHtml(html))
+		const match = text.match(rawBlogTagSlugPattern)
+		printMetric(`${path} raw tag slugs`, match ? match[0] : "none")
+		if (match) fail(`${path} renders raw blog tag slug publicly: ${match[0]}`)
+	}
+}
+
+async function checkRawLanguageSwitcherLinks(ptProgramUrls, englishBlogPostUrls, ptBlogPostUrls, esBlogPostUrls) {
+	printHeader("Raw HTML language switcher regressions")
+
+	if (ptProgramUrls[0]) {
+		const html = await fetchText(ptProgramUrls[0])
+		const enAlternate = toPathWithSearch(findAlternateHref(html, "en") || "")
+		const englishVisibleLink = findVisibleLanguageHref(html, "English")
+		printMetric(`${ptProgramUrls[0]} visible English language link`, englishVisibleLink || "-")
+		if (enAlternate.startsWith("/courses/") && englishVisibleLink === "/courses") {
+			fail(`${ptProgramUrls[0]} raw HTML contains visible language href="/courses" even though an English PDP alternate exists.`)
+		}
+	}
+
+	if (ptBlogPostUrls[0]) {
+		const html = await fetchText(ptBlogPostUrls[0])
+		const enAlternate = toPathWithSearch(findAlternateHref(html, "en") || "")
+		const englishVisibleLink = findVisibleLanguageHref(html, "English")
+		printMetric(`${ptBlogPostUrls[0]} visible English language link`, englishVisibleLink || "-")
+		if (enAlternate.startsWith("/blog/") && englishVisibleLink === "/blog") {
+			fail(`${ptBlogPostUrls[0]} raw HTML contains visible language href="/blog" even though an English article translation exists.`)
+		}
+	}
+
+	if (esBlogPostUrls[0]) {
+		const html = await fetchText(esBlogPostUrls[0])
+		const ptAlternate = toPathWithSearch(findAlternateHref(html, "pt-BR") || "")
+		const portugueseVisibleLink = findVisibleLanguageHref(html, "Português")
+		printMetric(`${esBlogPostUrls[0]} visible Portuguese language link`, portugueseVisibleLink || "-")
+		if (ptAlternate.startsWith("/pt-br/guias/") && portugueseVisibleLink === "/pt-br/guias") {
+			fail(`${esBlogPostUrls[0]} raw HTML contains visible language href="/pt-br/guias" even though a PT-BR article translation exists.`)
+		}
 	}
 }
 
@@ -390,6 +557,69 @@ function expectRepresentativeHreflang(html, page) {
 	}
 }
 
+function expectAvailableHreflang(html, path) {
+	const alternates = ["en", "pt-BR", "es", "x-default"]
+		.map((language) => ({ language, href: findAlternateHref(html, language) }))
+		.filter((item) => item.href)
+	printMetric(`${path} hreflang alternates`, alternates.length ? alternates.map((item) => item.language).join(", ") : "none")
+	if (!alternates.length) {
+		warn(`${path} is missing hreflang alternates.`)
+		return
+	}
+	for (const language of ["en", "pt-BR", "es", "x-default"]) {
+		if (alternates.some((item) => item.language === language)) {
+			pass(`${path} has hreflang ${language}`)
+		} else if (alternates.length >= 3) {
+			warn(`${path} is missing expected hreflang ${language}.`)
+		}
+	}
+}
+
+function expectJsonLdAny(path, types, expectedTypes) {
+	const found = expectedTypes.some((type) => types.has(type))
+	printMetric(`${path} JSON-LD expected any`, `${expectedTypes.join(" or ")}: ${found ? "yes" : "no"}`)
+	if (found) pass(`${path} has JSON-LD ${expectedTypes.join(" or ")}`)
+	else warn(`${path} is missing JSON-LD type ${expectedTypes.join(" or ")}.`)
+}
+
+function expectJsonLdAll(path, types, expectedTypes) {
+	const missing = expectedTypes.filter((type) => !types.has(type))
+	printMetric(`${path} JSON-LD expected all`, missing.length ? `missing ${missing.join(", ")}` : "yes")
+	if (missing.length) warn(`${path} is missing JSON-LD type(s): ${missing.join(", ")}.`)
+	else pass(`${path} has JSON-LD ${expectedTypes.join(" + ")}`)
+}
+
+function checkVisibleLanguageLinksMatchAlternates(html, path, label) {
+	const expected = {
+		English: alternatePath(html, "en"),
+		"Português": alternatePath(html, "pt-BR"),
+		"Español": alternatePath(html, "es"),
+	}
+	for (const [languageLabel, expectedPath] of Object.entries(expected)) {
+		if (!expectedPath) continue
+		const visibleHref = findVisibleLanguageHref(html, languageLabel)
+		printMetric(`${path} ${languageLabel} visible language link`, visibleHref || "-")
+		if (!visibleHref) {
+			warn(`${path} ${label} is missing visible ${languageLabel} language switcher link.`)
+		} else if (visibleHref !== expectedPath) {
+			warn(`${path} ${label} ${languageLabel} switcher points to ${visibleHref}, expected equivalent ${expectedPath}.`)
+		} else {
+			pass(`${path} ${label} ${languageLabel} switcher points to equivalent URL`)
+		}
+	}
+}
+
+function alternatePath(html, hreflang) {
+	const href = findAlternateHref(html, hreflang)
+	return href ? toPathWithSearch(href) : ""
+}
+
+function checkBadStrings(path, text) {
+	const findings = badPublicStrings.filter((value) => new RegExp(`\\b${escapeRegex(value)}\\b`, "i").test(text))
+	printList(`${path} bad strings`, findings)
+	findings.forEach((value) => warn(`${path} contains bad public string: ${value}`))
+}
+
 function checkLocalizedBadStrings(path, text, locale) {
 	const findings = badLocalizedStrings.filter((value) => {
 		if (locale === "pt-br" && value === "Maestría Máster") return false
@@ -423,21 +653,23 @@ async function checkSitemapProgramVisibility(sitemapPaths) {
 	const hiddenOrDuplicate = await findProgramsInChunks(sitemapProgramIds, {
 		OR: [
 			{ isPublished: false },
-			{ isLikelyDegreeProgram: false },
 			{ duplicateStatus: "duplicate" },
 			{ canonicalProgramId: { not: null } },
+			{ isSitemapIncluded: false },
+			{ contentType: { in: ["module_or_project", "uncertain"] }, NOT: { isSitemapIncluded: true } },
 		],
 	}, {
 		id: true,
 		programName: true,
 		isPublished: true,
 		isLikelyDegreeProgram: true,
+		contentType: true,
+		isSitemapIncluded: true,
 		duplicateStatus: true,
 		canonicalProgramId: true,
 	})
 	const suspiciousPublic = await findProgramsInChunks(sitemapProgramIds, {
 		isPublished: true,
-		isLikelyDegreeProgram: true,
 		duplicateStatus: { not: "duplicate" },
 		canonicalProgramId: null,
 		OR: [
@@ -542,6 +774,14 @@ function anchorHrefs(html, options = {}) {
 		.map((match) => decodeXml(match[1]))
 }
 
+function findVisibleLanguageHref(html, label) {
+	const body = stripScriptsAndStyles(bodyHtml(html))
+	const escapedLabel = escapeRegex(label)
+	const anchors = [...body.matchAll(/<a\b[^>]*\bhref=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
+	const match = anchors.find((anchor) => new RegExp(`(^|>)\\s*(?:<[^>]+>\\s*)*${escapedLabel}(?:\\s*<[^>]+>)*\\s*(<|$)`, "i").test(anchor[2]))
+	return match ? toPathWithSearch(decodeXml(match[1])) : ""
+}
+
 function hasNoindex(html) {
 	return /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(html)
 		|| /<meta[^>]+content=["'][^"']*noindex[^"']*["'][^>]+name=["']robots/i.test(html)
@@ -551,6 +791,34 @@ function jsonLdBlocks(html) {
 	return [...html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
 		.map((match) => match[1].trim())
 		.filter(Boolean)
+}
+
+function jsonLdTypes(html) {
+	const types = new Set()
+	for (const block of jsonLdBlocks(html)) {
+		try {
+			collectJsonLdTypes(JSON.parse(decodeHtmlEntities(block)), types)
+		} catch {
+			warn("Could not parse a JSON-LD block.")
+		}
+	}
+	return types
+}
+
+function collectJsonLdTypes(value, types) {
+	if (!value || typeof value !== "object") return
+	const type = value["@type"]
+	if (Array.isArray(type)) {
+		type.forEach((item) => types.add(String(item)))
+	} else if (type) {
+		types.add(String(type))
+	}
+	if (Array.isArray(value)) {
+		value.forEach((item) => collectJsonLdTypes(item, types))
+	}
+	if (Array.isArray(value["@graph"])) {
+		value["@graph"].forEach((item) => collectJsonLdTypes(item, types))
+	}
 }
 
 async function fetchText(path) {
@@ -567,7 +835,7 @@ function extractSitemapUrls(xml) {
 }
 
 function toPathWithSearch(url) {
-	const parsed = new URL(url)
+	const parsed = new URL(url, publicOrigin)
 	return `${parsed.pathname}${parsed.search}`
 }
 
@@ -594,6 +862,10 @@ function warn(message) {
 	warnings.push(message)
 }
 
+function pass(message) {
+	passes.push(message)
+}
+
 function fail(message) {
 	warn(message)
 }
@@ -609,6 +881,10 @@ function decodeXml(value) {
 		.replace(/&gt;/g, ">")
 		.replace(/&quot;/g, "\"")
 		.replace(/&apos;/g, "'")
+}
+
+function decodeHtmlEntities(value) {
+	return decodeXml(value)
 }
 
 function escapeRegex(value) {

@@ -42,6 +42,10 @@ export type ProgramCard = {
 	isPublished: boolean
 	isLikelyDegreeProgram: boolean
 	qualityFlags: string
+	contentType: string
+	isSitemapIncluded: boolean | null
+	publicCatalogPriority: number
+	reviewNotes: string
 	duplicateStatus: string
 	canonicalProgramId: number | null
 }
@@ -151,20 +155,48 @@ const defaultFilterOptionLimits: Partial<Record<CourseFilterKey, number>> = {
 }
 export const publicProgramWhere = {
 	isPublished: true,
-	isLikelyDegreeProgram: true,
 	duplicateStatus: "unique",
 	canonicalProgramId: null,
+	OR: [
+		{ contentType: { in: ["degree_program", "bridge_program", "preparatory_program", "certificate_program"] } },
+		{ publicCatalogPriority: { gt: 0 } },
+	],
+}
+export const sitemapProgramWhere = {
+	isPublished: true,
+	duplicateStatus: "unique",
+	canonicalProgramId: null,
+	OR: [
+		{ isSitemapIncluded: true },
+		{
+			AND: [
+				{ isSitemapIncluded: null },
+				{ contentType: "degree_program" },
+			],
+		},
+	],
+}
+export const relatedProgramWhere = {
+	isPublished: true,
+	duplicateStatus: "unique",
+	canonicalProgramId: null,
+	contentType: "degree_program",
+	OR: [
+		{ isSitemapIncluded: true },
+		{ isSitemapIncluded: null },
+	],
 }
 export const publicUniversityWhere = {
 	duplicateStatus: "unique",
 	canonicalUniversityId: null,
 }
 
-export async function getCoursesPageData(searchParams: CourseSearchParams = {}, locale: PublicLocale = "en") {
+export async function getCoursesPageData(searchParams: CourseSearchParams = {}, locale: PublicLocale = "en", options: { programWhere?: Record<string, unknown> } = {}) {
 	const translationLocale = dbTranslationLocale(locale)
+	const programWhere = options.programWhere || publicProgramWhere
 	const [programs, universities] = await Promise.all([
 		prisma.degreeProgram.findMany({
-			where: publicProgramWhere,
+			where: programWhere,
 			include: {
 				university: true,
 				translations: {
@@ -172,7 +204,7 @@ export async function getCoursesPageData(searchParams: CourseSearchParams = {}, 
 					take: 1,
 				},
 			},
-			orderBy: [{ university: { name: "asc" } }, { programName: "asc" }],
+			orderBy: [{ publicCatalogPriority: "desc" }, { university: { name: "asc" } }, { programName: "asc" }],
 		}),
 		prisma.university.findMany({
 			where: publicUniversityWhere,
@@ -246,7 +278,7 @@ export async function getProgramDetail(id?: string, locale: PublicLocale = "en")
 
 	const relatedPrograms = await prisma.degreeProgram.findMany({
 		where: {
-			...publicProgramWhere,
+			...relatedProgramWhere,
 			id: { not: program.id },
 			degreeLevel: program.degreeLevel || undefined,
 			studyField: program.studyField || undefined,
@@ -331,6 +363,19 @@ export function getUniversityUrl(university: { id?: string | null }, locale: Pub
 	return `/universities/${slug}`
 }
 
+export function isProgramSeoIndexable(program: Pick<ProgramCard, "isPublished" | "duplicateStatus" | "canonicalProgramId" | "contentType" | "isSitemapIncluded">) {
+	if (!program.isPublished || program.duplicateStatus !== "unique" || program.canonicalProgramId) {
+		return false
+	}
+	if (program.isSitemapIncluded === true) {
+		return true
+	}
+	if (program.isSitemapIncluded === false) {
+		return false
+	}
+	return program.contentType === "degree_program"
+}
+
 export async function getProgramPathByLocale(programId: number, locale: PublicLocale) {
 	const program = await prisma.degreeProgram.findUnique({
 		where: { id: programId },
@@ -400,6 +445,10 @@ function toProgramCard(program: any, locale: PublicLocale = "en"): ProgramCard {
 		isPublished: program.isPublished ?? true,
 		isLikelyDegreeProgram: program.isLikelyDegreeProgram ?? true,
 		qualityFlags: program.qualityFlags || "",
+		contentType: program.contentType || "degree_program",
+		isSitemapIncluded: program.isSitemapIncluded ?? null,
+		publicCatalogPriority: program.publicCatalogPriority || 0,
+		reviewNotes: program.reviewNotes || "",
 		duplicateStatus: program.duplicateStatus || "unique",
 		canonicalProgramId: program.canonicalProgramId || null,
 	}

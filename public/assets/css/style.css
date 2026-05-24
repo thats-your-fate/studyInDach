@@ -1510,7 +1510,8 @@ body .bg-secondary-2 {
 }
 
 .related-program-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   padding: 20px;
   box-shadow: none;
 }
@@ -1534,6 +1535,30 @@ body .bg-secondary-2 {
 
 .related-program-meta {
   line-height: 1.5;
+}
+
+.related-program-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 16px;
+  color: #61716c;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.related-program-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #61716c;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.related-program-action {
+  margin-top: auto;
 }
 
 .related-program-action {

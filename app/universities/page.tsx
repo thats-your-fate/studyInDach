@@ -1,7 +1,8 @@
 import Layout from "@/components/layout/Layout"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
-import { publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
+import { getUniversityUrl, publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
+import { formatLocation, formatUniversityProgramCount } from "@/lib/university-display"
 import type { Metadata } from "next"
 import Link from "next/link"
 
@@ -47,10 +48,10 @@ export default async function Universities() {
 								<div className="program-info-card h-100">
 									<i className="ri-bank-line" />
 									<div>
-										<span>{[university.location, university.state].filter(Boolean).join(", ") || "DACH"}</span>
+										<span>{formatLocation(university.location, university.state, null, "en") || "DACH"}</span>
 										<strong>{university.name}</strong>
-										<p className="mb-0 mt-2">{university._count.programs} programs in the database</p>
-										<Link href={`/universities/${university.id}`} className="d-inline-block mt-3">View university profile</Link>
+										<p className="mb-0 mt-2">{formatUniversityProgramCount(university._count.programs, "en")}</p>
+										<Link href={getUniversityUrl(university, "en")} className="d-inline-block mt-3">View university profile</Link>
 									</div>
 								</div>
 							</div>

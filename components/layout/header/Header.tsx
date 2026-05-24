@@ -13,13 +13,13 @@ function SiteLogo() {
 	)
 }
 
-export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) {
+export default function Header({ scroll, isMobileMenu, handleMobileMenu, initialLanguageLinks }: any) {
 	const pathname = usePathname()
 	const searchParams = useSearchParams()
 	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : pathname?.startsWith('/es') ? 'es' : 'en'
 	const navItems = navItemsByLocale[locale]
 	const coursesPath = locale === 'pt-br' ? '/pt-br/cursos' : locale === 'es' ? '/es/programas' : '/courses'
-	const fallbackLanguageLinks = useMemo(() => buildLanguageLinks(pathname || '/', searchParams.toString()), [pathname, searchParams])
+	const fallbackLanguageLinks = useMemo(() => normalizeLanguageLinks(initialLanguageLinks) || buildLanguageLinks(pathname || '/', searchParams.toString()), [initialLanguageLinks, pathname, searchParams])
 	const [languageLinks, setLanguageLinks] = useState(fallbackLanguageLinks)
 	const contactHeader = pathname === '/contact' || pathname === '/pt-br/contato' || pathname === '/es/contacto'
 	const solidHeader = contactHeader || pathname?.startsWith('/admin')
@@ -109,11 +109,18 @@ export default function Header({ scroll, isMobileMenu, handleMobileMenu }: any) 
 						</div>
 					</div>
 					<div className="offCanvas__overly" />
-					<MobileMenu isMobileMenu={isMobileMenu} handleMobileMenu={handleMobileMenu} />
+					<MobileMenu isMobileMenu={isMobileMenu} handleMobileMenu={handleMobileMenu} initialLanguageLinks={languageLinks} />
 				</div>
 			</header>
 		</>
 	)
+}
+
+function normalizeLanguageLinks(value: unknown): Record<'en' | 'pt-br' | 'es', string> | null {
+	if (!value || typeof value !== 'object') return null
+	const links = value as Partial<Record<'en' | 'pt-br' | 'es', string>>
+	if (!links.en || !links['pt-br'] || !links.es) return null
+	return { en: links.en, 'pt-br': links['pt-br'], es: links.es }
 }
 
 function LanguageSwitcher({ currentLocale, links }: { currentLocale: string; links: Record<'en' | 'pt-br' | 'es', string> }) {

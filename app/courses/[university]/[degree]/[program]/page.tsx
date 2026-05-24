@@ -2,7 +2,7 @@ import Layout from "@/components/layout/Layout"
 import Section1 from "@/components/sections/single-courses/Section1"
 import Section2 from "@/components/sections/single-courses/Section2"
 import { getLocalizedProgramUrl } from "@/lib/localized-urls"
-import { getProgramDetailBySlugs, type ProgramDetail } from "@/lib/study-programs"
+import { getProgramDetailBySlugs, isProgramSeoIndexable, type ProgramDetail } from "@/lib/study-programs"
 import { absoluteUrl } from "@/lib/seo"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: ProgramSeoParams): Promise<Me
 	return {
 		title,
 		description,
-		robots: program.isPublished && program.isLikelyDegreeProgram && program.duplicateStatus === "unique" && !program.canonicalProgramId ? undefined : { index: false, follow: true },
+		robots: isProgramSeoIndexable(program) ? undefined : { index: false, follow: true },
 		alternates: {
 			canonical: absoluteUrl(localizedCanonicalPath),
 			languages,
@@ -64,9 +64,10 @@ export default async function ProgramSeoPage({
 	if (!result.isCanonical) {
 		redirect(result.canonicalPath)
 	}
+	const languageLinks = await programLanguageLinks(result.program.id)
 
 	return (
-		<Layout>
+		<Layout languageLinks={languageLinks}>
 			<script
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{ __html: JSON.stringify(programJsonLd(result.program, result.canonicalPath)) }}
@@ -75,6 +76,14 @@ export default async function ProgramSeoPage({
 			<Section2 program={result.program} locale="en" />
 		</Layout>
 	)
+}
+
+async function programLanguageLinks(programId: number) {
+	return {
+		en: await getLocalizedProgramUrl(programId, "en") || "/courses",
+		"pt-br": await getLocalizedProgramUrl(programId, "pt-br") || "/pt-br/cursos",
+		es: await getLocalizedProgramUrl(programId, "es") || "/es/programas",
+	}
 }
 
 function programJsonLd(program: ProgramDetail, canonicalPath: string) {

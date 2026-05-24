@@ -100,6 +100,29 @@ export function formatBlogDate(value: Date | null, locale: PublicLocale = "en") 
 	return new Intl.DateTimeFormat(formatterLocale, { dateStyle: "long" }).format(value)
 }
 
+export function localizedBlogCategoryName(
+	category: { key?: string | null; translations?: Array<{ name?: string | null }> } | null | undefined,
+	locale: PublicLocale = "en",
+) {
+	return category?.translations?.[0]?.name || fallbackBlogCategoryName(category?.key, locale)
+}
+
+export function localizedBlogTagName(
+	tag: { key?: string | null; translations?: Array<{ name?: string | null }> } | null | undefined,
+	locale: PublicLocale = "en",
+) {
+	return tag?.translations?.[0]?.name || fallbackBlogTagName(tag?.key, locale)
+}
+
+export function localizedBlogTagNames(
+	tags: Array<{ tag?: { key?: string | null; translations?: Array<{ name?: string | null }> } | null }> | undefined,
+	locale: PublicLocale = "en",
+) {
+	return (tags || [])
+		.map((item) => localizedBlogTagName(item.tag, locale))
+		.filter(Boolean)
+}
+
 export function paragraphsFromContent(content: string) {
 	return content
 		.split(/\n{2,}/)
@@ -201,6 +224,38 @@ export function readingMinutes(content: string) {
 
 export function blogLocale(value: string | null | undefined): PublicLocale {
 	return value === "pt-br" || value === "es" ? value : "en"
+}
+
+function fallbackBlogCategoryName(key: string | null | undefined, locale: PublicLocale) {
+	if (!key) return ""
+	const labels: Record<string, Record<PublicLocale, string>> = {
+		"study-guides": { en: "Study guides", "pt-br": "Guias de estudo", es: "Guías de estudio" },
+	}
+	return labels[key]?.[locale] || humanizeBlogKey(key)
+}
+
+function fallbackBlogTagName(key: string | null | undefined, locale: PublicLocale) {
+	if (!key) return ""
+	const labels: Record<string, Record<PublicLocale, string>> = {
+		"brazilian-students": { en: "Brazilian students", "pt-br": "Estudantes brasileiros", es: "Estudiantes brasileños" },
+		"latin-american-students": { en: "Latin American students", "pt-br": "Estudantes latino-americanos", es: "Estudiantes latinoamericanos" },
+		"english-taught": { en: "English-taught programs", "pt-br": "Programas em inglês", es: "Programas en inglés" },
+		"english-taught-programs": { en: "English-taught programs", "pt-br": "Programas em inglês", es: "Programas en inglés" },
+		"international-students": { en: "International students", "pt-br": "Estudantes internacionais", es: "Estudiantes internacionales" },
+		"public-universities": { en: "Public universities", "pt-br": "Universidades públicas", es: "Universidades públicas" },
+		"tuition-free": { en: "Tuition-free", "pt-br": "Sem mensalidade", es: "Sin matrícula" },
+		germany: { en: "Germany", "pt-br": "Alemanha", es: "Alemania" },
+		masters: { en: "Master's", "pt-br": "Mestrado", es: "Maestría" },
+	}
+	return labels[key]?.[locale] || humanizeBlogKey(key)
+}
+
+function humanizeBlogKey(value: string) {
+	return value
+		.split("-")
+		.filter(Boolean)
+		.map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+		.join(" ")
 }
 
 function escapeHtml(value: string) {

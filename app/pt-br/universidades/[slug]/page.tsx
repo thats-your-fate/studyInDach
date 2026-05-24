@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import { getLocalizedUniversityUrl } from "@/lib/localized-urls"
 import { getUniversityUrl, normalizeCourseFilterParam, normalizeLanguageBuckets, normalizeStudyFields, programDetailPath, publicProgramWhere, type ProgramCard } from "@/lib/study-programs"
+import { formatLocation } from "@/lib/university-display"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -59,7 +60,7 @@ export default async function UniversityPtPage({ params, searchParams }: Univers
 
 	if (!university) notFound()
 
-	const location = [optionLabel(university.location || "", "pt-br"), optionLabel(university.state || "", "pt-br")].filter(Boolean).join(", ") || "DACH"
+	const location = formatLocation(university.location, university.state, null, "pt-br") || "DACH"
 	const selectedDegree = cleanDisplayValue(searchParams?.degreeLevel)
 	const selectedLanguage = normalizeCourseFilterParam("language", cleanDisplayValue(searchParams?.languageOfInstruction))
 	const selectedStudyField = normalizeCourseFilterParam("studyField", cleanDisplayValue(searchParams?.studyField))
@@ -71,9 +72,10 @@ export default async function UniversityPtPage({ params, searchParams }: Univers
 		.filter((program) => !selectedLanguage || normalizeLanguageBuckets(program.languageOfInstruction).includes(selectedLanguage))
 		.filter((program) => !selectedStudyField || normalizeStudyFields([program.studyField, program.secondaryStudyField, program.subjectArea]).includes(selectedStudyField))
 		.slice(0, 30)
+	const languageLinks = await universityLanguageLinks(university.id)
 
 	return (
-		<Layout>
+		<Layout languageLinks={languageLinks}>
 			<section className="elearning-about-section-1 position-relative pt-250-keep pb-120 pb-lg-150 bg-primary rounded-bottom-4 overflow-hidden">
 				<div className="container position-relative pt-8 text-center">
 					<span className="content-top btn-text fw-bold text-white">
@@ -116,6 +118,14 @@ export default async function UniversityPtPage({ params, searchParams }: Univers
 			</section>
 		</Layout>
 	)
+}
+
+async function universityLanguageLinks(universityId: string) {
+	return {
+		en: await getLocalizedUniversityUrl(universityId, "en") || "/universities",
+		"pt-br": await getLocalizedUniversityUrl(universityId, "pt-br") || "/pt-br/universidades",
+		es: await getLocalizedUniversityUrl(universityId, "es") || "/es/universidades",
+	}
 }
 
 function ProgramFilters({
@@ -220,11 +230,15 @@ function toUniversityProgramCard(program: any, universityName: string): ProgramC
 		metadataConfidence: program.metadataConfidence || "",
 		reviewStatus: program.reviewStatus || "pending",
 		isPublished: program.isPublished ?? true,
-		isLikelyDegreeProgram: program.isLikelyDegreeProgram ?? true,
-		qualityFlags: program.qualityFlags || "",
-		duplicateStatus: program.duplicateStatus || "unique",
-		canonicalProgramId: program.canonicalProgramId || null,
-	}
+			isLikelyDegreeProgram: program.isLikelyDegreeProgram ?? true,
+			qualityFlags: program.qualityFlags || "",
+			contentType: program.contentType || "degree_program",
+			isSitemapIncluded: program.isSitemapIncluded ?? null,
+			publicCatalogPriority: program.publicCatalogPriority || 0,
+			reviewNotes: program.reviewNotes || "",
+			duplicateStatus: program.duplicateStatus || "unique",
+			canonicalProgramId: program.canonicalProgramId || null,
+		}
 }
 
 function escapeRegExp(value: string) {

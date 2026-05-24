@@ -61,6 +61,10 @@ model DegreeProgram {
   isPublished             Boolean                    @default(true)
   isLikelyDegreeProgram   Boolean                    @default(true)
   qualityFlags            String?
+  contentType             String                     @default("degree_program")
+  isSitemapIncluded       Boolean?
+  publicCatalogPriority   Int                        @default(0)
+  reviewNotes             String?
   duplicateStatus         String                     @default("unique")
   canonicalProgramId      Int?
   duplicateNotes          String?
@@ -75,6 +79,9 @@ model DegreeProgram {
   @@index([reviewStatus])
   @@index([isPublished])
   @@index([isLikelyDegreeProgram])
+  @@index([contentType])
+  @@index([isSitemapIncluded])
+  @@index([publicCatalogPriority])
   @@index([duplicateStatus])
   @@index([canonicalProgramId])
   @@index([universityId])

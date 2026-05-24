@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
-export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
+export default function MobileMenu({ isMobileMenu, handleMobileMenu, initialLanguageLinks }: any) {
 	const pathname = usePathname()
 	const searchParams = useSearchParams()
 	const locale = pathname?.startsWith('/pt-br') ? 'pt-br' : pathname?.startsWith('/es') ? 'es' : 'en'
 	const navItems = navItemsByLocale[locale]
-	const fallbackLanguageLinks = useMemo(() => buildLanguageLinks(pathname || '/', searchParams.toString()), [pathname, searchParams])
+	const fallbackLanguageLinks = useMemo(() => normalizeLanguageLinks(initialLanguageLinks) || buildLanguageLinks(pathname || '/', searchParams.toString()), [initialLanguageLinks, pathname, searchParams])
 	const [languageLinks, setLanguageLinks] = useState(fallbackLanguageLinks)
 
 	useEffect(() => {
@@ -81,6 +81,13 @@ export default function MobileMenu({ isMobileMenu, handleMobileMenu }: any) {
 			</div>
 		</>
 	)
+}
+
+function normalizeLanguageLinks(value: unknown): Record<'en' | 'pt-br' | 'es', string> | null {
+	if (!value || typeof value !== 'object') return null
+	const links = value as Partial<Record<'en' | 'pt-br' | 'es', string>>
+	if (!links.en || !links['pt-br'] || !links.es) return null
+	return { en: links.en, 'pt-br': links['pt-br'], es: links.es }
 }
 
 function buildLanguageLinks(pathname: string, query: string) {

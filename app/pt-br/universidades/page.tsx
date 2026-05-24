@@ -1,9 +1,9 @@
 import Layout from "@/components/layout/Layout"
 import Link from "next/link"
-import { optionLabel } from "@/lib/i18n"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
-import { publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
+import { getUniversityUrl, publicProgramWhere, publicUniversityWhere } from "@/lib/study-programs"
+import { formatLocation, formatUniversityProgramCount } from "@/lib/university-display"
 import type { Metadata } from "next"
 
 export const dynamic = "force-dynamic"
@@ -48,10 +48,10 @@ export default async function UniversitiesPt() {
 								<div className="program-info-card h-100">
 									<i className="ri-bank-line" />
 									<div>
-										<span>{[optionLabel(university.location || "", "pt-br"), optionLabel(university.state || "", "pt-br")].filter(Boolean).join(", ") || "DACH"}</span>
+										<span>{formatLocation(university.location, university.state, null, "pt-br") || "DACH"}</span>
 										<strong>{university.name}</strong>
-										<p className="mb-0 mt-2">{university._count.programs} programas no banco de dados</p>
-										<Link href={`/pt-br/universidades/${university.id}`} className="d-inline-block mt-3">Ver perfil da universidade</Link>
+										<p className="mb-0 mt-2">{formatUniversityProgramCount(university._count.programs, "pt-br")}</p>
+										<Link href={getUniversityUrl(university, "pt-br")} className="d-inline-block mt-3">Ver perfil da universidade</Link>
 									</div>
 								</div>
 							</div>

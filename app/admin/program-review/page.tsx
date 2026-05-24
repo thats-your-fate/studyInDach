@@ -8,7 +8,18 @@ export const dynamic = "force-dynamic"
 
 type SearchParams = {
 	status?: string
+	contentType?: string
+	sitemap?: string
 }
+
+const contentTypeOptions = [
+	"degree_program",
+	"bridge_program",
+	"preparatory_program",
+	"certificate_program",
+	"module_or_project",
+	"uncertain",
+]
 
 async function reviewProgram(formData: FormData) {
 	"use server"
@@ -22,6 +33,9 @@ async function reviewProgram(formData: FormData) {
 			reviewStatus: "reviewed",
 			isPublished: true,
 			isLikelyDegreeProgram: true,
+			contentType: "degree_program",
+			isSitemapIncluded: true,
+			publicCatalogPriority: 10,
 			qualityFlags: null,
 		}
 		: action === "hide"
@@ -29,14 +43,32 @@ async function reviewProgram(formData: FormData) {
 				reviewStatus: "hidden",
 				isPublished: false,
 				isLikelyDegreeProgram: false,
+				contentType: "module_or_project",
+				isSitemapIncluded: false,
 			}
 			: action === "noindex"
 				? {
 					reviewStatus: "noindex",
 					isPublished: true,
-					isLikelyDegreeProgram: false,
+					isSitemapIncluded: false,
 				}
-				: null
+				: action === "exclude-sitemap"
+					? {
+						isSitemapIncluded: false,
+						reviewNotes: "Manually excluded from sitemap.",
+					}
+					: action === "canonical-degree"
+						? {
+							reviewStatus: "reviewed",
+							isPublished: true,
+							isLikelyDegreeProgram: true,
+							contentType: "degree_program",
+							isSitemapIncluded: true,
+							publicCatalogPriority: 10,
+							qualityFlags: null,
+							reviewNotes: "Manually marked as canonical degree program.",
+						}
+						: null
 
 	if (!data) return
 
@@ -49,11 +81,14 @@ async function reviewProgram(formData: FormData) {
 	revalidatePath("/courses")
 	revalidatePath("/pt-br/cursos")
 	revalidatePath("/es/programas")
+	revalidatePath("/sitemap.xml")
 }
 
 export default async function ProgramReviewPage({ searchParams }: { searchParams?: SearchParams }) {
 	const status = searchParams?.status || "needs-review"
-	const where = status === "all"
+	const contentType = contentTypeOptions.includes(searchParams?.contentType || "") ? searchParams?.contentType : ""
+	const sitemap = ["included", "excluded", "default"].includes(searchParams?.sitemap || "") ? searchParams?.sitemap : ""
+	const statusWhere = status === "all"
 		? {}
 		: status === "hidden"
 			? { reviewStatus: "hidden" }
@@ -67,6 +102,13 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 						{ qualityFlags: { not: null } },
 					],
 				}
+	const where = {
+		...statusWhere,
+		...(contentType ? { contentType } : {}),
+		...(sitemap === "included" ? { isSitemapIncluded: true } : {}),
+		...(sitemap === "excluded" ? { isSitemapIncluded: false } : {}),
+		...(sitemap === "default" ? { isSitemapIncluded: null } : {}),
+	}
 
 	const [programs, publishedValidPrograms, hiddenSuspiciousRows, pendingReviewRows] = await Promise.all([
 		prisma.degreeProgram.findMany({
@@ -126,6 +168,28 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 								<Link href="/admin/program-review?status=all" className="btn btn-outline-secondary">All</Link>
 							</div>
 						</div>
+						<form className="row g-3 align-items-end mb-5" method="get" action="/admin/program-review">
+							<input type="hidden" name="status" value={status} />
+							<label className="col-md-4 col-lg-3">
+								<span className="fs-7 text-uppercase text-primary fw-bold">Content type</span>
+								<select name="contentType" defaultValue={contentType} className="form-select mt-1">
+									<option value="">All content types</option>
+									{contentTypeOptions.map((option) => <option value={option} key={option}>{option}</option>)}
+								</select>
+							</label>
+							<label className="col-md-4 col-lg-3">
+								<span className="fs-7 text-uppercase text-primary fw-bold">Sitemap inclusion</span>
+								<select name="sitemap" defaultValue={sitemap} className="form-select mt-1">
+									<option value="">All sitemap states</option>
+									<option value="default">Default rules</option>
+									<option value="included">Manual include</option>
+									<option value="excluded">Manual exclude</option>
+								</select>
+							</label>
+							<div className="col-md-4 col-lg-3">
+								<button className="btn btn-primary" type="submit">Apply filters</button>
+							</div>
+						</form>
 
 						<div className="table-responsive">
 							<table className="table align-middle">
@@ -136,6 +200,7 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 										<th>Degree</th>
 										<th>Summary</th>
 										<th>Flags</th>
+										<th>Index controls</th>
 										<th>Actions</th>
 									</tr>
 								</thead>
@@ -154,9 +219,17 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 											</td>
 											<td style={{ minWidth: 280 }}>{preview(program.summary || "")}</td>
 											<td style={{ minWidth: 220 }}>{program.qualityFlags || "-"}</td>
+											<td style={{ minWidth: 220 }}>
+												<div>{program.contentType}</div>
+												<div className="fs-8">Sitemap: {sitemapLabel(program.isSitemapIncluded)}</div>
+												<div className="fs-8">Priority: {program.publicCatalogPriority}</div>
+												{program.reviewNotes && <div className="fs-8">{program.reviewNotes}</div>}
+											</td>
 											<td>
 												<div className="d-grid gap-2">
 													<ActionButton id={program.id} action="valid" label="Mark as valid degree program" />
+													<ActionButton id={program.id} action="canonical-degree" label="Canonical degree + sitemap" />
+													<ActionButton id={program.id} action="exclude-sitemap" label="Exclude from sitemap" />
 													<ActionButton id={program.id} action="hide" label="Hide from public catalog" />
 													<ActionButton id={program.id} action="noindex" label="Noindex only" />
 													<Link href={`/admin?university=${program.universityId}&program=${program.id}`} className="btn btn-outline-secondary btn-sm">Edit row</Link>
@@ -166,7 +239,7 @@ export default async function ProgramReviewPage({ searchParams }: { searchParams
 									))}
 									{programs.length === 0 && (
 										<tr>
-											<td colSpan={6} className="text-center py-5">No rows in this review bucket.</td>
+											<td colSpan={7} className="text-center py-5">No rows in this review bucket.</td>
 										</tr>
 									)}
 								</tbody>
@@ -224,4 +297,10 @@ function AdminHeader({ title }: { title: string }) {
 
 function preview(value: string) {
 	return value.length > 220 ? `${value.slice(0, 220)}...` : value || "-"
+}
+
+function sitemapLabel(value: boolean | null) {
+	if (value === true) return "manual include"
+	if (value === false) return "manual exclude"
+	return "default"
 }

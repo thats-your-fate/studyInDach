@@ -1,5 +1,5 @@
-import { optionLabel, programUi, t, type PublicLocale } from "@/lib/i18n"
-import { displayLanguageCombination, joinMetaSegments } from "@/lib/program-display"
+import { coursesUi, optionLabel, programUi, t, type PublicLocale } from "@/lib/i18n"
+import { displayAcademicDegree, displayLanguageCombination, joinMetaSegments } from "@/lib/program-display"
 import type { ProgramCard, ProgramDetail } from "@/lib/study-programs"
 import Link from "next/link"
 
@@ -297,19 +297,27 @@ function InfoCard({ label, value, icon }: { label: string; value: string; icon: 
 }
 
 function RelatedProgramCard({ program, locale }: { program: ProgramCard; locale: PublicLocale }) {
-	const degreeLabel = optionLabel(program.degreeLevel, locale)
+	const ui = coursesUi[locale]
+	const degreeLabel = joinMetaSegments(uniqueInOrder([program.degreeLevel, displayAcademicDegree(program.academicDegree)]
+		.filter(isUsefulValue)
+		.map((item) => optionLabel(item, locale))
+		.filter((item) => !titleStartsWithDegree(program.title, item))))
 	const fieldLabel = optionalLocalizedValue(program.studyField || program.subjectArea, locale)
 	const languageLabel = displayLanguageCombination(program.languageOfInstruction, locale, " / ")
-	const metaItems = [degreeLabel, fieldLabel, languageLabel]
-		.filter(isUsefulValue)
-		.filter((item) => !titleStartsWithDegree(program.title, item))
 
 	return (
-		<Link href={program.detailPath} className="related-program-card">
-			<h3>{program.title}</h3>
+		<article className="related-program-card">
+			<h3>
+				<Link href={program.detailPath}>{program.title}</Link>
+			</h3>
 			<p>{program.universityName}</p>
-			{metaItems.length > 0 && <div className="related-program-meta">{joinMetaSegments(metaItems)}</div>}
-		</Link>
+			<div className="related-program-facts">
+				{degreeLabel && <span><i className="ri-graduation-cap-line" /> {degreeLabel}</span>}
+				{fieldLabel && <span><i className="ri-book-open-line" /> {fieldLabel}</span>}
+				{languageLabel && <span><i className="ri-translate-2" /> {languageLabel}</span>}
+			</div>
+			<Link href={program.detailPath} className="course-card-action related-program-action">{ui.viewProgram}</Link>
+		</article>
 	)
 }
 
@@ -469,6 +477,18 @@ function requiredLocalizedValue(value: string | null | undefined, locale: Public
 
 function usefulValue(value: string | null | undefined) {
 	return isUsefulValue(value) ? value.trim() : ""
+}
+
+function uniqueInOrder(values: string[]) {
+	const seen = new Set<string>()
+	return values.filter((value) => {
+		const key = normalizeText(value)
+		if (!key || seen.has(key)) {
+			return false
+		}
+		seen.add(key)
+		return true
+	})
 }
 
 function isUsefulValue(value: string | null | undefined): value is string {

@@ -34,7 +34,7 @@ async function updateProgramDuplicate(formData: FormData) {
 	if (action === "clear") {
 		await prisma.degreeProgram.update({
 			where: { id },
-			data: { duplicateStatus: "unique", canonicalProgramId: null, duplicateNotes: null, isPublished: true },
+			data: { duplicateStatus: "unique", canonicalProgramId: null, duplicateNotes: null, isPublished: true, contentType: "degree_program" },
 		})
 	} else if (action === "mark" && await validCanonicalProgramId(id, canonicalId)) {
 		await prisma.degreeProgram.update({
@@ -130,6 +130,10 @@ const visibleProgramFields = [
 	"tuitionType",
 	"workExperienceRequired",
 	"metadataConfidence",
+	"contentType",
+	"isSitemapIncluded",
+	"publicCatalogPriority",
+	"reviewNotes",
 ] as const
 
 const visibleTranslationFields = [
@@ -241,9 +245,25 @@ export default async function AdminDataQualityPage() {
 		universities.filter((university) => useful(university.websiteUrl)),
 		(university) => normalizeUrl(university.websiteUrl || ""),
 	).filter((group) => group.items.length > 1)
-	const similarUniversities = duplicateGroups(
+	const duplicateUniversityDomains = duplicateGroups(
+		universities.filter((university) => useful(university.websiteUrl)),
+		(university) => normalizeWebsiteDomain(university.websiteUrl || ""),
+	).filter((group) => group.items.length > 1)
+	const sameCitySimilarUniversities = duplicateGroups(
 		universities.filter((university) => useful(university.location)),
-		(university) => `${normalizeName(university.location || "")}|${normalizeUniversityName(university.name)}`,
+		(university) => [
+			normalizeName(university.location || ""),
+			normalizeName(university.state || ""),
+			similarUniversityNameKey(university.name),
+		].join("|"),
+	).filter((group) => group.key.split("|").at(-1) && group.items.length > 1)
+	const acronymUniversityPairs = duplicateGroups(
+		universities.filter((university) => useful(university.location)),
+		(university) => [
+			normalizeName(university.location || ""),
+			normalizeName(university.state || ""),
+			normalizeUniversityName(university.name),
+		].join("|"),
 	).filter((group) => group.items.length > 1)
 
 	return (
@@ -307,7 +327,15 @@ export default async function AdminDataQualityPage() {
 						</div>
 
 						<div className="col-12">
-							<DuplicateUniversityTable title="Same location + similar university name" groups={similarUniversities} />
+							<DuplicateUniversityTable title="Same university website domain" groups={duplicateUniversityDomains} />
+						</div>
+
+						<div className="col-12">
+							<DuplicateUniversityTable title="Same city + similar university name" groups={sameCitySimilarUniversities} />
+						</div>
+
+						<div className="col-12">
+							<DuplicateUniversityTable title="Acronym/name university pairs" groups={acronymUniversityPairs} />
 						</div>
 					</div>
 				</div>
@@ -589,7 +617,7 @@ function buildProgramIssues(programs: ProgramWithQaData[]): ProgramIssueRow[] {
 
 function baseProgramIssues(program: ProgramWithQaData) {
 	const issues: string[] = []
-	const unknownFields = visibleProgramFields.filter((field) => isUnknown(program[field]))
+	const unknownFields = visibleProgramFields.filter((field) => isUnknown(String(program[field] ?? "")))
 
 	if (unknownFields.length) {
 		issues.push(`base Unknown: ${unknownFields.join(", ")}`)
@@ -687,6 +715,14 @@ function normalizeUrl(value: string) {
 		.replace(/\/+$/, "")
 }
 
+function normalizeWebsiteDomain(value: string) {
+	try {
+		return new URL(value).hostname.toLowerCase().replace(/^www\./, "")
+	} catch {
+		return normalizeUrl(value).split("/")[0] || ""
+	}
+}
+
 function normalizeProgramUrlAcrossLanguageVariants(value: string) {
 	try {
 		const parsed = new URL(value)
@@ -777,3 +813,28 @@ function normalizeUniversityName(value: string) {
 		.replace(/\s+/g, " ")
 		.trim()
 }
+
+function similarUniversityNameKey(value: string) {
+	const normalized = normalizeUniversityName(value)
+	const tokens = normalized
+		.split(/\s+/)
+		.filter((token) => token.length > 1)
+		.filter((token) => !universityStopWords.has(token))
+	if (!tokens.length) return ""
+	return Array.from(new Set(tokens)).sort().slice(0, 6).join(" ")
+}
+
+const universityStopWords = new Set([
+	"uni",
+	"university",
+	"hochschule",
+	"school",
+	"college",
+	"institute",
+	"institut",
+	"academy",
+	"akademie",
+	"the",
+	"of",
+	"for",
+])

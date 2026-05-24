@@ -1,5 +1,5 @@
 import Layout from "@/components/layout/Layout"
-import { blogHrefLang, blogIndexPath, blogPostPath, formatBlogDate, publishedBlogWhere } from "@/lib/blog-posts"
+import { blogHrefLang, blogIndexPath, blogPostPath, formatBlogDate, localizedBlogCategoryName, localizedBlogTagNames, publishedBlogWhere } from "@/lib/blog-posts"
 import type { PublicLocale } from "@/lib/i18n"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl, organizationJsonLd } from "@/lib/seo"
@@ -36,8 +36,6 @@ export default async function BlogIndexPage({
 		},
 		orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
 	})
-	const featuredPosts = posts.filter((post) => post.featured)
-	const regularPosts = posts.filter((post) => !post.featured)
 	const blogJsonLd = {
 		"@context": "https://schema.org",
 		"@type": "Blog",
@@ -107,24 +105,13 @@ export default async function BlogIndexPage({
 							<p>{emptyText}</p>
 						</div>
 					) : (
-						<>
-							{featuredPosts.length > 0 && (
-								<div className="row g-4 mb-6">
-									{featuredPosts.map((post) => (
-										<div className="col-12" key={post.id}>
-											<BlogCard post={post} locale={locale} readLabel={readLabel} featured />
-										</div>
-									))}
+						<div className="row g-4">
+							{posts.map((post) => (
+								<div className="col-md-6" key={post.id}>
+									<BlogCard post={post} locale={locale} readLabel={readLabel} featured={post.featured} />
 								</div>
-							)}
-							<div className="row g-4">
-								{regularPosts.map((post) => (
-									<div className="col-md-6 col-lg-4" key={post.id}>
-										<BlogCard post={post} locale={locale} readLabel={readLabel} />
-									</div>
-								))}
-							</div>
-						</>
+							))}
+						</div>
 					)}
 				</div>
 			</section>
@@ -134,18 +121,18 @@ export default async function BlogIndexPage({
 
 function BlogCard({ post, locale, readLabel, featured = false }: { post: any; locale: PublicLocale; readLabel: string; featured?: boolean }) {
 	const href = blogPostPath(post.translations[0].slug, locale)
-	const categoryName = localizedCategoryName(post, locale)
-	const tags = localizedTagNames(post, locale).slice(0, featured ? 6 : 3)
+	const categoryName = localizedBlogCategoryName(post.category, locale)
+	const tags = localizedBlogTagNames(post.tags, locale).slice(0, 6)
 	const dateLabel = featured ? `${featuredLabel(locale)} · ${formatBlogDate(post.publishedAt, locale)}` : formatBlogDate(post.publishedAt, locale)
 
 	return (
-		<article className={`card-news d-block bg-secondary-2 rounded-3 h-100 overflow-hidden hover-up ${featured ? "row g-0 align-items-stretch" : ""}`}>
+		<article className="card-news d-flex flex-column bg-secondary-2 rounded-3 h-100 overflow-hidden hover-up">
 			{post.coverImageUrl && (
-				<div className={featured ? "col-lg-5" : ""}>
-					<img src={post.coverImageUrl} alt={post.coverImageAlt || ""} className="w-100 h-100" style={{ minHeight: featured ? 320 : 220, maxHeight: featured ? 420 : 220, objectFit: "cover" }} />
+				<div>
+					<img src={post.coverImageUrl} alt={post.coverImageAlt || ""} className="w-100" style={{ height: 260, objectFit: "cover" }} />
 				</div>
 			)}
-			<div className={featured ? "col-lg-7 p-6" : "p-5"}>
+			<div className="p-5 d-flex flex-column flex-grow-1">
 				{(categoryName || tags.length > 0) && (
 					<div className="d-flex flex-wrap gap-2 mb-3" aria-label={tagListLabel(locale)}>
 						{categoryName && <span className="blog-chip blog-chip-primary">{categoryName}</span>}
@@ -157,50 +144,10 @@ function BlogCard({ post, locale, readLabel, featured = false }: { post: any; lo
 					<Link href={href}>{post.translations[0].title}</Link>
 				</h2>
 				<p className="mb-4">{post.translations[0].excerpt || excerptFromContent(post.translations[0].contentMd)}</p>
-				<Link href={href} className="btn-text text-primary" aria-label={`${readLabel}: ${post.translations[0].title}`}>{readLabel}</Link>
+				<Link href={href} className="btn-text text-primary mt-auto" aria-label={`${readLabel}: ${post.translations[0].title}`}>{readLabel}</Link>
 			</div>
 		</article>
 	)
-}
-
-function localizedCategoryName(post: any, locale: PublicLocale) {
-	return post.category?.translations[0]?.name || fallbackCategoryName(post.category?.key, locale)
-}
-
-function localizedTagNames(post: any, locale: PublicLocale) {
-	return (post.tags || [])
-		.map((item: any) => item.tag.translations[0]?.name || fallbackTagName(item.tag.key, locale))
-		.filter(Boolean)
-}
-
-function fallbackCategoryName(key: string | undefined, locale: PublicLocale) {
-	if (!key) return ""
-	if (key === "study-guides") {
-		if (locale === "pt-br") return "Guias de estudo"
-		if (locale === "es") return "Guías de estudio"
-		return "Study guides"
-	}
-	return humanizeKey(key)
-}
-
-function fallbackTagName(key: string | undefined, locale: PublicLocale) {
-	if (!key) return ""
-	const labels: Record<string, Record<PublicLocale, string>> = {
-		"brazilian-students": { en: "Brazilian students", "pt-br": "Estudantes brasileiros", es: "Estudiantes brasileños" },
-		"latin-american-students": { en: "Latin American students", "pt-br": "Estudantes latino-americanos", es: "Estudiantes latinoamericanos" },
-		"english-taught": { en: "English-taught programs", "pt-br": "Programas em inglês", es: "Programas en inglés" },
-		"english-taught-programs": { en: "English-taught programs", "pt-br": "Programas em inglês", es: "Programas en inglés" },
-		"international-students": { en: "International students", "pt-br": "Estudantes internacionais", es: "Estudiantes internacionales" },
-		"public-universities": { en: "Public universities", "pt-br": "Universidades públicas", es: "Universidades públicas" },
-		"tuition-free": { en: "Tuition-free", "pt-br": "Sem mensalidade", es: "Sin matrícula" },
-		"germany": { en: "Germany", "pt-br": "Alemanha", es: "Alemania" },
-		"masters": { en: "Master's", "pt-br": "Mestrado", es: "Maestría" },
-	}
-	return labels[key]?.[locale] || humanizeKey(key)
-}
-
-function humanizeKey(value: string) {
-	return value.split("-").filter(Boolean).map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join(" ")
 }
 
 function featuredLabel(locale: PublicLocale) {
