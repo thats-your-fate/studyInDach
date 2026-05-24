@@ -48,7 +48,7 @@ const rawBlogTagSlugPattern = /\b(?:latin-american-students|brazilian-students|e
 
 async function main() {
 	try {
-		const sitemapXml = await fetchText("/sitemap.xml")
+		const sitemapXml = await fetchResolvedSitemapXml("/sitemap.xml")
 		const sitemapUrls = extractSitemapUrls(sitemapXml)
 		const sitemapPaths = sitemapUrls.map(toPathWithSearch)
 		const contactUrls = sitemapPaths.filter((path) => /^\/(contact|pt-br\/contato|es\/contacto)(\?|$)/.test(path))
@@ -828,6 +828,19 @@ async function fetchText(path) {
 		throw new Error(`Failed to fetch ${url}: HTTP ${response.status}`)
 	}
 	return response.text()
+}
+
+async function fetchResolvedSitemapXml(path) {
+	const xml = await fetchText(path)
+	const sitemapFiles = extractSitemapIndexUrls(xml)
+	if (!sitemapFiles.length) return xml
+	const childSitemaps = await Promise.all(sitemapFiles.map(fetchText))
+	return childSitemaps.join("\n")
+}
+
+function extractSitemapIndexUrls(xml) {
+	if (!/<sitemapindex[\s>]/.test(xml)) return []
+	return [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => decodeXml(match[1].trim()))
 }
 
 function extractSitemapUrls(xml) {
