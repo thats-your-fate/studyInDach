@@ -1,5 +1,6 @@
-import { absoluteUrl } from "@/lib/seo"
 import type { MetadataRoute } from "next"
+
+const sitemapBaseUrl = process.env.SITEMAP_BASE_URL || "https://sitemap.studyindach.cc"
 
 export default function robots(): MetadataRoute.Robots {
 	return {
@@ -8,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
 			allow: "/",
 			disallow: ["/admin"],
 		},
-		sitemap: absoluteUrl("/sitemap.xml"),
+		sitemap: new URL("/sitemap.xml", sitemapBaseUrl).toString(),
 	}
 }

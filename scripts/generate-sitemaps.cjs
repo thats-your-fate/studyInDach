@@ -5,7 +5,8 @@ const { PrismaClient } = require("@prisma/client")
 
 const prisma = new PrismaClient()
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://studyindach.cc").replace(/\/$/, "")
-const PUBLIC_DIR = path.join(process.cwd(), "public")
+const SITEMAP_FILE_BASE_URL = (process.env.SITEMAP_BASE_URL || "https://sitemap.studyindach.cc").replace(/\/$/, "")
+const PUBLIC_DIR = path.resolve(process.cwd(), parseOutDir(process.argv.slice(2)) || process.env.SITEMAP_OUT_DIR || "public")
 const PROGRAM_CHUNK_SIZE = 1000
 
 const sitemapProgramWhere = {
@@ -115,6 +116,7 @@ main()
 	})
 
 async function main() {
+	fs.mkdirSync(PUBLIC_DIR, { recursive: true })
 	const [programs, universities, blogPosts] = await Promise.all([
 		prisma.degreeProgram.findMany({
 			where: sitemapProgramWhere,
@@ -144,8 +146,16 @@ async function main() {
 		writeUrlSitemapIfNotEmpty(files, `sitemap-programs-${index + 1}.xml`, entries)
 	})
 
-	writeSitemapIndex("sitemap.xml", files.map((file) => ({ loc: absoluteUrl(`/${file}`), lastModified: now })))
-	console.log(`Generated sitemap index with ${files.length} child sitemaps and ${files.reduce((sum, file) => sum + countUrls(file), 0)} URLs.`)
+	writeSitemapIndex("sitemap.xml", files.map((file) => ({ loc: sitemapFileUrl(`/${file}`), lastModified: now })))
+	console.log(`Generated sitemap index in ${PUBLIC_DIR} with ${files.length} child sitemaps and ${files.reduce((sum, file) => sum + countUrls(file), 0)} URLs.`)
+}
+
+function parseOutDir(args) {
+	const outDirIndex = args.indexOf("--out-dir")
+	if (outDirIndex !== -1) return args[outDirIndex + 1]
+	const outDirValue = args.find((arg) => arg.startsWith("--out-dir="))
+	if (outDirValue) return outDirValue.split("=", 2)[1]
+	return ""
 }
 
 function blogEntries(blogPosts) {
@@ -285,6 +295,11 @@ function blogPostPath(slug, locale = "en") {
 function absoluteUrl(pathname = "/") {
 	const cleanPath = pathname.startsWith("/") ? pathname : `/${pathname}`
 	return `${SITE_URL}${cleanPath}`
+}
+
+function sitemapFileUrl(pathname = "/") {
+	const cleanPath = pathname.startsWith("/") ? pathname : `/${pathname}`
+	return `${SITEMAP_FILE_BASE_URL}${cleanPath}`
 }
 
 function dbTranslationLocale(locale) {
