@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next"
 
-const sitemapBaseUrl = process.env.SITEMAP_BASE_URL || "https://sitemap.studyindach.cc"
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://studyindach.cc"
 
 export default function robots(): MetadataRoute.Robots {
 	return {
@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
 			allow: "/",
 			disallow: ["/admin"],
 		},
-		sitemap: new URL("/sitemap.xml", sitemapBaseUrl).toString(),
+		sitemap: new URL("/sitemap.xml", siteUrl).toString(),
 	}
 }

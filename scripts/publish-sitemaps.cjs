@@ -9,13 +9,12 @@ loadExternalEnv()
 const args = new Set(process.argv.slice(2))
 const onlyIfPlesk = args.has("--if-plesk")
 const optional = args.has("--optional")
+const MAX_SITEMAP_URLS = 50000
+const MAX_SITEMAP_BYTES = 50 * 1024 * 1024
 
 const canonicalBaseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL, "https://studyindach.cc")
 const outputDir = resolveOutputDir()
-const sitemapBaseUrl = normalizeBaseUrl(
-	process.env.SITEMAP_BASE_URL || inferSitemapBaseUrl(outputDir),
-	"https://sitemap.studyindach.cc",
-)
+const sitemapBaseUrl = normalizeSitemapBaseUrl(process.env.SITEMAP_BASE_URL, canonicalBaseUrl)
 
 try {
 	main()
@@ -27,11 +26,11 @@ try {
 function main() {
 	if (!outputDir) {
 		if (onlyIfPlesk) {
-			console.log("[sitemap:publish] no Plesk sitemap subdomain directory found; skipping")
+			console.log("[sitemap:publish] no Plesk public document root found; skipping")
 			return
 		}
 		throw new Error(
-			"Could not find a Plesk sitemap subdomain directory. Set SITEMAP_OUTPUT_DIR or run from /var/www/vhosts/studyindach.cc/httpdocs.",
+			"Could not find a sitemap output directory. Set SITEMAP_OUTPUT_DIR or run from the app root.",
 		)
 	}
 
@@ -49,6 +48,7 @@ function main() {
 
 	if (result.error) throw result.error
 	if (result.status !== 0) throw new Error(`Sitemap generation failed with exit code ${result.status}`)
+	validateGeneratedSitemaps(outputDir)
 
 	fs.writeFileSync(
 		path.join(outputDir, "robots.txt"),
@@ -67,10 +67,10 @@ function main() {
 
 function resolveOutputDir() {
 	if (process.env.SITEMAP_OUTPUT_DIR) return path.resolve(process.env.SITEMAP_OUTPUT_DIR)
+	if (!onlyIfPlesk) return path.join(process.cwd(), "public")
 
 	const cwd = process.cwd()
 	const hostname = new URL(canonicalBaseUrl).hostname.replace(/^www\./, "")
-	const sitemapDirName = `sitemap.${hostname}`
 	const candidates = []
 	let current = cwd
 
@@ -78,34 +78,27 @@ function resolveOutputDir() {
 		const base = path.basename(current)
 		const parent = path.dirname(current)
 
-		if (base === "httpdocs") candidates.push(path.join(parent, sitemapDirName))
-		if (base === hostname) candidates.push(path.join(current, sitemapDirName))
-		candidates.push(path.join(parent, sitemapDirName))
-		candidates.push(path.join(current, sitemapDirName))
+		if (base === "httpdocs") candidates.push(path.join(current, "public"))
+		if (base === hostname) candidates.push(path.join(current, "httpdocs", "public"))
 
 		if (parent === current) break
 		current = parent
 	}
 
-	return dedupe(candidates).find((candidate) => looksLikePleskSitemapDir(candidate))
+	return dedupe(candidates).find((candidate) => looksLikePleskPublicDir(candidate, hostname))
 }
 
-function looksLikePleskSitemapDir(candidate) {
+function looksLikePleskPublicDir(candidate, hostname) {
 	const normalized = path.normalize(candidate)
 	const parts = normalized.split(path.sep).filter(Boolean)
 	return (
 		parts.includes("vhosts") &&
-		path.basename(normalized).startsWith("sitemap.") &&
+		parts.includes(hostname) &&
+		path.basename(normalized) === "public" &&
+		path.basename(path.dirname(normalized)) === "httpdocs" &&
 		fs.existsSync(normalized) &&
 		fs.statSync(normalized).isDirectory()
 	)
-}
-
-function inferSitemapBaseUrl(dir) {
-	if (!dir) return null
-	const name = path.basename(path.normalize(dir))
-	if (!name.startsWith("sitemap.")) return null
-	return `https://${name}`
 }
 
 function normalizeBaseUrl(value, fallback) {
@@ -118,6 +111,90 @@ function normalizeBaseUrl(value, fallback) {
 	} catch {
 		return fallback
 	}
+}
+
+function normalizeSitemapBaseUrl(value, fallback) {
+	const normalized = normalizeBaseUrl(value, fallback)
+	try {
+		const url = new URL(normalized)
+		const canonicalUrl = new URL(canonicalBaseUrl)
+		if (url.protocol !== "https:" || url.hostname !== canonicalUrl.hostname) return canonicalBaseUrl
+		return normalized
+	} catch {
+		return canonicalBaseUrl
+	}
+}
+
+function validateGeneratedSitemaps(dir) {
+	const indexPath = path.join(dir, "sitemap.xml")
+	if (!fs.existsSync(indexPath)) throw new Error("Generated sitemap index is missing")
+	const indexXml = fs.readFileSync(indexPath, "utf8")
+	validateSitemapIndexXml(indexXml)
+	for (const loc of extractSitemapLocs(indexXml)) {
+		const url = new URL(loc)
+		const filePath = path.join(dir, url.pathname.replace(/^\/+/, ""))
+		if (!fs.existsSync(filePath)) throw new Error(`Sitemap index references missing file: ${url.pathname}`)
+		validateUrlSetXml(fs.readFileSync(filePath, "utf8"), url)
+	}
+}
+
+function validateSitemapIndexXml(xml) {
+	const locs = extractSitemapLocs(xml)
+	if (locs.length === 0) throw new Error("Sitemap index does not contain child sitemap <loc> entries")
+	for (const loc of locs) {
+		const url = new URL(loc)
+		if (url.origin !== canonicalBaseUrl) throw new Error(`Sitemap index contains non-canonical child URL: ${loc}`)
+		if (!url.pathname.startsWith("/sitemaps/") || !url.pathname.endsWith(".xml")) {
+			throw new Error(`Sitemap index child URL is not under /sitemaps/: ${loc}`)
+		}
+	}
+}
+
+function validateUrlSetXml(xml, sourceUrl) {
+	const byteLength = Buffer.byteLength(xml, "utf8")
+	if (byteLength > MAX_SITEMAP_BYTES) throw new Error(`${sourceUrl} is larger than 50 MB uncompressed`)
+	if (!/<urlset\b/i.test(xml)) throw new Error(`${sourceUrl} is not a sitemap URL set`)
+
+	const locs = extractLocs(xml)
+	if (locs.length === 0) throw new Error(`${sourceUrl} does not contain any sitemap URL entries`)
+	if (locs.length > MAX_SITEMAP_URLS) throw new Error(`${sourceUrl} contains ${locs.length} URLs, above the 50,000 sitemap limit`)
+
+	for (const loc of locs) {
+		const url = new URL(loc)
+		if (url.origin !== canonicalBaseUrl) throw new Error(`${sourceUrl} contains non-canonical URL: ${loc}`)
+		if (url.hash) throw new Error(`${sourceUrl} contains URL with hash: ${loc}`)
+		if (/^\/admin(?:\/|$)/.test(url.pathname)) throw new Error(`${sourceUrl} contains admin URL: ${loc}`)
+	}
+	for (const lastmod of extractLastmods(xml)) {
+		if (!isValidSitemapLastmod(lastmod)) throw new Error(`${sourceUrl} contains invalid lastmod date: ${lastmod}`)
+	}
+}
+
+function extractLocs(xml) {
+	return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => decodeXml(match[1]).trim())
+}
+
+function extractSitemapLocs(xml) {
+	return extractLocs(xml).filter((loc) => new URL(loc).pathname.endsWith(".xml"))
+}
+
+function extractLastmods(xml) {
+	return [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((match) => decodeXml(match[1]).trim())
+}
+
+function isValidSitemapLastmod(value) {
+	if (!value) return false
+	const date = new Date(value)
+	return !Number.isNaN(date.getTime()) && /^\d{4}-\d{2}-\d{2}T/.test(value)
+}
+
+function decodeXml(value) {
+	return value
+		.replace(/&amp;/g, "&")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&quot;/g, "\"")
+		.replace(/&apos;/g, "'")
 }
 
 function dedupe(values) {

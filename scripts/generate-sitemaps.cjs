@@ -5,8 +5,9 @@ const { PrismaClient } = require("@prisma/client")
 
 const prisma = new PrismaClient()
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://studyindach.cc").replace(/\/$/, "")
-const SITEMAP_FILE_BASE_URL = (process.env.SITEMAP_BASE_URL || "https://sitemap.studyindach.cc").replace(/\/$/, "")
+const SITEMAP_FILE_BASE_URL = normalizeSitemapFileBaseUrl(process.env.SITEMAP_BASE_URL)
 const PUBLIC_DIR = path.resolve(process.cwd(), parseOutDir(process.argv.slice(2)) || process.env.SITEMAP_OUT_DIR || "public")
+const SITEMAP_DIR = "sitemaps"
 const PROGRAM_CHUNK_SIZE = 1000
 
 const sitemapProgramWhere = {
@@ -135,15 +136,15 @@ async function main() {
 	const files = []
 	clearGeneratedSitemaps()
 
-	files.push(writeUrlSitemap("sitemap-static.xml", [
+	files.push(writeUrlSitemap(`${SITEMAP_DIR}/static.xml`, [
 		...staticPaths.map((item) => entry(item, now)),
 		...filterPaths.map((item) => entry(item, now)),
 	]))
-	writeUrlSitemapIfNotEmpty(files, "sitemap-blog.xml", blogEntries(blogPosts))
-	writeUrlSitemapIfNotEmpty(files, "sitemap-universities.xml", universityEntries(universities, now))
+	writeUrlSitemapIfNotEmpty(files, `${SITEMAP_DIR}/blog.xml`, blogEntries(blogPosts))
+	writeUrlSitemapIfNotEmpty(files, `${SITEMAP_DIR}/universities.xml`, universityEntries(universities, now))
 
 	chunk(programEntries(programs, now), PROGRAM_CHUNK_SIZE).forEach((entries, index) => {
-		writeUrlSitemapIfNotEmpty(files, `sitemap-programs-${index + 1}.xml`, entries)
+		writeUrlSitemapIfNotEmpty(files, `${SITEMAP_DIR}/programs-${String(index + 1).padStart(4, "0")}.xml`, entries)
 	})
 
 	writeSitemapIndex("sitemap.xml", files.map((file) => ({ loc: sitemapFileUrl(`/${file}`), lastModified: now })))
@@ -231,7 +232,7 @@ function writeUrlSitemap(fileName, entries) {
 		"</urlset>",
 		"",
 	].join("\n")
-	fs.writeFileSync(path.join(PUBLIC_DIR, fileName), xml)
+	writeXmlFile(fileName, xml)
 	return fileName
 }
 
@@ -253,7 +254,7 @@ function writeSitemapIndex(fileName, entries) {
 		"</sitemapindex>",
 		"",
 	].join("\n")
-	fs.writeFileSync(path.join(PUBLIC_DIR, fileName), xml)
+	writeXmlFile(fileName, xml)
 }
 
 function renderUrl(entry) {
@@ -300,6 +301,20 @@ function absoluteUrl(pathname = "/") {
 function sitemapFileUrl(pathname = "/") {
 	const cleanPath = pathname.startsWith("/") ? pathname : `/${pathname}`
 	return `${SITEMAP_FILE_BASE_URL}${cleanPath}`
+}
+
+function normalizeSitemapFileBaseUrl(value) {
+	try {
+		const url = new URL(value || SITE_URL)
+		const canonicalUrl = new URL(SITE_URL)
+		if (url.protocol !== "https:" || url.hostname !== canonicalUrl.hostname) return SITE_URL
+		url.pathname = url.pathname.replace(/\/+$/, "")
+		url.search = ""
+		url.hash = ""
+		return url.toString().replace(/\/$/, "")
+	} catch {
+		return SITE_URL
+	}
 }
 
 function dbTranslationLocale(locale) {
@@ -360,9 +375,21 @@ function clearGeneratedSitemaps() {
 			fs.unlinkSync(path.join(PUBLIC_DIR, file))
 		}
 	}
+	const sitemapDir = path.join(PUBLIC_DIR, SITEMAP_DIR)
+	if (fs.existsSync(sitemapDir)) {
+		for (const file of fs.readdirSync(sitemapDir)) {
+			if (/\.xml$/.test(file)) fs.unlinkSync(path.join(sitemapDir, file))
+		}
+	}
 }
 
 function countUrls(fileName) {
 	const value = fs.readFileSync(path.join(PUBLIC_DIR, fileName), "utf8")
 	return (value.match(/<url>/g) || []).length
+}
+
+function writeXmlFile(fileName, xml) {
+	const targetPath = path.join(PUBLIC_DIR, fileName)
+	fs.mkdirSync(path.dirname(targetPath), { recursive: true })
+	fs.writeFileSync(targetPath, xml)
 }

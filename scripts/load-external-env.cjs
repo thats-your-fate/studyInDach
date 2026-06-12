@@ -4,6 +4,8 @@ const path = require("node:path")
 const ENV_FILE_CANDIDATES = [
 	process.env.EXTERNAL_ENV_FILE,
 	process.env.STUDYINDACH_ENV_FILE,
+	path.join(process.cwd(), ".env.local"),
+	path.join(process.cwd(), ".env"),
 	"/var/www/vhosts/studyindach.cc/private/.env",
 	"/home/yaro/project-env/studyInDach.env",
 ].filter(Boolean)
